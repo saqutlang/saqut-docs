@@ -4,21 +4,63 @@ import starlight from '@astrojs/starlight';
 
 // https://astro.build/config
 export default defineConfig({
+	site: 'https://abdussamedulutas.github.io/saqut',
 	integrations: [
 		starlight({
-			title: 'My Docs',
-			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/withastro/starlight' }],
+			title: 'saQut',
+			social: [
+				{ icon: 'github', label: 'GitHub', href: 'https://github.com/abdussamedulutas/saqut' },
+			],
 			sidebar: [
 				{
-					label: 'Guides',
+					label: 'Start Here',
 					items: [
-						// Each item here is one entry in the navigation menu.
-						{ label: 'Example Guide', slug: 'guides/example' },
+						{ label: 'Getting Started', slug: 'getting-started' },
+						{ label: 'Variables', slug: 'variables' },
+						{ label: 'Data Types', slug: 'data-types' },
+						{ label: 'Operators', slug: 'operators' },
 					],
 				},
 				{
-					label: 'Reference',
-					items: [{ autogenerate: { directory: 'reference' } }],
+					label: 'Control Flow',
+					items: [
+						{ label: 'if / else', slug: 'if-else' },
+						{ label: 'switch / case', slug: 'switch' },
+						{ label: 'for Loop', slug: 'loops/for-loop' },
+						{ label: 'while Loop', slug: 'loops/while-loop' },
+						{ label: 'do-while Loop', slug: 'loops/do-while-loop' },
+					],
+				},
+				{
+					label: 'Functions & Data',
+					items: [
+						{ label: 'Functions', slug: 'functions' },
+						{ label: 'Structs', slug: 'structs' },
+						{ label: 'Arrays', slug: 'arrays' },
+						{ label: 'Strings', slug: 'strings' },
+					],
+				},
+				{
+					label: 'Built-ins & Modules',
+					items: [
+						{ label: 'Built-in Functions', slug: 'builtin-functions' },
+						{ label: 'Modules (import / export)', slug: 'modules' },
+					],
+				},
+				{
+					label: 'Advanced',
+					items: [
+						{ label: 'Error Handling', slug: 'error-handling' },
+						{ label: 'Compiler Errors', slug: 'compiler-errors' },
+					],
+				},
+				{
+					label: 'Under the Hood',
+					items: [
+						{ label: 'Compiler Tools', slug: 'compiler-tools' },
+						{ label: 'Optimization', slug: 'optimization' },
+						{ label: 'Garbage Collection', slug: 'garbage-collection' },
+					],
 				},
 			],
 		}),

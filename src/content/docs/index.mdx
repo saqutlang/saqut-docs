@@ -1,40 +1,149 @@
 ---
-title: Welcome to Starlight
-description: Get started building your docs site with Starlight.
-template: splash # Remove or comment out this line to display the site sidebar on this page.
+title: saQut
+description: A procedural language whose compiler is a glass box where every phase (tokens, AST, symbols, IR) is inspectable, pipeable, and machine-readable.
+template: splash
 hero:
-  tagline: Congrats on setting up a new Starlight project!
-  image:
-    file: ../../assets/houston.webp
+  tagline: A small, procedural language whose compiler is a <em>glass box</em>. Every phase (tokens, AST, symbols, IR) is a named, inspectable, machine-readable output.
   actions:
-    - text: Example Guide
-      link: /guides/example/
+    - text: Get Started
+      link: /getting-started/
       icon: right-arrow
-    - text: Read the Starlight docs
-      link: https://starlight.astro.build
+      variant: primary
+    - text: Built-in Functions
+      link: /builtin-functions/
+      icon: open-book
+      variant: minimal
+    - text: View on GitHub
+      link: https://github.com/abdussamedulutas/saqut
       icon: external
       variant: minimal
 ---
 
-import { Card, CardGrid } from '@astrojs/starlight/components';
+import { Card, CardGrid, LinkCard, Steps } from '@astrojs/starlight/components';
 
-## Next steps
+## Not a black box (a glass box)
+
+Most compilers hide everything between source and output. saQut turns the
+pipeline inside out: **every stage is a first-class command** you can run,
+inspect, and pipe into your own tools.
+
+```bash
+saqut tokens  hello.sqt     # token stream      (JSON)
+saqut ast     hello.sqt     # abstract syntax tree (JSON)
+saqut symbols hello.sqt     # symbol table      (JSON)
+saqut ir      hello.sqt     # 3-address IR
+saqut run     hello.sqt     # compile & execute
+```
+
+The language itself is deliberately small and C-flavoured; it's the vehicle.
+The product is the **inspectable pipeline**.
+
+---
+
+## Your first program
+
+<Steps>
+
+1. **Write** a file called `hello.sqt`:
+
+   ```c
+   int main() {
+       print("Hello, saQut!");
+       return 0;
+   }
+   ```
+
+2. **Run** it (no `class` or boilerplate needed); execution starts at `main`:
+
+   ```bash
+   saqut run hello.sqt
+   ```
+
+3. **Look inside** at any stage you're curious about:
+
+   ```bash
+   saqut ast hello.sqt --format=json
+   ```
+
+</Steps>
+
+Ready to go deeper? The [Getting Started](/getting-started/) guide walks through
+building the compiler and writing real programs.
+
+---
+
+## A glimpse of the language
+
+```c
+int fibonacci(int n) {
+    if (n <= 1) {
+        return n;
+    }
+    return fibonacci(n - 1) + fibonacci(n - 2);
+}
+
+int main() {
+    print(fibonacci(10));   // 55
+    return 0;
+}
+```
+
+Just functions, control flow, and `print()`. No mandatory scaffolding.
+
+---
+
+## What makes saQut different
 
 <CardGrid stagger>
-	<Card title="Update content" icon="pencil">
-		Edit `src/content/docs/index.mdx` to see this page change.
-	</Card>
-	<Card title="Change page layout" icon="document">
-		Delete `template: splash` in `src/content/docs/index.mdx` to display a
-		sidebar on this page.
-	</Card>
-	<Card title="Add new content" icon="add-document">
-		Add Markdown or MDX files to `src/content/docs` to create new pages.
-	</Card>
-	<Card title="Configure your site" icon="setting">
-		Edit your `sidebar` and other config in `astro.config.mjs`.
-	</Card>
-	<Card title="Read the docs" icon="open-book">
-		Learn more in [the Starlight Docs](https://starlight.astro.build/).
-	</Card>
+  <Card title="Glass box pipeline" icon="open-book">
+    Tokens, AST, symbol table, and IR are each a named, machine-readable
+    output. Pipe `saqut ast` into your own tool, diff the optimized tree, or
+    write an LSP from `saqut symbols` alone.
+  </Card>
+  <Card title="Procedural & explicit" icon="pencil">
+    C-family syntax. No OOP, no generics, no hidden type coercion. Integer and
+    float mixing follows one clear rule. What you write is what runs.
+  </Card>
+  <Card title="Value & reference, no pointers" icon="setting">
+    Primitives (`int`, `float`, `bool`, `byte`) copy. Compounds (`string`,
+    `struct`, `array`) share by reference. No user-visible `&` or `*`.
+  </Card>
+  <Card title="Null safety, zero runtime cost" icon="approve-check">
+    Nullable is opt-in with <code>T?</code>. The compiler proves non-null values
+    are safe before you can use them, all verified at compile time.
+  </Card>
+  <Card title="Deterministic VM" icon="random">
+    The bytecode VM is the reference backend: same input, same output, every
+    time. LLVM is intentionally not used. A MIR JIT and embedded-runtime AOT are
+    planned next.
+  </Card>
+  <Card title="Catchable errors" icon="error">
+    <code>try</code> / <code>catch</code> / <code>throw</code> with struct-based
+    errors. Out-of-bounds, divide-by-zero, and null derefs are catchable: they
+    never silently crash the program.
+  </Card>
 </CardGrid>
+
+---
+
+## Start learning
+
+<CardGrid>
+  <LinkCard title="Data Types" href="/data-types/" description="int, float, bool, byte, string, struct, array, nullable, and the type-promotion rules." />
+  <LinkCard title="Operators" href="/operators/" description="Arithmetic, logic, bitwise, assignment, ternary, and the as cast, with a full precedence table." />
+  <LinkCard title="Built-in Functions" href="/builtin-functions/" description="Every string, array, and struct method explained from scratch with examples." />
+  <LinkCard title="Modules" href="/modules/" description="Split code across files with import / export, from a two-file program to dependency graphs." />
+  <LinkCard title="Error Handling" href="/error-handling/" description="Catch and throw runtime errors with try / catch / throw." />
+  <LinkCard title="Compiler Tools" href="/compiler-tools/" description="What tokens, AST, symbols, and IR are, and when to reach for each." />
+</CardGrid>
+
+---
+
+## The pipeline, end to end
+
+```
+Source → Tokenizer → Parser → AST → Symbol Collector → Type Checker
+  → Optimizer (constant folding + DCE) → IR Generator → Bytecode VM → output
+```
+
+Every arrow is a CLI command you can run and inspect.
