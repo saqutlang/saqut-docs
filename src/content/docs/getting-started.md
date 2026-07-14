@@ -3,15 +3,32 @@ title: Getting Started
 description: Install saQut and run your first program.
 ---
 
-Welcome to saQut. This guide walks through building the compiler, writing your
+Welcome to saQut. This guide walks through getting the compiler, writing your
 first program, and understanding the basic structure of a saQut project.
 
-## Build the Compiler
+## Get saQut
+
+import { LinkCard, CardGrid } from '@astrojs/starlight/components';
+
+<CardGrid>
+  <LinkCard
+    title="Build from source"
+    description="C++17, CMake ≥ 3.16, Ninja. Step-by-step build instructions in the README."
+    href="https://github.com/saqutlang/saqut#readme"
+  />
+  <LinkCard
+    title="Download a release"
+    description="Pre-built binaries for Linux x86-64. Grab the latest version from GitHub Releases."
+    href="https://github.com/saqutlang/saqut/releases"
+  />
+</CardGrid>
+
+### Build from source (terminal)
 
 saQut requires **C++17**, **CMake ≥ 3.16**, and **Ninja**.
 
 ```bash
-git clone https://github.com/abdussamedulutas/saqut
+git clone https://github.com/saqutlang/saqut
 cd saqut
 cmake -B build -G Ninja
 cmake --build build

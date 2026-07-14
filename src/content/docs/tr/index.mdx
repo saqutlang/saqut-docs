@@ -1,0 +1,153 @@
+---
+title: saQut
+description: Derleyicisinin her aşaması (token, AST, sembol tablosu, IR) ayrı ayrı incelenebilen, dışa aktarılabilen ve başka araçlara bağlanabilen prosedürel bir programlama dili.
+template: splash
+hero:
+  tagline: "Küçük, prosedürel bir dil. Ama asıl olay derleyicisinde: <em>her aşama şeffaf</em>. Token, AST, sembol tablosu, IR; hepsi isimlendirilmiş, okunabilir, makineye aktarılabilir."
+  actions:
+    - text: Başlayın
+      link: getting-started/
+      icon: right-arrow
+      variant: primary
+    - text: Yerleşik Fonksiyonlar
+      link: builtin-functions/
+      icon: open-book
+      variant: minimal
+    - text: GitHub'da Görüntüle
+      link: https://github.com/saqutlang/saqut
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid, LinkCard, Steps } from '@astrojs/starlight/components';
+
+## Kara kutu değil, şeffaf kutu
+
+Çoğu derleyici kaynak kod ile çalışan program arasındaki her şeyi gizler. saQut
+bunu tersine çevirir: **her aşama başlı başına bir komuttur**. Çalıştırır,
+inceler, çıktısını kendi aracınıza yönlendirirsiniz.
+
+```bash
+saqut tokens  hello.sqt     # token akışı        (JSON)
+saqut ast     hello.sqt     # soyut sözdizim ağacı (JSON)
+saqut symbols hello.sqt     # sembol tablosu       (JSON)
+saqut ir      hello.sqt     # 3 adresli ara kod
+saqut run     hello.sqt     # derle ve çalıştır
+```
+
+Dilin kendisi bilinçli olarak küçük ve C benzeri tutuldu; dil bir araç. Asıl
+ürün **içine bakabildiğiniz bu işlem zinciri**.
+
+---
+
+## İlk programınız
+
+<Steps>
+
+1. `hello.sqt` adında bir dosya oluşturun:
+
+   ```c
+   int main() {
+       print("Merhaba saQut!");
+       return 0;
+   }
+   ```
+
+2. Çalıştırın (`class` veya hazır kalıp kod gerekmez; program `main` fonksiyonundan başlar):
+
+   ```bash
+   saqut run hello.sqt
+   ```
+
+3. Merak ettiğiniz herhangi bir aşamanın **içine bakın**:
+
+   ```bash
+   saqut ast hello.sqt --format=json
+   ```
+
+</Steps>
+
+Devam etmek ister misiniz? [Başlangıç](getting-started/) rehberi derleyiciyi
+kurmaktan gerçek programlar yazmaya kadar her şeyi adım adım anlatıyor.
+
+---
+
+## Kısa bir bakış
+
+```c
+int fibonacci(int n) {
+    if (n <= 1) {
+        return n;
+    }
+    return fibonacci(n - 1) + fibonacci(n - 2);
+}
+
+int main() {
+    print(fibonacci(10));   // 55
+    return 0;
+}
+```
+
+Fonksiyonlar, kontrol akışı ve `print()`. Hepsi bu. Zorunlu tören kodu yok.
+
+---
+
+## saQut'u farklı kılan nedir
+
+<CardGrid stagger>
+  <Card title="Şeffaf işlem zinciri" icon="open-book">
+    Token, AST, sembol tablosu ve ara kodun her biri isimlendirilmiş ve
+    makinece okunabilir bir çıktıdır. `saqut ast` çıktısını kendi aracınıza
+    yönlendirin, optimize edilmiş ağacı karşılaştırın ya da yalnızca
+    `saqut symbols` çıktısıyla bir LSP yazın.
+  </Card>
+  <Card title="Prosedürel ve açık" icon="pencil">
+    C ailesi sözdizimi. Nesne yönelimi yok, jenerik tip yok, gizli tip
+    dönüşümü yok. `int` ile `float` karıştığında tek bir net kural geçerli.
+    Yazdığınız şey çalışan şeydir.
+  </Card>
+  <Card title="Değer ve referans, işaretçi yok" icon="setting">
+    Temel tipler (`int`, `float`, `bool`, `byte`) kopyalanır. Bileşik tipler
+    (`string`, `struct`, `array`) referans ile paylaşılır. Programcının
+    görebileceği `&` veya `*` yoktur.
+  </Card>
+  <Card title="Null güvenliği, sıfır maliyet" icon="approve-check">
+    Nullable olmak isteğe bağlıdır: <code>T?</code>. Derleyici, null olamaz
+    bir değeri siz daha kullanmadan güvenli olduğunu kanıtlar. Tamamı derleme
+    zamanında, çalışma anına hiçbir yük binmeden.
+  </Card>
+  <Card title="Belirlenimci sanal makine" icon="random">
+    Referans arka uç bir bytecode sanal makinesidir: aynı girdi her zaman aynı
+    çıktıyı verir. LLVM bilinçli olarak kullanılmaz. Sırada MIR tabanlı JIT
+    ve gömülü sistemler için AOT desteği var.
+  </Card>
+  <Card title="Yakalanabilir hatalar" icon="error">
+    <code>try</code> / <code>catch</code> / <code>throw</code> ile
+    struct tabanlı hata yönetimi. Sınır aşımı, sıfıra bölme ve null
+    referans hataları yakalanabilir; programı sessizce çökertmez.
+  </Card>
+</CardGrid>
+
+---
+
+## Öğrenmeye başlayın
+
+<CardGrid>
+  <LinkCard title="Veri Tipleri" href="data-types/" description="int, float, bool, byte, string, struct, array, nullable ve tip yükseltme kuralları." />
+  <LinkCard title="Operatörler" href="operators/" description="Aritmetik, mantıksal, bitsel, atama, üçlü ve as dönüşümü; tam öncelik tablosuyla birlikte." />
+  <LinkCard title="Yerleşik Fonksiyonlar" href="builtin-functions/" description="Her string, array ve struct metodu örneklerle sıfırdan anlatılıyor." />
+  <LinkCard title="Modüller" href="modules/" description="Kodu import/export ile dosyalara bölün; iki dosyalı programdan bağımlılık çizgelerine kadar." />
+  <LinkCard title="Hata Yönetimi" href="error-handling/" description="try / catch / throw ile çalışma zamanı hatalarını yakalayın ve fırlatın." />
+  <LinkCard title="Derleyici Araçları" href="compiler-tools/" description="Token, AST, sembol ve IR nedir, her birine ne zaman başvurmalısınız." />
+</CardGrid>
+
+---
+
+## İşlem zinciri, uçtan uca
+
+```
+Kaynak → Sözcük Analizi → Sözdizimi Analizi → AST → Sembol Toplama → Tip Denetimi
+  → Optimizasyon (sabit katlama + ölü kod temizliği) → Ara Kod → Bytecode VM → çıktı
+```
+
+Her ok, çalıştırıp inceleyebileceğiniz bir CLI komutudur.
