@@ -1,11 +1,13 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
+import sitemap from '@astrojs/sitemap';
 
 // https://astro.build/config
 export default defineConfig({
-	site: 'https://abdussamedulutas.github.io/saqut',
+	site: 'https://saqut.com',
 	integrations: [
+		sitemap(),
 		starlight({
 			title: 'saQut',
 			defaultLocale: 'root',

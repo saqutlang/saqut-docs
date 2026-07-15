@@ -62,8 +62,8 @@ x = x + 3;    // x artık 13
 
 Değişken adları şunları içerebilir:
 
-- Harfler (`a`–`z`, `A`–`Z`)
-- Rakamlar (`0`–`9`)
+- Harfler (`a`-`z`, `A`-`Z`)
+- Rakamlar (`0`-`9`)
 - Alt çizgi (`_`)
 - Dolar işareti (`$`)
 
@@ -152,5 +152,5 @@ int b = a + 5;    // GEÇERLİ, 'a' 0 olduğundan 'b' 5 olur
 
 ## Sırada Ne Var?
 
-- saQut'taki tüm [veri türlerini](data-types/) görün
-- Değerlerle çalışmak için [işleçleri](operators/) öğrenin
+- saQut'taki tüm [veri türlerini](/tr/data-types/) görün
+- Değerlerle çalışmak için [işleçleri](/tr/operators/) öğrenin

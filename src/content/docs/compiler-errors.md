@@ -41,7 +41,7 @@ E002`) will be able to expand on it.
 
 ---
 
-## Semantic errors (E001–E011)
+## Semantic errors (E001-E011)
 
 These are caught after parsing, while the compiler is checking names, types,
 and structure.
@@ -197,7 +197,7 @@ int main() {
 
 ---
 
-## Syntax errors (E901–E904)
+## Syntax errors (E901-E904)
 
 These come from the **parser**, the code doesn't form valid saQut grammar.
 When the parser hits one, it reports the error and then tries to recover
@@ -213,7 +213,7 @@ instead of stopping at the first.
 
 ---
 
-## Warnings (W001–W006)
+## Warnings (W001-W006)
 
 Warnings never stop the build. They point at code that is legal but probably
 not what you meant.

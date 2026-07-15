@@ -167,7 +167,7 @@ if (name.startsWith("sa")) {
 - `string` bir değer tipi gibi davranır: `==` içeriği karşılaştırır
 - Dahili olarak string'ler kısa olduklarında satır içinde (inline), uzun
   olduklarında heap'te saklanır
-- UTF-8 kodlaması: ASCII olmayan bir karakter 1–4 byte uzunluğunda olabilir.
+- UTF-8 kodlaması: ASCII olmayan bir karakter 1-4 byte uzunluğunda olabilir.
   Mevcut yerleşikler (`length()`, `substring()`, `charAt()`, `indexOf()`)
   **byte** bazında çalışır; bu yüzden ASCII metin için bir indis = bir
   karakterdir, ancak aksanlı veya Latin olmayan metinlerde tek bir karakter

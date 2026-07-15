@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
-    "build": "astro build",
+    "build": "astro build && python3 scripts/build-assets.py",
     "preview": "astro preview",
     "astro": "astro"
   },

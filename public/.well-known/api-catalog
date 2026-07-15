@@ -1,0 +1,21 @@
+{
+  "linkset": [
+    {
+      "anchor": "https://saqut.com/",
+      "service-doc": [
+        {
+          "href": "https://saqut.com/",
+          "title": "saQut Documentation",
+          "type": "text/html"
+        }
+      ],
+      "status": [
+        {
+          "href": "https://github.com/saqutlang/saqut",
+          "title": "GitHub Repository (CI/Release status)",
+          "type": "text/html"
+        }
+      ]
+    }
+  ]
+}

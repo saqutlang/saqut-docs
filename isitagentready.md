@@ -1,15 +1,3 @@
-Goal: Publish /robots.txt with clear crawl rules
-
-Issue: robots.txt not found
-
-Fix: Create /robots.txt at the site root with explicit User-agent directives and allow/disallow rules for key paths. Ensure it is plain text and returns 200.
-
-Skill: https://isitagentready.com/.well-known/agent-skills/robots-txt/SKILL.md
-
-Docs: https://www.rfc-editor.org/rfc/rfc9309
-
----
-
 Goal: Include Link response headers for agent discovery (RFC 8288)
 
 Issue: No Link headers found on homepage
@@ -20,7 +8,8 @@ Skill: https://isitagentready.com/.well-known/agent-skills/link-headers/SKILL.md
 
 Docs: https://www.rfc-editor.org/rfc/rfc8288, https://www.rfc-editor.org/rfc/rfc9727#section-3
 
----
+------
+
 
 Goal: Publish DNS for AI Discovery (DNS-AID) records for DNS-based agent discovery
 
@@ -32,7 +21,9 @@ Skill: https://isitagentready.com/.well-known/agent-skills/dns-aid/SKILL.md
 
 Docs: https://datatracker.ietf.org/doc/draft-mozleywilliams-dnsop-dnsaid/, https://www.rfc-editor.org/rfc/rfc9460
 
----
+
+-------------
+
 
 Goal: Return HTML responses as markdown when agents request it
 
@@ -44,32 +35,22 @@ Skill: https://isitagentready.com/.well-known/agent-skills/markdown-negotiation/
 
 Docs: https://developers.cloudflare.com/fundamentals/reference/markdown-for-agents/
 
----
+-------------
 
-Goal: Add User-agent rules for AI crawlers like GPTBot, Claude-Web, and others
 
-Issue: Cannot check AI rules without robots.txt
+Goal: Let your site identify itself as a bot with Web Bot Auth
 
-Fix: Add explicit User-agent entries for AI crawlers (GPTBot, OAI-SearchBot, Claude-Web, Google-Extended) with allow/disallow rules that match your policy.
+Note: Web Bot Auth directory not found (informational only)
 
-Skill: https://isitagentready.com/.well-known/agent-skills/ai-rules/SKILL.md
+Fix: Publish a JWKS at /.well-known/http-message-signatures-directory so your site can identify itself when it sends bot or agent requests. Receiving sites can use it to verify those signed requests.
 
-Docs: https://www.rfc-editor.org/rfc/rfc9309, https://developers.cloudflare.com/ai-crawl-control/
+Skill: https://isitagentready.com/.well-known/agent-skills/web-bot-auth/SKILL.md
 
----
+Docs: https://datatracker.ietf.org/wg/webbotauth/about/, https://developers.cloudflare.com/bots/reference/bot-verification/web-bot-auth/
 
-Goal: Declare AI content usage preferences with Content Signals in robots.txt
 
-Issue: Cannot check Content Signals without robots.txt
 
-Fix: Add Content-Signal directives to your robots.txt declaring preferences for ai-train, search, and ai-input. For example:
-Content-Signal: ai-train=no, search=yes, ai-input=no
-
-Skill: https://isitagentready.com/.well-known/agent-skills/content-signals/SKILL.md
-
-Docs: https://contentsignals.org/, https://datatracker.ietf.org/doc/draft-romm-aipref-contentsignals/
-
----
+---------------------
 
 Goal: Publish an API catalog for automated API discovery (RFC 9727)
 
@@ -81,7 +62,8 @@ Skill: https://isitagentready.com/.well-known/agent-skills/api-catalog/SKILL.md
 
 Docs: https://www.rfc-editor.org/rfc/rfc9727, https://www.rfc-editor.org/rfc/rfc9264
 
----
+-----------------
+
 
 Goal: Publish OAuth/OIDC discovery metadata so agents can authenticate with your APIs
 
@@ -93,7 +75,7 @@ Skill: https://isitagentready.com/.well-known/agent-skills/oauth-discovery/SKILL
 
 Docs: http://openid.net/specs/openid-connect-discovery-1_0.html, https://www.rfc-editor.org/rfc/rfc8414
 
----
+----------------
 
 Goal: Publish OAuth Protected Resource Metadata so agents can discover how to authenticate
 
@@ -105,11 +87,13 @@ Skill: https://isitagentready.com/.well-known/agent-skills/oauth-protected-resou
 
 Docs: https://www.rfc-editor.org/rfc/rfc9728
 
----
+
+---------
+
 
 Goal: Publish Auth.md metadata for agent registration
 
-Issue: auth.md not found
+Issue: auth.md exists but is missing the expected Auth.md heading
 
 Fix: Serve /auth.md at the site root with agent registration instructions, publish /.well-known/oauth-protected-resource, and include an agent_auth block in /.well-known/oauth-authorization-server with register_uri, supported identity types, credential types, and claim/revocation URLs where applicable.
 
@@ -117,7 +101,9 @@ Skill: https://isitagentready.com/.well-known/agent-skills/auth-md/SKILL.md
 
 Docs: https://workos.com/auth-md, https://github.com/workos/auth.md
 
----
+--------
+
+
 
 Goal: Publish an MCP Server Card for agent discovery
 
@@ -129,7 +115,9 @@ Skill: https://isitagentready.com/.well-known/agent-skills/mcp-server-card/SKILL
 
 Docs: https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2127
 
----
+
+------------
+
 
 Goal: Publish an agent skills discovery index
 
@@ -141,7 +129,9 @@ Skill: https://isitagentready.com/.well-known/agent-skills/agent-skills/SKILL.md
 
 Docs: https://github.com/cloudflare/agent-skills-discovery-rfc, https://agentskills.io/
 
----
+
+--------------------
+
 
 Goal: Support WebMCP to expose site tools to AI agents via the browser
 
@@ -152,3 +142,44 @@ Fix: Implement the WebMCP API by calling navigator.modelContext.provideContext()
 Skill: https://isitagentready.com/.well-known/agent-skills/webmcp/SKILL.md
 
 Docs: https://webmachinelearning.github.io/webmcp/, https://developer.chrome.com/blog/webmcp-epp
+
+-----------
+
+Goal: Enable content payments via Universal Commerce Protocol
+
+Note: UCP profile not found (not a commerce site)
+
+Fix: Serve /.well-known/ucp with protocol version, services, capabilities, and endpoints, and ensure spec URLs and schemas are reachable.
+
+Skill: https://isitagentready.com/.well-known/agent-skills/ucp/SKILL.md
+
+Docs: https://ucp.dev/specification/overview/
+
+
+-----
+
+
+Goal: Support MPP (Machine Payment Protocol) for agent-native HTTP payments
+
+Note: MPP payment discovery not detected (not a commerce site)
+
+Fix: Publish an OpenAPI document at /openapi.json with x-payment-info extensions on payable operations. Each operation should declare intent (charge or session), method (tempo, stripe, lightning, card), amount, and currency. Use the MPP SDK (mppx for TypeScript, pympp for Python) with framework middleware for Hono, Express, Next.js, or Elysia to add MPP payment handling.
+
+Skill: https://isitagentready.com/.well-known/agent-skills/mpp/SKILL.md
+
+Docs: https://mpp.dev, https://paymentauth.org/draft-payment-discovery-00.txt
+
+
+-----
+
+
+Goal: Support x402 protocol for agent-native HTTP payments
+
+Note: x402 payment protocol not detected (not a commerce site)
+
+Fix: Add x402 payment middleware to your API routes to enable AI agents to pay for access via HTTP. Use @x402/express, @x402/hono, or @x402/next middleware with a facilitator URL and wallet address. Protected routes will return HTTP 402 with payment requirements that agents can fulfill automatically.
+
+Skill: https://isitagentready.com/.well-known/agent-skills/x402/SKILL.md
+
+Docs: https://x402.org, https://github.com/coinbase/x402, https://docs.x402.org
+

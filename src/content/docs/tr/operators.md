@@ -189,5 +189,5 @@ int? maybe = "3.14" as int?;  // null (dönüşüm başarısız)
 
 ## Sırada Ne Var?
 
-- [if-else](if-else/) yapısının karşılaştırma işleçlerini nasıl kullandığını görün
-- Tekrar için [döngüleri](loops/for-loop/) öğrenin
+- [if-else](/tr/if-else/) yapısının karşılaştırma işleçlerini nasıl kullandığını görün
+- Tekrar için [döngüleri](/tr/loops/for-loop/) öğrenin

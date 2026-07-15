@@ -85,7 +85,7 @@ print("Hello, World".upper());   // "HELLO, WORLD"
 print("Hello, World".lower());   // "hello, world"
 ```
 
-These transform **ASCII letters only** (`a`–`z` / `A`–`Z`). Accented and
+These transform **ASCII letters only** (`a`-`z` / `A`-`Z`). Accented and
 non-Latin letters pass through unchanged:
 
 ```c

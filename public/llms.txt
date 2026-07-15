@@ -1,0 +1,59 @@
+# saQut Documentation
+
+> saQut is a procedural programming language with an inspectable compiler pipeline.
+> This file provides a structured index for LLMs. Full content: [llms-full.txt](llms-full.txt)
+
+## English Pages
+
+- [Arrays](https://saqut.com/arrays/): Store a sequence of values of the same type.
+- [Built-in Functions](https://saqut.com/builtin-functions/): The complete reference for saQut's built-in methods on strings, arrays, and structs, each one explained from scratch with runnable examples.
+- [Compiler Errors & Warnings](https://saqut.com/compiler-errors/): Every diagnostic saQut can produce, what triggers it, what it means, and how to fix it. From "undefined variable" to circular modules.
+- [Compiler Tools, Tokens, AST, Symbols & IR](https://saqut.com/compiler-tools/): What are these things, why do they exist, and when would you use them?
+- [Data Types](https://saqut.com/data-types/): Every value in saQut has a type. Here is the complete list.
+- [Error Handling (try / catch / throw)](https://saqut.com/error-handling/): Catch and handle runtime errors in your code.
+- [Functions](https://saqut.com/functions/): Define, call, and return values from functions.
+- [Garbage Collection](https://saqut.com/garbage-collection/): How saQut reclaims memory with a simple, deterministic mark-sweep collector. When it runs, what survives, what gets freed, and how to watch it.
+- [Getting Started](https://saqut.com/getting-started/): Install saQut and run your first program.
+- [if / else](https://saqut.com/if-else/): Make decisions in your code with conditional branching.
+- [saQut](https://saqut.com/): A procedural language whose compiler is a glass box where every phase (tokens, AST, symbols, IR) is inspectable, pipeable, and machine-readable.
+- [Modules (import / export)](https://saqut.com/modules/): Split a program across multiple files with import and export, going from your first two-file program to diamond dependencies and cycle detection.
+- [Operators](https://saqut.com/operators/): Arithmetic, comparison, logical, bitwise, and assignment operators in saQut.
+- [Optimization](https://saqut.com/optimization/): What saQut's optimizer does and, just as importantly, what it deliberately does not. Constant folding, dead-code elimination, and how to inspect both.
+- [Strings](https://saqut.com/strings/): Working with text in saQut using immutable UTF-8 strings.
+- [Structs](https://saqut.com/structs/): Group multiple values into a single named type.
+- [switch / case](https://saqut.com/switch/): Compare one value against many cases, with automatic break, no fall-through, and support for int, float, bool, string, and enum.
+- [Variables](https://saqut.com/variables/): How to create, name, and use variables in saQut.
+- [do-while Loop](https://saqut.com/loops/do-while-loop/): Repeat code at least once, then check the condition.
+- [for Loop](https://saqut.com/loops/for-loop/): Repeat code a specific number of times.
+- [while Loop](https://saqut.com/loops/while-loop/): Repeat code as long as a condition is true.
+
+## Turkish Pages
+
+- [Diziler](https://saqut.com/tr/arrays/): Aynı tipteki değerleri sıralı olarak saklayın.
+- [Yerleşik Fonksiyonlar](https://saqut.com/tr/builtin-functions/): saQut'un string, dizi ve struct tipleri için sunduğu yerleşik metotların tam referansı; her biri sıfırdan, çalıştırılabilir örneklerle anlatılıyor.
+- [Derleyici Hataları ve Uyarıları](https://saqut.com/tr/compiler-errors/): saQut'un üretebileceği her tanı; neyin tetiklediği, anlamı ve nasıl düzeltileceği. "Tanımsız değişken"den döngüsel modüllere kadar.
+- [Derleyici Araçları, Token'lar, AST, Semboller ve IR](https://saqut.com/tr/compiler-tools/): Bunlar nedir, neden varlar ve ne zaman kullanırsınız?
+- [Veri Türleri](https://saqut.com/tr/data-types/): saQut'taki her değerin bir türü vardır. İşte tam liste.
+- [Hata Yönetimi (try / catch / throw)](https://saqut.com/tr/error-handling/): Kodunuzdaki çalışma zamanı hatalarını yakalayın ve yönetin.
+- [Fonksiyonlar](https://saqut.com/tr/functions/): Fonksiyon tanımlama, çağırma ve değer döndürme.
+- [Çöp Toplama](https://saqut.com/tr/garbage-collection/): saQut'un basit, belirleyici bir işaretle-süpür toplayıcı ile belleği nasıl geri kazandığı. Ne zaman çalışır, ne hayatta kalır, ne serbest bırakılır ve nasıl izlenir.
+- [Hızlı Başlangıç](https://saqut.com/tr/getting-started/): saQut'u kurun ve ilk programınızı çalıştırın.
+- [if / else](https://saqut.com/tr/if-else/): Koşullu dallanma ile kodunuzda kararlar verin.
+- [saQut](https://saqut.com/tr/): Derleyicisinin her aşaması (token, AST, sembol tablosu, IR) ayrı ayrı incelenebilen, dışa aktarılabilen ve başka araçlara bağlanabilen prosedürel bir programlama dili.
+- [Modüller (import / export)](https://saqut.com/tr/modules/): Programınızı import ve export ile birden çok dosyaya bölün; iki dosyalı ilk programınızdan baklava bağımlılıklarına ve döngü tespitine kadar her şey.
+- [İşleçler](https://saqut.com/tr/operators/): saQut'taki aritmetik, karşılaştırma, mantıksal, bitsel ve atama işleçleri.
+- [Optimizasyon](https://saqut.com/tr/optimization/): saQut'un optimize edicisinin yaptıkları ve en az onlar kadar önemli olan, bilinçli olarak yapmadıkları. Sabit katlama, ölü kod temizliği ve her ikisini de nasıl inceleyeceğiniz.
+- [String'ler (Metinler)](https://saqut.com/tr/strings/): Değişmez UTF-8 string'ler ile saQut'ta metinlerle çalışma.
+- [Struct'lar (Yapılar)](https://saqut.com/tr/structs/): Birden fazla değeri tek bir isimli tipte gruplandırın.
+- [switch / case](https://saqut.com/tr/switch/): Bir değeri çok sayıda durumla karşılaştırın; otomatik break, fall-through yok; int, float, bool, string ve enum desteklenir.
+- [Değişkenler](https://saqut.com/tr/variables/): saQut'ta değişkenleri nasıl oluşturacağınızı, adlandıracağınızı ve kullanacağınızı öğrenin.
+- [do-while Döngüsü](https://saqut.com/tr/loops/do-while-loop/): Kodu en az bir kez çalıştırın, sonra koşulu kontrol edin.
+- [for Döngüsü](https://saqut.com/tr/loops/for-loop/): Kodu belirli sayıda tekrarlayın.
+- [while Döngüsü](https://saqut.com/tr/loops/while-loop/): Bir koşul true olduğu sürece kodu tekrarlayın.
+
+## Additional Resources
+
+- [GitHub Repository](https://github.com/saqutlang/saqut)
+- [Compiler Tools Documentation](https://saqut.com/compiler-tools/)
+- [Getting Started](https://saqut.com/getting-started/)
+- [llms.txt specification](https://llmstxt.org/)

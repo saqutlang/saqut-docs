@@ -1,0 +1,41 @@
+{
+  "$schema": "https://agentskills.io/schema/v0.2.0/skills-index.json",
+  "skills": [
+    {
+      "name": "api-catalog",
+      "type": "discovery",
+      "description": "API catalog for automated API discovery (RFC 9727 / RFC 9264)",
+      "url": "https://saqut.com/.well-known/api-catalog"
+    },
+    {
+      "name": "mcp-server-card",
+      "type": "discovery",
+      "description": "MCP Server Card (SEP-1649) for saQut compiler tools",
+      "url": "https://saqut.com/.well-known/mcp/server-card.json"
+    },
+    {
+      "name": "auth-md",
+      "type": "authentication",
+      "description": "Agent authentication instructions for saQut public resources",
+      "url": "https://saqut.com/auth.md"
+    },
+    {
+      "name": "oauth-authorization-server",
+      "type": "authentication",
+      "description": "No OAuth 2.0 authorization server; all resources are public",
+      "url": "https://saqut.com/.well-known/oauth-authorization-server"
+    },
+    {
+      "name": "openid-configuration",
+      "type": "authentication",
+      "description": "No OpenID Connect provider; all resources are public",
+      "url": "https://saqut.com/.well-known/openid-configuration"
+    },
+    {
+      "name": "oauth-protected-resource",
+      "type": "authentication",
+      "description": "No OAuth-protected resources; all resources are public",
+      "url": "https://saqut.com/.well-known/oauth-protected-resource"
+    }
+  ]
+}

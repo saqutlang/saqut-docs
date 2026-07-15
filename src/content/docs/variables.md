@@ -61,8 +61,8 @@ x = x + 3;    // x is now 13
 
 Names can contain:
 
-- Letters (`a`–`z`, `A`–`Z`)
-- Digits (`0`–`9`)
+- Letters (`a`-`z`, `A`-`Z`)
+- Digits (`0`-`9`)
 - Underscore (`_`)
 - Dollar sign (`$`)
 

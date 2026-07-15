@@ -41,7 +41,7 @@ Kod kararlıdır: arayabilirsiniz ve gelecekteki araçlar (`saqut explain E002`)
 
 ---
 
-## Anlamsal hatalar (E001–E011)
+## Anlamsal hatalar (E001-E011)
 
 Bunlar çözümlemeden (parsing) sonra, derleyici isimleri, türleri ve yapıyı
 kontrol ederken yakalanır.
@@ -198,7 +198,7 @@ int main() {
 
 ---
 
-## Sözdizimi hataları (E901–E904)
+## Sözdizimi hataları (E901-E904)
 
 Bunlar **çözümleyiciden** (parser) gelir; kod geçerli saQut dilbilgisine
 uymaz. Çözümleyici bir hatayla karşılaştığında, hatayı bildirir ve sonra
@@ -214,7 +214,7 @@ yerine tek bir çalıştırmada *daha fazla* sorun bulmaya devam edebilir.
 
 ---
 
-## Uyarılar (W001–W006)
+## Uyarılar (W001-W006)
 
 Uyarılar derlemeyi asla durdurmaz. Yasal olan ama muhtemelen kastettiğiniz
 şey olmayan kodu işaret ederler.

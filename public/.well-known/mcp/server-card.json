@@ -1,0 +1,19 @@
+{
+  "@context": "https://schema.modelcontextprotocol.io/mcp-server-card/v1",
+  "serverInfo": {
+    "name": "saQut Compiler Tools",
+    "version": "1.0.0"
+  },
+  "transport": {
+    "type": "stdio",
+    "command": "saqut",
+    "args": ["serve"]
+  },
+  "capabilities": {
+    "tools": true,
+    "resources": true,
+    "prompts": false,
+    "logging": false
+  },
+  "description": "saQut is a procedural language with an inspectable compiler pipeline. Tokens, AST, symbols, and IR are each machine-readable CLI outputs."
+}

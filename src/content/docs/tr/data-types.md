@@ -178,9 +178,9 @@ string s = "Merhaba, saQut!";
 string empty = "";
 ```
 
-`string` anlamsal olarak bir değer türüdür (yazarken kopyalama — copy-on-write),
+`string` anlamsal olarak bir değer türüdür (yazarken kopyalama, copy-on-write),
 ancak çalışma zamanında bir referans türüdür. [Metinler hakkında daha
-fazlası...](strings/)
+fazlası...](/tr/strings/)
 
 ### `struct` (Alanlar Kümesi)
 
@@ -197,7 +197,7 @@ p.x = 10;
 p.y = 20;
 ```
 
-[Yapılar hakkında daha fazlası...](structs/)
+[Yapılar hakkında daha fazlası...](/tr/structs/)
 
 ### `Type[]` (Dizi)
 
@@ -208,7 +208,7 @@ int[] numbers = [1, 2, 3, 4, 5];
 string[] names = ["ali", "veli", "deli"];
 ```
 
-[Diziler hakkında daha fazlası...](arrays/)
+[Diziler hakkında daha fazlası...](/tr/arrays/)
 
 ## Nullable (Boşlanabilir) Türler
 
@@ -283,5 +283,5 @@ switch (c) {
 
 ## Sırada Ne Var?
 
-- [Değişkenleri](variables/) nasıl oluşturacağınızı ve kullanacağınızı öğrenin
-- [İşleçlerin](operators/) farklı türlerle nasıl çalıştığını görün
+- [Değişkenleri](/tr/variables/) nasıl oluşturacağınızı ve kullanacağınızı öğrenin
+- [İşleçlerin](/tr/operators/) farklı türlerle nasıl çalıştığını görün

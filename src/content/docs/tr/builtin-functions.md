@@ -87,7 +87,7 @@ print("Hello, World".upper());   // "HELLO, WORLD"
 print("Hello, World".lower());   // "hello, world"
 ```
 
-Bu ikisi **yalnızca ASCII harflerini** dönüştürür (`a`–`z` / `A`–`Z`). Aksanlı
+Bu ikisi **yalnızca ASCII harflerini** dönüştürür (`a`-`z` / `A`-`Z`). Aksanlı
 ve Latin olmayan harfler olduğu gibi geçer:
 
 ```c

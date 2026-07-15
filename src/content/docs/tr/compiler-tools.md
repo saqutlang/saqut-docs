@@ -98,7 +98,7 @@ saqut tokens hello.sqt
 
 ---
 
-## 2. AST (Soyut Sözdizimi Ağacı — `saqut ast`)
+## 2. AST (Soyut Sözdizimi Ağacı: `saqut ast`)
 
 ### AST nedir?
 
@@ -251,7 +251,7 @@ saqut ast hello.sqt --optimized    # optimize edilmiş AST'yi gör
 
 ---
 
-## 5. IR (Ara Gösterim — `saqut ir`)
+## 5. IR (Ara Gösterim: `saqut ir`)
 
 ### IR nedir?
 
