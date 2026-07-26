@@ -24,18 +24,58 @@ int d = 0b1010;    // ikilik, 10
 int e = 0777;      // sekizlik, 511
 ```
 
-Aralık: `-2.147.483.648` ile `2.147.483.647`
+Aralık: `-2.147.483.648` ile `2.147.483.647`. Taşma, tanımlı iki'nin tümleyeni
+(two's-complement) davranışıyla sarar (hata fırlatmaz). Daha geniş bir tam sayıya
+ihtiyacınız varsa `longint` kullanın.
 
-### `float` (Ondalıklı Sayı)
+### `longint` (64-bit Tam Sayı)
 
-32 bitlik ondalıklı sayı. `e` veya `E` ile bilimsel gösterim kullanabilirsiniz.
+64 bitlik işaretli tam sayı. `int` sınırına sığmayan değerler için (dosya
+boyutları, offset'ler, hash'ler, zaman damgaları).
+
+```c
+longint big = 9223372036854775807;   // int64 azami
+longint scaled = big + 1;            // -9223372036854775808'e sarar
+int small = 42;
+longint widened = small;             // int'ten longint'e kayıpsız, serbest
+```
+
+Aralık: `-9.223.372.036.854.775.808` ile `9.223.372.036.854.775.807`.
+
+`longint`, sayısal dönüşüm kulesinin dışında durur (bilinçli tercih). `int`
+değerini `longint`'e genişletmek kayıpsızdır ve örtük yapılır. Tersi (`longint`'ten
+`int`'e) ve `longint`'i `float`, `double` veya `decimal` ile karıştırmak açık bir
+`as` dönüşümü ister; çünkü bu dönüşümler veri kaybına yol açabilir ve saQut bunları
+sessizce yapmaz.
+
+### `float` (32-bit Ondalıklı Sayı)
+
+32 bitlik IEEE 754 tek hassasiyetli (single precision) sayı. Yaklaşık 7 anlamlı
+ondalık hane taşır, bu yüzden sonuçlar tek hassasiyet yuvarlamasını gösterir.
 
 ```c
 float x = 3.14;
 float y = 0.5;
-float z = 1e5;        // 100.000,0
-float w = 2.5e-3;     // 0,0025
+float f = 0.1;
+print(f + 0.2);       // 0.300000012 (tek hassasiyet)
 ```
+
+### `double` (64-bit Ondalıklı Sayı)
+
+64 bitlik IEEE 754 çift hassasiyetli (double precision) sayı, yaklaşık 15 ila 16
+anlamlı hane. `0.2` gibi çıplak bir ondalık literal varsayılan olarak `double`'dır;
+yalnızca bir `float` bağlamında `float` olur. `e` veya `E` ile bilimsel gösterim
+kullanabilirsiniz.
+
+```c
+double d = 0.1;
+print(d + 0.2);       // 0.3
+double z = 1e5;       // 100000.0
+double w = 2.5e-3;    // 0.0025
+```
+
+`float` ve `double` gerçek genişliklerinde saklanır, bu yüzden `double`'dan
+`float`'a dönüşüm hassasiyet kaybeder. Bu dönüşüm açık bir `as float` gerektirir.
 
 ### `bool` (Mantıksal)
 
@@ -99,6 +139,10 @@ Buna göre:
 - `int + float` → `float`
 - `float + double` → `double`
 - `byte + byte` → `int` (byte önce int'e yükseltilir)
+
+`longint` bu tabloda yer almaz. Kendi kuralı vardır: `longint + int`, `int`'i
+yükseltir ve `longint` verir; ama `longint`, açık bir dönüşüm olmadan `float`,
+`double` veya `decimal` ile karışmaz.
 
 #### Örneklerle Açıklama
 

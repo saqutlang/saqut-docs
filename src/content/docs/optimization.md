@@ -1,6 +1,6 @@
 ---
 title: Optimization
-description: What saQut's optimizer does and, just as importantly, what it deliberately does not. Constant folding, dead-code elimination, and how to inspect both.
+description: What saQut's optimizer does and what it deliberately does not do. Constant folding, dead-code elimination, and how to inspect both.
 ---
 
 After your program type-checks, saQut can run an **optimizer** that rewrites the
@@ -93,10 +93,10 @@ While reasoning about constants, the compiler can also warn about a constant
 
 ## What it does *not* do
 
-This part matters just as much. saQut's optimizer is **deliberately conservative**.
-The goal is "acceptable, predictable speed with a determinism guarantee," not
-"squeeze out every cycle." Knowing the boundaries means you won't expect a
-rewrite that doesn't come.
+The boundaries are as important as the transforms. saQut's optimizer is
+**deliberately conservative**. The goal is predictable speed with a determinism
+guarantee, not the removal of every possible cycle. Knowing what the optimizer
+leaves alone tells you what not to expect it to rewrite.
 
 ### Float expressions are not folded
 

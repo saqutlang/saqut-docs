@@ -1,15 +1,14 @@
 ---
-title: Built-in Functions
+title: Built-in Functions (UFCS)
 description: The complete reference for saQut's built-in methods on strings, arrays, and structs, each one explained from scratch with runnable examples.
 ---
 
-saQut ships with a set of **built-in functions** for the types you use most:
-strings, arrays, and structs. You don't import them and you don't define them,
-they are always available. This page explains every one of them from the ground
-up, with a runnable example for each.
+saQut provides a set of **built-in functions** on three types: strings, arrays,
+and structs. You do not import them and you do not define them; they are always
+available. This page documents each one with a runnable example.
 
-If you have never used a "method" before, start with the next section. If you
-just want the signatures, jump to the [quick reference tables](#quick-reference).
+If you have not used a "method" before, start with the next section. For the
+signatures on their own, jump to the [quick reference tables](#quick-reference).
 
 ## Calling a built-in
 
@@ -31,9 +30,9 @@ print(s.replace("world", "saQut"));   // s is the value; "world" and
                                        // "saQut" are the two arguments
 ```
 
-> **Not object-orientation.** The dot here is just convenient syntax. saQut has
-> no classes, objects, or methods-on-types in the OOP sense, `name.upper()` is
-> simply sugar for a plain function call that happens to read left to right.
+> **Not object-orientation.** The dot here is syntax only. saQut has no classes,
+> objects, or methods-on-types in the OOP sense; `name.upper()` is sugar for a
+> plain function call that reads left to right.
 
 Because most string built-ins return a new value, you can **chain** calls, each
 result flows into the next dot:
@@ -64,8 +63,8 @@ print("hello".length());    // 5
 print("".length());         // 0
 ```
 
-Counts the **bytes** in the string, and for plain English/ASCII text one byte =
-one character, so this is what you expect.
+Counts the **bytes** in the string. For plain English/ASCII text one byte = one
+character, so the byte count and the character count are the same.
 
 > **UTF-8 gotcha.** saQut stores text as UTF-8, where non-ASCII characters take
 > more than one byte. `length()` returns the **byte count**, not the number of
@@ -112,7 +111,7 @@ if (input.trim() == "yes") {
 
 ### `replace(old, new)` (swap text, everywhere)
 
-This is one of the most useful string functions, so here it is in full detail.
+This function has more behavior worth spelling out, so here it is in full detail.
 
 `replace` finds **every** occurrence of `old` in the string and returns a **new
 string** with each one swapped for `new`. The original is untouched.
@@ -180,8 +179,8 @@ print(s.substring(1, 4));  // "bcde" (start 1, take 4)
 print(s.substring(0, 0));  // ""     (take 0 characters)
 ```
 
-If you ask for more characters than remain, you simply get whatever is left
-(no error):
+If you ask for more characters than remain, you get whatever is left, with no
+error:
 
 ```c
 print("abcdef".substring(4, 99));   // "ef"  (only 2 characters remained)
@@ -544,9 +543,9 @@ print("text");      // text
 print(true);        // 1   (bool prints as 1 / 0)
 ```
 
-`print` is the first and simplest example of saQut reaching outside itself.
-Richer standard-library functions (files, math, and so on) will arrive through
-the same host-function mechanism.
+`print` is the first host function exposed through the FFI seam. Other
+standard-library functions (files, math, and so on) are exposed through the same
+host-function mechanism.
 
 ## What's Next?
 

@@ -1,31 +1,41 @@
 ---
 title: Hızlı Başlangıç
-description: saQut'u kurun ve ilk programınızı çalıştırın.
+description: saQut'u kurun, desteklenen platformları öğrenin ve proje yapısını kavrayın.
 ---
 
-saQut'a hoş geldiniz. Bu rehber, derleyiciyi edinmeyi, ilk programınızı yazmayı
-ve bir saQut projesinin temel yapısını kavramayı adım adım anlatır.
+Bu rehber, derleyiciyi edinmeyi, hangi platformların desteklendiğini ve bir
+saQut projesinin temel yapısını anlatır. Önce doğrudan kod yazmaya başlamak
+isterseniz [Merhaba Dünya](/tr/hello-world/) sayfasına gidin.
 
-## saQut'u Edinin
+## saQut'u edinin
 
-import { LinkCard, CardGrid } from '@astrojs/starlight/components';
+İki seçeneğiniz var: kaynak koddan derleyebilir ya da hazır sürümü
+indirebilirsiniz.
 
-<CardGrid>
-  <LinkCard
-    title="Kaynak koddan derleyin"
-    description="C++17, CMake ≥ 3.16, Ninja. Adım adım derleme talimatları README'de."
-    href="https://github.com/saqutlang/saqut#readme"
-  />
-  <LinkCard
-    title="Hazır sürümü indirin"
-    description="Linux x86-64 için önceden derlenmiş ikili dosya. En son sürümü GitHub Releases'ten alın."
-    href="https://github.com/saqutlang/saqut/releases"
-  />
-</CardGrid>
+### 1. Hazır sürümü indirin (önerilen)
 
-### Kaynak koddan derleme (terminal)
+Aşağıdaki platformlar için önceden derlenmiş ikili dosyalar yayınlanmaktadır:
 
-saQut **C++17**, **CMake ≥ 3.16** ve **Ninja** gerektirir.
+| Platform | Mimari | Durum |
+|---|---|---|
+| Linux (tüm dağıtımlar) | x86-64 | Destekleniyor |
+| Windows 11 | x86-64 | Destekleniyor |
+
+[GitHub Releases](https://github.com/saqutlang/saqut/releases) sayfasından en
+son sürümü indirin. Arşivi açtıktan sonra ikili dosyayı doğrudan
+çalıştırabilirsiniz:
+
+```bash
+./saqut --help
+```
+
+Kurulum gerektirmez, sisteme bağımlılık eklemez. Tek başına çalışan bir
+ikili dosyadır.
+
+### 2. Kaynak koddan derleyin
+
+saQut'u kendiniz derlemek isterseniz **C++17**, **CMake >= 3.16** ve **Ninja**
+gereklidir.
 
 ```bash
 git clone https://github.com/saqutlang/saqut
@@ -34,81 +44,65 @@ cmake -B build -G Ninja
 cmake --build build
 ```
 
-Derlenen ikili dosya `build/saqut` altında oluşur. Linux (x86-64) üzerinde test
-edilmiştir. macOS ve Windows denenmemiştir ancak platforma özgü kod
-kullanılmadığı için çalışmaları beklenir.
-
-Çalıştığını doğrulayın:
+Derlenen ikili dosya `build/saqut` altında oluşur.
 
 ```bash
 ./build/saqut --help
 ```
 
-Kullanılabilir komutların bir listesini görmelisiniz.
+Kullanılabilir komutların listesini görmelisiniz.
 
-## İlk Programınız
+## Desteklenen platformlar
 
-`hello.sqt` adında bir dosya oluşturun:
+saQut, Linux x86-64 ve Windows 11 x86-64 sistemlerini hedefler. Derleyici
+içinde platforma özgü kod bulunmaz; yalnızca standart C++17 ve taşınabilir
+kütüphaneler kullanılır. ARM (aarch64) ve diğer mimariler ileriki bir sürüm
+için planlanmaktadır ancak henüz yayınlanmamıştır. macOS bir hedef değildir
+ve desteklenmeyecektir.
 
-```c
-int main() {
-    print("Hello, world!");
-    return 0;
-}
-```
+Test edilmemiş bir platformda sorunla karşılaşırsanız işletim sisteminizi,
+mimarinizi ve derleyici sürümünüzü belirterek [issue
+açabilirsiniz](https://github.com/saqutlang/saqut/issues).
 
-Çalıştırın:
-
-```bash
-./build/saqut run hello.sqt
-```
-
-Çıktı:
-
-```
-Hello, world!
-```
-
-Az önce ilk saQut programınızı derleyip çalıştırdınız.
-
-## Program Yapısı
+## Program yapısı
 
 Bir saQut programı, **fonksiyon tanımları** ve **global değişken
 bildirimlerinden** oluşan bir listedir. Zorunlu bir `class` ya da hazır kalıp
-kod (boilerplate) yoktur; yürütme `main` adlı fonksiyondan başlar.
+kod yoktur; yürütme `main` adlı fonksiyondan başlar.
 
 ```c
 // Önce fonksiyon tanımları gelir
-int greet(string name) {
-    print("Hello");
-    print(name);
+int selamla(string isim) {
+    print("Merhaba");
+    print(isim);
     return 0;
 }
 
 // Ardından giriş noktası
 int main() {
-    greet("saQut");
+    selamla("saQut");
     return 0;
 }
 ```
 
 Her ifade `;` ile sonlanır. Bloklar `{ }` ile sarılır.
 
-## `print()` Fonksiyonu
+## `print()` fonksiyonu
 
-`print()` yerleşik bir **konak (host) fonksiyondur**: saQut koduyla değil,
-bizzat derleyicinin içinde C++ ile gerçeklenmiştir. Herhangi bir türde tek bir
+`print()` yerleşik bir **konak fonksiyondur**: saQut koduyla değil, bizzat
+derleyicinin içinde C++ ile gerçeklenmiştir. Herhangi bir türde tek bir
 argüman alır ve onu terminale yazar:
 
 ```c
 print(42);           // tamsayı
 print(3.14);         // ondalıklı sayı
-print("text");       // metin
+print("metin");      // metin
 print(true);         // mantıksal, "1" ya da "0" çıktısı verir
 ```
 
-## Sırada Ne Var?
+## Sırada ne var?
 
-- Veriyi saklamayı ve adlandırmayı öğrenmek için [değişkenler](/tr/variables/) sayfasına bakın
-- Hangi değer türlerinin bulunduğunu keşfetmek için [veri türlerini](/tr/data-types/) inceleyin
+- İlk programınızı sıfırdan yazın: [Merhaba Dünya](/tr/hello-world/)
+- Veriyi saklamayı ve adlandırmayı öğrenin: [değişkenler](/tr/variables/)
+- Hangi değer türlerinin bulunduğunu keşfedin: [veri türleri](/tr/data-types/)
 - İfadelerle denemeler yapmak için etkileşimli `saqut exec` komutunu deneyin

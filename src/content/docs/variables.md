@@ -131,8 +131,9 @@ int main() {
 
 ## Constants?
 
-saQut does not have a `const` keyword yet. The convention is to use a
-variable and not reassign it; the compiler trusts you.
+saQut does not have a `const` keyword yet. The convention is to declare a
+variable and not reassign it. The compiler does not enforce this; it is a
+convention the developer maintains.
 
 ## Common Mistakes
 

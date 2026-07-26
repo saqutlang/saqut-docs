@@ -1,0 +1,9 @@
+f/* Sidebar collapsed group labels — lighter weight, normal case */
+.sl-flex ul > li > details > summary {
+	font-weight: 500;
+}
+
+.sl-flex ul > li > details > summary .group-label > span {
+    font-weight: 500;
+    font-size: 0.8em;
+}

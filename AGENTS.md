@@ -50,60 +50,97 @@ This is the saQut language documentation site. Content lives under
 (`title`, `description`). The site is bilingual (English `/` and Turkish `/tr/`).
 
 Instead of maintaining a separate `llms.txt`, read the actual pages. Every
-page is accessible at `src/content/docs/<slug>.md`. Start with the index,
-then follow the sidebar order.
+page is accessible at `src/content/docs/<slug>.md` (English) or
+`src/content/docs/tr/<slug>.md` (Turkish). Start with the index, then follow
+the sidebar order.
 
-### English pages (`/`)
+**IMPORTANT: keep this map current.** When you add, rename, or remove a page,
+update the tables below and the sidebar in `astro.config.mjs` in the same
+change. A stale map here caused wrong assumptions about what exists.
 
-| Page | URL |
-|------|-----|
-| Home / Index | https://saqut.com/ |
-| Getting Started | https://saqut.com/getting-started/ |
-| Variables | https://saqut.com/variables/ |
-| Data Types | https://saqut.com/data-types/ |
-| Operators | https://saqut.com/operators/ |
-| if / else | https://saqut.com/if-else/ |
-| switch / case | https://saqut.com/switch/ |
-| for Loop | https://saqut.com/loops/for-loop/ |
-| while Loop | https://saqut.com/loops/while-loop/ |
-| do-while Loop | https://saqut.com/loops/do-while-loop/ |
-| Functions | https://saqut.com/functions/ |
-| Structs | https://saqut.com/structs/ |
-| Arrays | https://saqut.com/arrays/ |
-| Strings | https://saqut.com/strings/ |
-| Built-in Functions | https://saqut.com/builtin-functions/ |
-| Modules (import/export) | https://saqut.com/modules/ |
-| Error Handling | https://saqut.com/error-handling/ |
-| Compiler Errors | https://saqut.com/compiler-errors/ |
-| Compiler Tools | https://saqut.com/compiler-tools/ |
-| Optimization | https://saqut.com/optimization/ |
-| Garbage Collection | https://saqut.com/garbage-collection/ |
+The sidebar has four groups (authoritative order lives in `astro.config.mjs`):
+Introduction, Learn the Language, Libraries & Real Programs, Under the Hood.
+Each `<slug>` below exists in English at `/<slug>/` and in Turkish at
+`/tr/<slug>/`.
 
-### Turkish pages (`/tr/`)
+### Introduction
 
-| Page | URL |
-|------|-----|
-| Ana Sayfa | https://saqut.com/tr/ |
-| Hizli Baslangic | https://saqut.com/tr/getting-started/ |
-| Degiskenler | https://saqut.com/tr/variables/ |
-| Veri Turleri | https://saqut.com/tr/data-types/ |
-| Operatorler | https://saqut.com/tr/operators/ |
-| if / else | https://saqut.com/tr/if-else/ |
-| switch / case | https://saqut.com/tr/switch/ |
-| for Dongusu | https://saqut.com/tr/loops/for-loop/ |
-| while Dongusu | https://saqut.com/tr/loops/while-loop/ |
-| do-while Dongusu | https://saqut.com/tr/loops/do-while-loop/ |
-| Fonksiyonlar | https://saqut.com/tr/functions/ |
-| Struct (Yapilar) | https://saqut.com/tr/structs/ |
-| Diziler | https://saqut.com/tr/arrays/ |
-| Metinler | https://saqut.com/tr/strings/ |
-| Yerlesik Fonksiyonlar | https://saqut.com/tr/builtin-functions/ |
-| Moduller (import/export) | https://saqut.com/tr/modules/ |
-| Hata Yonetimi | https://saqut.com/tr/error-handling/ |
-| Derleyici Hatalari | https://saqut.com/tr/compiler-errors/ |
-| Derleyici Araclari | https://saqut.com/tr/compiler-tools/ |
-| Optimizasyon | https://saqut.com/tr/optimization/ |
-| Cop Toplama | https://saqut.com/tr/garbage-collection/ |
+| Slug | Page |
+|------|------|
+| (index) | Home / Ana Sayfa |
+| what-is-saqut | What is saQut / saQut Nedir |
+| hello-world | Hello World / Merhaba Dünya |
+| getting-started | Getting Started / Hızlı Başlangıç |
+
+### Learn the Language
+
+| Slug | Page |
+|------|------|
+| what-is-programming | What is Programming / Programlama Nedir |
+| variables | Variables / Değişkenler |
+| data-types | Data Types / Veri Tipleri |
+| nullable-types | Nullable Types / Nullable Tipler |
+| operators | Operators / Operatörler |
+| type-casting | Type Casting (as) / Tip Dönüşümü (as) |
+| if-else | if / else |
+| switch | switch / case |
+| loops/for-loop | for Loop / for Döngüsü |
+| loops/while-loop | while Loop / while Döngüsü |
+| loops/do-while-loop | do-while Loop / do-while Döngüsü |
+| functions | Functions / Fonksiyonlar |
+| structs | Structs / Struct (Yapılar) |
+| arrays | Arrays / Diziler |
+| strings | Strings / Metinler |
+| enums | Enums / Enum |
+| error-handling | Error Handling / Hata Yönetimi |
+| modules | Modules (import/export) / Modüller |
+| tutorial-task-tracker | Build a Task Tracker / Görev Takip Programı |
+
+### Libraries & Real Programs
+
+| Slug | Page |
+|------|------|
+| builtin-functions | Built-in Functions (UFCS) / Yerleşik Fonksiyonlar |
+| stdlib-overview | Standard Library / Standart Kütüphane |
+| stdlib-fs | fs (File System) / fs (Dosya Sistemi) |
+| stdlib-sys | sys (System) / sys (Sistem) |
+| stdlib-math | math |
+| stdlib-date | date |
+| stdlib-net | net (Network) / net (Ağ), status: planned for 0.9 |
+| capabilities | Capabilities & Permissions / Capability & İzinler |
+| ffi | FFI |
+| editor-setup | Editor Setup / Editör Kurulumu |
+| cli-reference | CLI Reference / CLI Referansı |
+
+### Under the Hood
+
+| Slug | Page |
+|------|------|
+| compiler-tools | Compiler Tools / Derleyici Araçları |
+| compiler-errors | Compiler Errors / Derleyici Hataları |
+| optimization | Optimization / Optimizasyon |
+| garbage-collection | Memory Management / Bellek Yönetimi |
+
+### Current compiler status (keep this in sync with the docs)
+
+Facts that content must not contradict. Update this block when the compiler
+changes, and fix any page that disagrees with it.
+
+- **Backends:** the bytecode VM is the default and reference backend. An
+  experimental MIR JIT runs via `saqut run --jit` and currently handles whole
+  programs made of integer and float scalar code only; anything else is
+  rejected with an explicit error (no silent fallback, no partial JIT).
+  Embedded-runtime AOT (a `--output` binary) is still planned.
+- **Target platforms:** Linux x86-64 and Windows 11 x86-64 only. macOS is not
+  a target and will not be supported. ARM (aarch64) and cross-compiling are
+  planned for later, not shipped yet. Do not claim 32-bit support.
+- **`net` module:** planned for 0.9, not shipped. `stdlib-net` is a planned-API
+  page and says so.
+- **FFI:** a curated host-function seam (how `fs`, `sys`, `math`, `date` reach
+  your program). It is not a mechanism for loading arbitrary C/C++ libraries.
+- **VS Code extension:** distributed as a `.vsix` (current: `saqut-0.4.0.vsix`).
+  End users install the file downloaded from GitHub Releases by its full path;
+  the `editor/vscode/...` repo-relative path only works from a source checkout.
 
 ### Live content
 
@@ -128,3 +165,231 @@ three-address IR. All of it human-readable, all of it pipeable to other tools.
 The documentation site mirrors this philosophy: it's built with Astro +
 Starlight, the content is plain Markdown, and the structure is deliberately
 flat and transparent. Open the source, read the docs, trace the pipeline.
+
+------
+
+# saQut Documentation Writing Rules
+
+The documentation must reflect the philosophy of the language, not marketing.
+
+## Core principles
+
+Everything written for saQut must reinforce these ideas.
+
+- Deterministic behavior.
+- Transparent compiler.
+- Developer remains in control.
+- Explicit over implicit.
+- Observable compilation.
+- Machine-readable outputs.
+- Predictable execution.
+- Honest tradeoffs.
+
+Never describe saQut as "the fastest", "the safest", or "the smartest".
+
+Instead explain why the compiler behaves the way it does.
+
+---
+
+## Never hide compiler behavior
+
+Whenever a compiler feature is explained, also explain:
+
+- what the compiler actually does
+- why it behaves that way
+- how developers can inspect it
+
+Prefer:
+
+"The compiler generated this IR."
+
+instead of
+
+"The compiler optimized your code."
+
+---
+
+## Do not anthropomorphize the compiler.
+
+Never write
+
+"The compiler magically..."
+
+"The compiler automatically figures out..."
+
+"The compiler is smart enough..."
+
+Instead write
+
+"The compiler performs..."
+
+"The compiler analyzes..."
+
+"The compiler reports..."
+
+"The compiler exposes..."
+
+---
+
+## Developer is responsible.
+
+The compiler may suggest.
+
+The compiler may analyze.
+
+The compiler may explain.
+
+The compiler may generate diagnostics.
+
+The compiler must never silently rewrite user intent.
+
+---
+
+## Explain tradeoffs honestly.
+
+Every feature has advantages.
+
+Every feature has costs.
+
+Documentation must explain both.
+
+Never present features as universally better.
+
+---
+
+## Documentation is descriptive.
+
+Do not sell features.
+
+Explain them.
+
+---
+
+## Machine-readable outputs are first-class citizens.
+
+Whenever possible provide both
+
+CLI output
+
+and
+
+JSON output.
+
+Both are official interfaces.
+
+---
+
+## AI is not the target.
+
+Machine-readable APIs exist for
+
+- IDEs
+- LSP
+- MCP
+- CLI tools
+- CI systems
+- AI assistants
+
+Never write documentation that assumes AI is the only consumer.
+
+---
+
+## Prefer precise language.
+
+Avoid words like
+
+magic
+automatic
+simply
+just
+easy
+
+Prefer concrete explanations.
+
+---
+
+## Use compiler terminology consistently.
+
+Compiler stages are:
+
+Tokenizer
+
+Parser
+
+AST
+
+Symbols
+
+Type Checker
+
+IR
+
+Optimizer
+
+VM
+
+Diagnostics
+
+Bench
+
+Never invent alternative terminology.
+
+---
+
+## Transparency is more important than convenience.
+
+If something is hidden from the user, explain why.
+
+If something can be inspected, show how.
+
+---
+
+## Every compiler stage should be queryable.
+
+Documentation should encourage users to inspect
+
+tokens
+
+AST
+
+symbols
+
+IR
+
+diagnostics
+
+benchmark data
+
+rather than guessing compiler behavior.
+
+---
+
+## Performance philosophy
+
+The compiler rewards well-written code.
+
+It does not promise to fix poorly-written code.
+
+Optimizations improve code when possible.
+
+They are not guarantees.
+
+Developers should understand performance rather than depend on hidden optimizations.
+
+---
+
+## Tone
+
+Professional.
+
+Technical.
+
+Calm.
+
+Never exaggerated.
+
+Never compare against competitors unless discussing technical tradeoffs.
+
+Explain.
+
+Do not advertise.

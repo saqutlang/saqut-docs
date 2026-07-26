@@ -1,18 +1,19 @@
 ---
 title: Modüller (import / export)
-description: Programınızı import ve export ile birden çok dosyaya bölün; iki dosyalı ilk programınızdan baklava bağımlılıklarına ve döngü tespitine kadar her şey.
+description: Programınızı import ve export ile birden çok dosyaya bölün; iki dosyalı bir programdan baklava bağımlılıklarına ve döngü tespitine kadar.
 ---
 
-Program büyüdükçe her şeyi tek bir dosyada tutmak can sıkıcı olur. saQut,
-kodu birden çok `.sqt` dosyasına bölmenizi ve dosyalar arasında paylaşmanızı
-sağlayan iki anahtar kelime sunar: **`export`** (bir şeyi diğer dosyaların
-kullanımına açar) ve **`import`** (başka bir dosyadan bir şeyi içeri çeker).
+Program büyüdükçe kodu birden çok dosyaya bölmek her dosyayı odaklı tutar.
+saQut, kodu birden çok `.sqt` dosyasına bölmenizi ve dosyalar arasında
+paylaşmanızı sağlayan iki anahtar kelime sunar: **`export`** (bir şeyi diğer
+dosyaların kullanımına açar) ve **`import`** (başka bir dosyadan bir şeyi içeri
+çeker).
 
-Bu sayfa, olabilecek en basit iki dosyalı programla başlar ve çok dosyalı
-bağımlılık çizgelerine, yol kurallarına ve saQut'un sizi dairesel içe
-aktarmalardan nasıl koruduğuna kadar uzanır.
+Bu sayfa iki dosyalı bir programla başlar ve çok dosyalı bağımlılık çizgelerine,
+yol çözümleme kurallarına ve derleyicinin dairesel içe aktarmaları nasıl ele
+aldığına kadar uzanır.
 
-## 30 Saniyelik Özet
+## Minimal iki dosyalı program
 
 ```c
 // math.sqt
@@ -37,8 +38,9 @@ int main() {
 saqut run main.sqt
 ```
 
-saQut otomatik olarak `math.sqt`'i bulur, derler ve `square`'i bağlar.
-Komut satırında `math.sqt`'i asla belirtmezsiniz; `import` ifadesi yeterlidir.
+Derleyici, `import` ifadesinden `math.sqt`'i çözer, derler ve `square`'i bağlar.
+Komut satırında `math.sqt`'i belirtmezsiniz; bağımlılığın adlandırıldığı tek yer
+`import` ifadesidir.
 
 Bu sayfanın geri kalanı detayları doldurur.
 
@@ -198,9 +200,9 @@ modüller kütüphanedir: `main()` içermeleri gerekmez.
 
 ---
 
-## Baklava bağımlılıkları sorun değildir
+## Baklava bağımlılıkları
 
-Sık sorulan bir soru: iki modülüm de aynı üçüncü modülü import ederse ne olur?
+İki modül de aynı üçüncü modülü import ederse ne olur?
 
 ```
        main.sqt
@@ -210,9 +212,9 @@ Sık sorulan bir soru: iki modülüm de aynı üçüncü modülü import ederse 
       base.sqt        ← HEM left hem right tarafından import ediliyor
 ```
 
-Buna **baklava (diamond)** denir ve bu bir sorun *değildir*. saQut her modülü
-**tam olarak bir kez** yükler ve yeniden kullanır. `base.sqt`, iki modül ona
-bağımlı olsa da tek bir kez derlenir:
+Bu şekle **baklava (diamond)** denir. Derleyici her modülü **tam olarak bir
+kez** yükler ve yeniden kullanır; bu yüzden iki modül ona bağımlı olsa da
+`base.sqt` tek bir kez derlenir:
 
 ```c
 // base.sqt

@@ -3,9 +3,9 @@ title: Compiler Errors & Warnings
 description: Every diagnostic saQut can produce, what triggers it, what it means, and how to fix it. From "undefined variable" to circular modules.
 ---
 
-When saQut can't accept your program, it doesn't just say "error": it gives you
-a **code** (like `E002`), a message, a source location, and usually a hint. This
-page is the catalogue: every diagnostic, what triggers it, and how to fix it.
+When saQut cannot accept your program, each diagnostic carries a **code** (like
+`E002`), a message, a source location, and usually a hint. This page is the
+catalogue: every diagnostic, what triggers it, and how to fix it.
 
 Diagnostics come in two families:
 

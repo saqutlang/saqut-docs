@@ -3,9 +3,9 @@ title: Derleyici Hataları ve Uyarıları
 description: saQut'un üretebileceği her tanı; neyin tetiklediği, anlamı ve nasıl düzeltileceği. "Tanımsız değişken"den döngüsel modüllere kadar.
 ---
 
-saQut programınızı kabul edemediğinde, yalnızca "hata" demekle kalmaz: size bir
-**kod** (ör. `E002`), bir mesaj, kaynak konumu ve genellikle bir ipucu verir.
-Bu sayfa bir katalogdur: her tanı, neyin tetiklediği ve nasıl düzeltileceği.
+saQut programınızı kabul edemediğinde, her tanı bir **kod** (ör. `E002`), bir
+mesaj, bir kaynak konumu ve genellikle bir ipucu taşır. Bu sayfa bir katalogdur:
+her tanı, neyin tetiklediği ve nasıl düzeltileceği.
 
 Tanılar iki aileye ayrılır:
 

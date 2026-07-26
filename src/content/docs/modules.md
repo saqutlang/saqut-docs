@@ -1,18 +1,17 @@
 ---
 title: Modules (import / export)
-description: Split a program across multiple files with import and export, going from your first two-file program to diamond dependencies and cycle detection.
+description: Split a program across multiple files with import and export, from a two-file program to diamond dependencies and cycle detection.
 ---
 
-As a program grows, keeping everything in one file becomes painful. saQut lets
-you split code across many `.sqt` files and share pieces between them using two
-keywords: **`export`** (make something available to other files) and
+As a program grows, splitting it across several files keeps each file focused.
+saQut lets you split code across many `.sqt` files and share pieces between them
+using two keywords: **`export`** (make something available to other files) and
 **`import`** (pull something in from another file).
 
-This page starts with the simplest possible two-file program and builds up to
-multi-file dependency graphs, path rules, and how saQut protects you from
-circular imports.
+This page starts with a two-file program and builds up to multi-file dependency
+graphs, path resolution rules, and how the compiler handles circular imports.
 
-## The 30-Second Version
+## A minimal two-file program
 
 ```c
 // math.sqt
@@ -37,8 +36,9 @@ Run the file that contains `main()`:
 saqut run main.sqt
 ```
 
-saQut automatically finds `math.sqt`, compiles it, and links `square` in. You
-never list `math.sqt` on the command line; the `import` statement is enough.
+The compiler resolves `math.sqt` from the `import` statement, compiles it, and
+links `square` in. You do not list `math.sqt` on the command line; the `import`
+statement is the only place the dependency is named.
 
 The rest of this page fills in the details.
 
@@ -198,9 +198,9 @@ The module that defines `main()` is the one you run. Modules like
 
 ---
 
-## Diamond dependencies are fine
+## Diamond dependencies
 
-A common worry: what if two of my modules both import the same third module?
+What happens when two modules both import the same third module?
 
 ```
        main.sqt
@@ -210,9 +210,9 @@ A common worry: what if two of my modules both import the same third module?
       base.sqt        ← imported by BOTH left and right
 ```
 
-This is called a **diamond**, and it is *not* a problem. saQut loads each
-module **exactly once** and reuses it. `base.sqt` is compiled a single time
-even though two modules depend on it:
+This shape is called a **diamond**. The compiler loads each module **exactly
+once** and reuses it, so `base.sqt` is compiled a single time even though two
+modules depend on it:
 
 ```c
 // base.sqt

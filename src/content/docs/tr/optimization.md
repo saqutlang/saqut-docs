@@ -1,6 +1,6 @@
 ---
 title: Optimizasyon
-description: saQut'un optimize edicisinin yaptıkları ve en az onlar kadar önemli olan, bilinçli olarak yapmadıkları. Sabit katlama, ölü kod temizliği ve her ikisini de nasıl inceleyeceğiniz.
+description: saQut'un optimize edicisinin yaptıkları ve bilinçli olarak yapmadıkları. Sabit katlama, ölü kod temizliği ve her ikisini de nasıl inceleyeceğiniz.
 ---
 
 Programınız tür denetiminden geçtikten sonra, saQut kodu daha basit ama eşdeğer
@@ -94,10 +94,10 @@ sabit **sıfıra bölme** hakkında da uyarı verebilir. Bu,
 
 ## Ne yapmaz
 
-Bu kısım en az diğeri kadar önemlidir. saQut'un optimize edicisi **bilinçli
-olarak muhafazakardır**. Hedef, "her döngüyü sıkıştırmak" değil, "belirlilik
-garantisiyle kabul edilebilir, öngörülebilir hız"dır. Sınırları bilmek,
-gelmeyen bir yeniden yazımı beklemeyeceğiniz anlamına gelir.
+Sınırlar, dönüşümler kadar önemlidir. saQut'un optimize edicisi **bilinçli
+olarak muhafazakardır**. Hedef, olası her döngüyü çıkarmak değil, belirlilik
+garantisiyle öngörülebilir hızdır. Optimize edicinin neye dokunmadığını bilmek,
+onun neyi yeniden yazmasını beklememeniz gerektiğini söyler.
 
 ### Float ifadeler katlanmaz
 
