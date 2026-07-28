@@ -24,8 +24,8 @@ switch (x) {
 // Çıktı: two
 ```
 
-saQut **tek** eşleşen case'i bulur, ifadelerini çalıştırır ve switch'ten
-çıkar. Yalnızca `two` yazdırılır.
+switch, eşleşen **tek** case'in ifadelerini çalıştırır ve çıkar. Yalnızca `two`
+yazdırılır.
 
 ## Fall-through Yok (case'ler otomatik break yapar)
 
@@ -47,8 +47,8 @@ switch (x) {
 ```
 
 C tarzı bir dilde bu `one two other` yazdırırdı. saQut'ta yalnızca `one`
-yazdırılır. Her case kendi içinde bağımsızdır; kazara fall-through, unutulmuş
-`break` hataları olmaz.
+yazdırılır. Her case kendi içinde bağımsızdır. Bunun karşılığında bir gövdeyi
+değerler arasında paylaşmak örtük değil açıktır; bir sonraki bölüm bunu gösterir.
 
 ## Case Başına Birden Çok İfade (süslü parantez gerekmez)
 
@@ -208,8 +208,8 @@ switch (value) {
 }
 ```
 
-Bu, "yok vs var" dallanmasını gerçek case'lerle birlikte temiz bir şekilde
-ifade etmenin yoludur.
+Bu, eksik durumu değer case'lerinin yanında tek bir ifadede dallandırmanızı
+sağlar.
 
 ## `switch` vs `if / else if`
 

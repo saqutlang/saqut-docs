@@ -23,18 +23,57 @@ int d = 0b1010;    // binary, 10
 int e = 0777;      // octal, 511
 ```
 
-Range: `-2,147,483,648` to `2,147,483,647`
+Range: `-2,147,483,648` to `2,147,483,647`. Overflow wraps with defined
+two's-complement behavior (it does not throw). If you need a wider integer,
+use `longint`.
 
-### `float` (Floating-Point)
+### `longint` (64-bit Integer)
 
-A 32-bit decimal number. Use scientific notation with `e` or `E`.
+A 64-bit signed whole number, for values that do not fit in `int` (file
+sizes, offsets, hashes, timestamps).
+
+```c
+longint big = 9223372036854775807;   // int64 max
+longint scaled = big + 1;            // wraps to -9223372036854775808
+int small = 42;
+longint widened = small;             // int to longint is lossless, allowed
+```
+
+Range: `-9,223,372,036,854,775,808` to `9,223,372,036,854,775,807`.
+
+`longint` stays out of the numeric conversion tower on purpose. Widening an
+`int` to `longint` is lossless and implicit. The reverse (`longint` to `int`)
+and mixing `longint` with `float`, `double`, or `decimal` require an explicit
+`as` cast, because those conversions can lose data and saQut does not perform
+them silently.
+
+### `float` (32-bit Floating-Point)
+
+A 32-bit IEEE 754 single-precision number. It carries about 7 significant
+decimal digits, so results show single-precision rounding.
 
 ```c
 float x = 3.14;
 float y = 0.5;
-float z = 1e5;        // 100,000.0
-float w = 2.5e-3;     // 0.0025
+float f = 0.1;
+print(f + 0.2);       // 0.300000012 (single precision)
 ```
+
+### `double` (64-bit Floating-Point)
+
+A 64-bit IEEE 754 double-precision number, about 15 to 16 significant digits.
+A bare decimal literal like `0.2` is a `double` by default; it becomes a
+`float` only in a `float` context. Use scientific notation with `e` or `E`.
+
+```c
+double d = 0.1;
+print(d + 0.2);       // 0.3
+double z = 1e5;       // 100000.0
+double w = 2.5e-3;    // 0.0025
+```
+
+`float` and `double` are stored at their real widths, so a `double` to `float`
+cast loses precision. That conversion needs an explicit `as float`.
 
 ### `bool` (Boolean)
 
@@ -98,6 +137,10 @@ So:
 - `int + float` → `float`
 - `float + double` → `double`
 - `byte + byte` → `int` (byte is promoted to int first)
+
+`longint` is not in this table. It has its own rule: `longint + int` promotes
+the `int` and gives `longint`, but `longint` never mixes with `float`,
+`double`, or `decimal` without an explicit cast.
 
 #### Worked examples
 

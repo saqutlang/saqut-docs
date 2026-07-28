@@ -1,31 +1,38 @@
 ---
 title: Getting Started
-description: Install saQut and run your first program.
+description: Install saQut, understand the supported platforms, and learn the structure of a saQut project.
 ---
 
-Welcome to saQut. This guide walks through getting the compiler, writing your
-first program, and understanding the basic structure of a saQut project.
+This guide covers getting the compiler onto your machine, which platforms are
+supported, and the basic structure of a saQut project. To start writing code
+first, go to [Hello World](/hello-world/).
 
 ## Get saQut
 
-import { LinkCard, CardGrid } from '@astrojs/starlight/components';
+You have two options: build from source, or download a pre-built release.
 
-<CardGrid>
-  <LinkCard
-    title="Build from source"
-    description="C++17, CMake ≥ 3.16, Ninja. Step-by-step build instructions in the README."
-    href="https://github.com/saqutlang/saqut#readme"
-  />
-  <LinkCard
-    title="Download a release"
-    description="Pre-built binaries for Linux x86-64. Grab the latest version from GitHub Releases."
-    href="https://github.com/saqutlang/saqut/releases"
-  />
-</CardGrid>
+### 1. Download a release (recommended)
 
-### Build from source (terminal)
+Pre-built binaries are available for the following platforms:
 
-saQut requires **C++17**, **CMake ≥ 3.16**, and **Ninja**.
+| Platform | Architecture | Status |
+|---|---|---|
+| Linux (all distributions) | x86-64 | Supported |
+| Windows 11 | x86-64 | Supported |
+
+Grab the latest version from [GitHub Releases](https://github.com/saqutlang/saqut/releases).
+Extract the archive, then run the binary directly:
+
+```bash
+./saqut --help
+```
+
+No installer, no system-wide dependencies. The binary is self-contained.
+
+### 2. Build from source
+
+If you prefer to compile saQut yourself, you need **C++17**, **CMake >= 3.16**,
+and **Ninja**.
 
 ```bash
 git clone https://github.com/saqutlang/saqut
@@ -34,10 +41,7 @@ cmake -B build -G Ninja
 cmake --build build
 ```
 
-The binary lands at `build/saqut`. Tested on Linux (x86-64). macOS and Windows
-are untested but no platform-specific code is used, so they should work.
-
-Check that it works:
+The binary lands at `build/saqut`.
 
 ```bash
 ./build/saqut --help
@@ -45,32 +49,18 @@ Check that it works:
 
 You should see a list of available commands.
 
-## Your First Program
+## Supported platforms
 
-Create a file called `hello.sqt`:
+saQut targets Linux x86-64 and Windows 11 x86-64. There is no platform-specific
+code in the compiler; it uses only standard C++17 and portable libraries. ARM
+(aarch64) and other architectures are planned for a later release but are not
+shipped yet. macOS is not a target and will not be supported.
 
-```c
-int main() {
-    print("Hello, world!");
-    return 0;
-}
-```
+If you run into issues on an untested platform, [open an
+issue](https://github.com/saqutlang/saqut/issues) with your OS, architecture,
+and compiler version.
 
-Run it:
-
-```bash
-./build/saqut run hello.sqt
-```
-
-Output:
-
-```
-Hello, world!
-```
-
-You just compiled and ran your first saQut program.
-
-## Program Structure
+## Program structure
 
 A saQut program is a list of **function definitions** and **global variable
 declarations**. There is no mandatory `class` or boilerplate; execution starts
@@ -93,7 +83,7 @@ int main() {
 
 Each statement ends with `;`. Blocks are enclosed in `{ }`.
 
-## The `print()` Function
+## The `print()` function
 
 `print()` is a built-in **host function**: it is implemented in C++ inside the
 compiler itself, not in saQut code. It accepts a single argument of any type
@@ -106,8 +96,9 @@ print("text");       // string
 print(true);         // boolean, outputs "1" or "0"
 ```
 
-## What's Next?
+## What's next?
 
+- Write your [first program](/hello-world/) from scratch
 - Learn about [variables](/variables/) and how to store and name data
 - Explore [data types](/data-types/) to see what kinds of values exist
 - Try the interactive `saqut exec` command to experiment with expressions

@@ -177,8 +177,8 @@ it. If you don't want that, the function should avoid writing to its parameter.
 
 ## Returning Compound Types
 
-Returning a **struct** works exactly as you'd expect: the caller receives a
-reference to the returned value:
+When a function returns a **struct**, the caller receives a reference to the
+returned value:
 
 ```c
 struct Point { int x; int y; }

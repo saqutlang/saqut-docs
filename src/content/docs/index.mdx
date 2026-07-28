@@ -5,10 +5,14 @@ template: splash
 hero:
   tagline: A small, procedural language whose compiler is a <em>glass box</em>. Every phase (tokens, AST, symbols, IR) is a named, inspectable, machine-readable output.
   actions:
+    - text: What is saQut?
+      link: /what-is-saqut/
+      icon: right-arrow
+      variant: primary
     - text: Get Started
       link: /getting-started/
       icon: right-arrow
-      variant: primary
+      variant: minimal
     - text: Built-in Functions
       link: /builtin-functions/
       icon: open-book
@@ -21,11 +25,11 @@ hero:
 
 import { Card, CardGrid, LinkCard, Steps } from '@astrojs/starlight/components';
 
-## Not a black box (a glass box)
+## A glass box, not a black box
 
-Most compilers hide everything between source and output. saQut turns the
-pipeline inside out: **every stage is a first-class command** you can run,
-inspect, and pipe into your own tools.
+A typical compiler exposes only its source input and its final output; the
+stages in between are not observable. saQut exposes each stage as a separate
+command that produces a named, machine-readable result:
 
 ```bash
 saqut tokens  hello.sqt     # token stream      (JSON)
@@ -35,8 +39,8 @@ saqut ir      hello.sqt     # 3-address IR
 saqut run     hello.sqt     # compile & execute
 ```
 
-The language itself is deliberately small and C-flavoured; it's the vehicle.
-The product is the **inspectable pipeline**.
+The language is deliberately small and C-flavoured. It exists to give the
+inspectable pipeline something to compile.
 
 ---
 
@@ -67,8 +71,8 @@ The product is the **inspectable pipeline**.
 
 </Steps>
 
-Ready to go deeper? The [Getting Started](/getting-started/) guide walks through
-building the compiler and writing real programs.
+The [Getting Started](/getting-started/) guide covers building the compiler
+and writing longer programs.
 
 ---
 
@@ -88,39 +92,40 @@ int main() {
 }
 ```
 
-Just functions, control flow, and `print()`. No mandatory scaffolding.
+Functions, control flow, and `print()`. No mandatory scaffolding.
 
 ---
 
-## What makes saQut different
+## How saQut is built
 
 <CardGrid stagger>
   <Card title="Glass box pipeline" icon="open-book">
     Tokens, AST, symbol table, and IR are each a named, machine-readable
     output. Pipe `saqut ast` into your own tool, diff the optimized tree, or
-    write an LSP from `saqut symbols` alone.
+    build an LSP from `saqut symbols` alone.
   </Card>
-  <Card title="Procedural & explicit" icon="pencil">
+  <Card title="Procedural and explicit" icon="pencil">
     C-family syntax. No OOP, no generics, no hidden type coercion. Integer and
-    float mixing follows one clear rule. What you write is what runs.
+    float mixing follows one stated rule. The compiler runs what you wrote.
   </Card>
-  <Card title="Value & reference, no pointers" icon="setting">
+  <Card title="Value and reference, no pointers" icon="setting">
     Primitives (`int`, `float`, `bool`, `byte`) copy. Compounds (`string`,
-    `struct`, `array`) share by reference. No user-visible `&` or `*`.
+    `struct`, `array`) share by reference. There is no user-visible `&` or `*`.
   </Card>
-  <Card title="Null safety, zero runtime cost" icon="approve-check">
-    Nullable is opt-in with <code>T?</code>. The compiler proves non-null values
-    are safe before you can use them, all verified at compile time.
+  <Card title="Nullable is opt-in" icon="approve-check">
+    A value is non-null unless you declare it <code>T?</code>. The type checker
+    verifies that a non-null value cannot be null before you use it, so there is
+    no null check at run time.
   </Card>
   <Card title="Deterministic VM" icon="random">
-    The bytecode VM is the reference backend: same input, same output, every
-    time. LLVM is intentionally not used. A MIR JIT and embedded-runtime AOT are
-    planned next.
+    The bytecode VM is the reference backend: the same input produces the same
+    output on every run. LLVM is intentionally not used. An experimental MIR JIT
+    runs via <code>--jit</code>; embedded-runtime AOT is planned next.
   </Card>
   <Card title="Catchable errors" icon="error">
     <code>try</code> / <code>catch</code> / <code>throw</code> with struct-based
-    errors. Out-of-bounds, divide-by-zero, and null derefs are catchable: they
-    never silently crash the program.
+    errors. Out-of-bounds access, divide-by-zero, and null derefs raise a
+    catchable error instead of terminating the program silently.
   </Card>
 </CardGrid>
 
@@ -142,8 +147,8 @@ Just functions, control flow, and `print()`. No mandatory scaffolding.
 ## The pipeline, end to end
 
 ```
-Source → Tokenizer → Parser → AST → Symbol Collector → Type Checker
-  → Optimizer (constant folding + DCE) → IR Generator → Bytecode VM → output
+Source -> Tokenizer -> Parser -> AST -> Symbol Collector -> Type Checker
+  -> Optimizer (constant folding + DCE) -> IR Generator -> Bytecode VM -> output
 ```
 
-Every arrow is a CLI command you can run and inspect.
+Each arrow corresponds to a CLI command you can run and inspect.

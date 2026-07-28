@@ -5,12 +5,16 @@ template: splash
 hero:
   tagline: "Küçük, prosedürel bir dil. Ama asıl olay derleyicisinde: <em>her aşama şeffaf</em>. Token, AST, sembol tablosu, IR; hepsi isimlendirilmiş, okunabilir, makineye aktarılabilir."
   actions:
-    - text: Başlayın
-      link: getting-started/
+    - text: saQut Nedir?
+      link: tr/what-is-saqut/
       icon: right-arrow
       variant: primary
+    - text: Başlayın
+      link: tr/getting-started/
+      icon: right-arrow
+      variant: minimal
     - text: Yerleşik Fonksiyonlar
-      link: builtin-functions/
+      link: tr/builtin-functions/
       icon: open-book
       variant: minimal
     - text: GitHub'da Görüntüle
@@ -23,9 +27,9 @@ import { Card, CardGrid, LinkCard, Steps } from '@astrojs/starlight/components';
 
 ## Kara kutu değil, şeffaf kutu
 
-Çoğu derleyici kaynak kod ile çalışan program arasındaki her şeyi gizler. saQut
-bunu tersine çevirir: **her aşama başlı başına bir komuttur**. Çalıştırır,
-inceler, çıktısını kendi aracınıza yönlendirirsiniz.
+Tipik bir derleyici yalnızca kaynak girdisini ve son çıktısını gösterir;
+aradaki aşamalar gözlemlenemez. saQut her aşamayı, isimlendirilmiş ve makinece
+okunabilir bir sonuç üreten ayrı bir komut olarak sunar:
 
 ```bash
 saqut tokens  hello.sqt     # token akışı        (JSON)
@@ -35,8 +39,8 @@ saqut ir      hello.sqt     # 3 adresli ara kod
 saqut run     hello.sqt     # derle ve çalıştır
 ```
 
-Dilin kendisi bilinçli olarak küçük ve C benzeri tutuldu; dil bir araç. Asıl
-ürün **içine bakabildiğiniz bu işlem zinciri**.
+Dil bilinçli olarak küçük ve C benzeri tutuldu. Amacı, incelenebilir işlem
+zincirine derlenecek bir kaynak sağlamaktır.
 
 ---
 
@@ -67,8 +71,8 @@ Dilin kendisi bilinçli olarak küçük ve C benzeri tutuldu; dil bir araç. As�
 
 </Steps>
 
-Devam etmek ister misiniz? [Başlangıç](/tr/getting-started/) rehberi derleyiciyi
-kurmaktan gerçek programlar yazmaya kadar her şeyi adım adım anlatıyor.
+[Başlangıç](/tr/getting-started/) rehberi derleyiciyi kurmayı ve daha uzun
+programlar yazmayı anlatır.
 
 ---
 
@@ -88,43 +92,43 @@ int main() {
 }
 ```
 
-Fonksiyonlar, kontrol akışı ve `print()`. Hepsi bu. Zorunlu tören kodu yok.
+Fonksiyonlar, kontrol akışı ve `print()`. Zorunlu tören kodu yok.
 
 ---
 
-## saQut'u farklı kılan nedir
+## saQut nasıl kuruldu
 
 <CardGrid stagger>
   <Card title="Şeffaf işlem zinciri" icon="open-book">
     Token, AST, sembol tablosu ve ara kodun her biri isimlendirilmiş ve
     makinece okunabilir bir çıktıdır. `saqut ast` çıktısını kendi aracınıza
     yönlendirin, optimize edilmiş ağacı karşılaştırın ya da yalnızca
-    `saqut symbols` çıktısıyla bir LSP yazın.
+    `saqut symbols` çıktısından bir LSP kurun.
   </Card>
   <Card title="Prosedürel ve açık" icon="pencil">
     C ailesi sözdizimi. Nesne yönelimi yok, jenerik tip yok, gizli tip
-    dönüşümü yok. `int` ile `float` karıştığında tek bir net kural geçerli.
-    Yazdığınız şey çalışan şeydir.
+    dönüşümü yok. `int` ile `float` karıştığında belirtilmiş tek bir kural
+    geçerli. Derleyici yazdığınız şeyi çalıştırır.
   </Card>
   <Card title="Değer ve referans, işaretçi yok" icon="setting">
     Temel tipler (`int`, `float`, `bool`, `byte`) kopyalanır. Bileşik tipler
     (`string`, `struct`, `array`) referans ile paylaşılır. Programcının
     görebileceği `&` veya `*` yoktur.
   </Card>
-  <Card title="Null güvenliği, sıfır maliyet" icon="approve-check">
-    Nullable olmak isteğe bağlıdır: <code>T?</code>. Derleyici, null olamaz
-    bir değeri siz daha kullanmadan güvenli olduğunu kanıtlar. Tamamı derleme
-    zamanında, çalışma anına hiçbir yük binmeden.
+  <Card title="Nullable isteğe bağlıdır" icon="approve-check">
+    Bir değer, siz <code>T?</code> olarak bildirmedikçe null olamaz. Tip
+    denetleyici, null olamaz bir değerin null olamayacağını kullanımdan önce
+    doğrular; bu yüzden çalışma zamanında null denetimi yapılmaz.
   </Card>
   <Card title="Belirlenimci sanal makine" icon="random">
-    Referans arka uç bir bytecode sanal makinesidir: aynı girdi her zaman aynı
-    çıktıyı verir. LLVM bilinçli olarak kullanılmaz. Sırada MIR tabanlı JIT
-    ve gömülü sistemler için AOT desteği var.
+    Referans arka uç bir bytecode sanal makinesidir: aynı girdi her çalıştırmada
+    aynı çıktıyı üretir. LLVM bilinçli olarak kullanılmaz. Deneysel bir MIR JIT
+    <code>--jit</code> ile çalışır; sırada gömülü çalışma zamanlı AOT var.
   </Card>
   <Card title="Yakalanabilir hatalar" icon="error">
-    <code>try</code> / <code>catch</code> / <code>throw</code> ile
-    struct tabanlı hata yönetimi. Sınır aşımı, sıfıra bölme ve null
-    referans hataları yakalanabilir; programı sessizce çökertmez.
+    <code>try</code> / <code>catch</code> / <code>throw</code> ile struct tabanlı
+    hata yönetimi. Sınır aşımı, sıfıra bölme ve null referans hataları programı
+    sessizce sonlandırmak yerine yakalanabilir bir hata fırlatır.
   </Card>
 </CardGrid>
 
@@ -133,12 +137,12 @@ Fonksiyonlar, kontrol akışı ve `print()`. Hepsi bu. Zorunlu tören kodu yok.
 ## Öğrenmeye başlayın
 
 <CardGrid>
-  <LinkCard title="Veri Tipleri" href="data-types/" description="int, float, bool, byte, string, struct, array, nullable ve tip yükseltme kuralları." />
-  <LinkCard title="Operatörler" href="operators/" description="Aritmetik, mantıksal, bitsel, atama, üçlü ve as dönüşümü; tam öncelik tablosuyla birlikte." />
-  <LinkCard title="Yerleşik Fonksiyonlar" href="builtin-functions/" description="Her string, array ve struct metodu örneklerle sıfırdan anlatılıyor." />
-  <LinkCard title="Modüller" href="modules/" description="Kodu import/export ile dosyalara bölün; iki dosyalı programdan bağımlılık çizgelerine kadar." />
-  <LinkCard title="Hata Yönetimi" href="error-handling/" description="try / catch / throw ile çalışma zamanı hatalarını yakalayın ve fırlatın." />
-  <LinkCard title="Derleyici Araçları" href="compiler-tools/" description="Token, AST, sembol ve IR nedir, her birine ne zaman başvurmalısınız." />
+  <LinkCard title="Veri Tipleri" href="tr/data-types/" description="int, float, bool, byte, string, struct, array, nullable ve tip yükseltme kuralları." />
+  <LinkCard title="Operatörler" href="tr/operators/" description="Aritmetik, mantıksal, bitsel, atama, üçlü ve as dönüşümü; tam öncelik tablosuyla birlikte." />
+  <LinkCard title="Yerleşik Fonksiyonlar" href="tr/builtin-functions/" description="Her string, array ve struct metodu örneklerle sıfırdan anlatılıyor." />
+  <LinkCard title="Modüller" href="tr/modules/" description="Kodu import/export ile dosyalara bölün; iki dosyalı programdan bağımlılık çizgelerine kadar." />
+  <LinkCard title="Hata Yönetimi" href="tr/error-handling/" description="try / catch / throw ile çalışma zamanı hatalarını yakalayın ve fırlatın." />
+  <LinkCard title="Derleyici Araçları" href="tr/compiler-tools/" description="Token, AST, sembol ve IR nedir, her birine ne zaman başvurmalısınız." />
 </CardGrid>
 
 ---
@@ -146,8 +150,8 @@ Fonksiyonlar, kontrol akışı ve `print()`. Hepsi bu. Zorunlu tören kodu yok.
 ## İşlem zinciri, uçtan uca
 
 ```
-Kaynak → Sözcük Analizi → Sözdizimi Analizi → AST → Sembol Toplama → Tip Denetimi
-  → Optimizasyon (sabit katlama + ölü kod temizliği) → Ara Kod → Bytecode VM → çıktı
+Kaynak -> Sözcük Analizi -> Sözdizimi Analizi -> AST -> Sembol Toplama -> Tip Denetimi
+  -> Optimizasyon (sabit katlama + ölü kod temizliği) -> Ara Kod -> Bytecode VM -> çıktı
 ```
 
-Her ok, çalıştırıp inceleyebileceğiniz bir CLI komutudur.
+Her ok, çalıştırıp inceleyebileceğiniz bir CLI komutuna karşılık gelir.

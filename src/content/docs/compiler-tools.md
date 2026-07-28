@@ -8,9 +8,6 @@ out, and what happens in between is hidden. saQut is different: it is a
 **glass box**. Every stage of compilation is a separate step that you can
 inspect and pipe into other tools.
 
-This page explains what each stage is, why it exists, and when you might need
-it.
-
 ---
 
 ## Pipeline Overview
@@ -68,36 +65,45 @@ delimiter ";"
 
 ### Why do tokens exist?
 
-The computer doesn't understand text: it needs structured pieces. The
-tokenizer (also called a **lexer**) converts raw characters into a list of
-tagged chunks. Comments and whitespace are stripped here.
+Later compiler stages operate on structured pieces, not raw text. The tokenizer
+(also called a **lexer**) converts the character stream into a list of tagged
+chunks. Comments and whitespace are stripped here.
 
 ### When would you use `saqut tokens`?
 
-- **Learning:** See exactly how the compiler understands your code
 - **Debugging:** If something isn't parsing, check what tokens are produced
 - **Tooling:** Build a syntax highlighter or code formatter on top of the
-  token stream
+  token stream, or verify that source files are lexically valid
+
+Here is the token stream from an insertion sort program
+(`examples/algorithm/03_insertion_sort.sqt`):
 
 ```bash
-saqut tokens hello.sqt
+saqut tokens examples/algorithm/03_insertion_sort.sqt
 ```
 
-Example output:
-
-```json
-[
-  {"type": "keyword", "value": "int", "line": 1, "col": 1},
-  {"type": "identifier", "value": "main", "line": 1, "col": 5},
-  {"type": "delimiter", "value": "(", "line": 1, "col": 9},
-  {"type": "delimiter", "value": ")", "line": 1, "col": 10},
-  {"type": "delimiter", "value": "{", "line": 1, "col": 12}
-]
+```
+Tokenler (134 adet):
+  [keyword] "int"
+  [identifier] "main"
+  [delimiter] "("
+  [delimiter] ")"
+  [delimiter] "{"
+  [keyword] "int"
+  [delimiter] "["
+  [delimiter] "]"
+  [identifier] "arr"
+  [operator] "="
+  [delimiter] "["
+  [number] "5"
+  [delimiter] ","
+  [number] "3"
+  ...
 ```
 
 ---
 
-## 2. AST (Abstract Syntax Tree (`saqut ast`))
+## 2. AST (Abstract Syntax Tree: `saqut ast`)
 
 ### What is an AST?
 
@@ -108,11 +114,11 @@ represents the grammatical structure of your program.
 For `2 + 3 * 4`:
 
 ```
-    (+)
-   /   \
-  2     (*)
-       /   \
-      3     4
+     (+)
+    /   \
+   2     (*)
+        /   \
+       3     4
 ```
 
 Each **node** in the tree is something meaningful: a function definition, a
@@ -130,15 +136,34 @@ makes the parser smaller and easier to extend.
 
 ### When would you use `saqut ast`?
 
-- **Learning:** See how the compiler interprets nested expressions
 - **Debugging:** If a program doesn't behave as expected, check if the AST
   matches your intention
 - **Tooling:** Generate documentation, compute complexity metrics, or build
   code-analysis tools
 
+Here is the AST from an insertion sort program:
+
 ```bash
-saqut ast hello.sqt --format=json
-saqut ast hello.sqt --optimized    # AST after optimization
+saqut ast examples/algorithm/03_insertion_sort.sqt --format=json
+```
+
+```
+Program
+  FunctionDecl (main : int)
+    Block
+      VariableDecl (arr : int[])
+        ArrayLiteral [5 eleman]
+     Literal {5} integer
+     Literal {3} integer
+     Literal {1} integer
+     Literal {6} integer
+     Literal {4} integer
+      VariableDecl (n : int)
+    Literal {5} integer
+      ForStatement
+        VariableDecl (i : int)
+     Literal {1} integer
+  ...
 ```
 
 The `--optimized` flag shows the AST **after** constant folding and dead code
@@ -167,7 +192,7 @@ The symbol table would contain:
 | Name | Kind | Type | Scope |
 |------|------|------|-------|
 | `x` | Variable | `int` | Global |
-| `add` | Function | `(int, int) → int` | Global |
+| `add` | Function | `(int, int) -> int` | Global |
 | `a` | Parameter | `int` | Function `add` |
 | `b` | Parameter | `int` | Function `add` |
 
@@ -194,14 +219,31 @@ int fibonacci(int n) {
 
 ### When would you use `saqut symbols`?
 
-- **Learning:** Understand scoping, where does each variable live?
 - **Debugging:** "Undeclared identifier" errors become clear when you see
   what's in the table
 - **Tooling:** The symbol table is enough to build a "Go to definition"
   feature, list all functions, or compute dependency graphs
 
+Here is the symbol table from an insertion sort program:
+
 ```bash
-saqut symbols hello.sqt
+saqut symbols examples/algorithm/03_insertion_sort.sqt
+```
+
+```
+examples/algorithm/03_insertion_sort.sqt:2:1  fn()->int  main (function)
+examples/algorithm/03_insertion_sort.sqt:3:5  int[]  arr
+        refs  ...:7:19  ...:9:26  ...:10:13  ...:10:26  ...:13:9  ...:17:15
+examples/algorithm/03_insertion_sort.sqt:4:5  int  n
+        refs  ...:6:25  ...:16:25
+examples/algorithm/03_insertion_sort.sqt:6:10  int  i
+        refs  ...:6:21  ...:6:28  ...:6:32  ...:7:23  ...:8:17
+examples/algorithm/03_insertion_sort.sqt:7:9  int  key
+        refs  ...:9:35  ...:13:22
+examples/algorithm/03_insertion_sort.sqt:8:9  int  j
+        refs  ...:9:16  ...:9:30  ...:10:17  ...:10:30  ...:11:13 ...
+examples/algorithm/03_insertion_sort.sqt:16:10  int  k
+        refs  ...:16:21  ...:16:28  ...:16:32  ...:17:19
 ```
 
 A stranger with no access to your source code could write an LSP (Language
@@ -216,7 +258,7 @@ After semantic analysis (the `check` command verifies types, detects errors),
 the AST is **annotated** with type information. Then the **optimizer** can
 optionally run.
 
-saQut's optimizer works on a **clone** of the AST, the original is preserved.
+saQut's optimizer works on a **clone** of the AST; the original is preserved.
 Two passes run in a fixpoint loop:
 
 ### Constant Folding
@@ -248,7 +290,7 @@ saqut ast hello.sqt --optimized    # see optimized AST
 
 ---
 
-## 5. IR (Intermediate Representation (`saqut ir`))
+## 5. IR (Intermediate Representation: `saqut ir`)
 
 ### What is IR?
 
@@ -286,19 +328,18 @@ adds them, and puts the result in a third. `CALLHOST` calls a host function
 
 ### Why does IR exist?
 
-The AST is great for analysis but not for execution. The IR bridges the gap
-between the high-level tree and the low-level bytecode VM:
+The AST suits analysis but not direct execution. The IR bridges the high-level
+tree and the low-level bytecode VM:
 
-- **AST** = "what the code means" (tree)
-- **IR** = "how to do it" (linear instructions)
-- **Bytecode VM** = "do it" (interpreter loop)
+- **AST** = what the code means (tree)
+- **IR** = how to do it (linear instructions)
+- **Bytecode VM** = do it (interpreter loop)
 
 Splitting IR from the VM makes it possible to add new backends (like a MIR
 JIT compiler or an AOT packager) without changing the frontend.
 
 ### When would you use `saqut ir`?
 
-- **Learning:** Understand how high-level code maps to low-level instructions
 - **Debugging:** If a program crashes at runtime, the IR shows exactly what
   the VM is executing
 - **Performance:** Count instructions, spot redundant operations, see how
@@ -316,8 +357,41 @@ The **VM (Virtual Machine)** is the final stage. It takes the IR, resolves
 function entry points, allocates frames and slots, and executes instructions
 in a loop.
 
+Here is an insertion sort algorithm and its output:
+
+```c
+// examples/algorithm/03_insertion_sort.sqt
+int main() {
+    int[] arr = [5, 3, 1, 6, 4];
+    int n = 5;
+
+    for (int i = 1; i < n; i = i + 1) {
+        int key = arr[i];
+        int j = i - 1;
+        while (j >= 0 && arr[j] > key) {
+            arr[j + 1] = arr[j];
+            j = j - 1;
+        }
+        arr[j + 1] = key;
+    }
+
+    for (int k = 0; k < n; k = k + 1) {
+        print(arr[k]);
+    }
+    return 0;
+}
+```
+
 ```bash
-saqut run hello.sqt
+saqut run examples/algorithm/03_insertion_sort.sqt
+```
+
+```
+1
+3
+4
+5
+6
 ```
 
 The VM is the **reference backend**: it must produce the correct output
@@ -344,6 +418,6 @@ for the same input.
 > output alone. That is the test saQut is designed to pass."
 
 Every stage is **machine-readable** (JSON), **pipeable** (Unix-friendly), and
-**stable** (designed as a public interface). You are not locked into the CLI,
+**stable** (designed as a public interface). You are not locked into the CLI;
 you can write scripts that consume `saqut ast --format=json` and build your
 own tools on top of saQut's pipeline.

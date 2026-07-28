@@ -162,8 +162,8 @@ int? x = getValue();
 print(x + 1);        // HATA (E003), 'x' null olabilir
 ```
 
-Bir `if (x != null)` kontrolü türü **daraltır**: blok içinde derleyici `x`'in
-null olmadığını bilir ve onu düz bir `int` olarak kullanmanıza izin verir:
+Bir `if (x != null)` kontrolü türü **daraltır**: blok içinde `x`'in tipi `int?`
+değil `int`'tir, bu yüzden onu düz bir `int` olarak kullanabilirsiniz:
 
 ```c
 int? x = getValue();

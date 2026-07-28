@@ -1,15 +1,15 @@
 ---
-title: Yerleşik Fonksiyonlar
+title: Yerleşik Fonksiyonlar (UFCS)
 description: saQut'un string, dizi ve struct tipleri için sunduğu yerleşik metotların tam referansı; her biri sıfırdan, çalıştırılabilir örneklerle anlatılıyor.
 ---
 
-saQut, en sık kullandığınız tipler için bir dizi **yerleşik fonksiyon** ile
-gelir: string'ler, diziler ve struct'lar. Bunları ne import edersiniz ne de
-tanımlarsınız; her zaman kullanıma hazırdır. Bu sayfa, her birini temelden
-başlayarak, çalıştırılabilir örneklerle açıklar.
+saQut, üç tip üzerinde bir dizi **yerleşik fonksiyon** sağlar: string'ler,
+diziler ve struct'lar. Bunları ne import edersiniz ne de tanımlarsınız; her
+zaman kullanıma hazırdır. Bu sayfa her birini çalıştırılabilir bir örnekle
+belgeler.
 
-Eğer daha önce hiç "metot" kullanmadıysanız bir sonraki bölümden başlayın.
-Yalnızca imzalara bakmak isterseniz [hızlı referans tablolarına](#hızlı-referans) atlayın.
+Daha önce "metot" kullanmadıysanız bir sonraki bölümden başlayın. Yalnızca
+imzalar için [hızlı referans tablolarına](#hızlı-referans) atlayın.
 
 ## Yerleşik bir fonksiyonu çağırmak
 
@@ -115,7 +115,7 @@ if (input.trim() == "yes") {
 
 ### `replace(eski, yeni)` (metni değiştir, her yerde)
 
-String fonksiyonlarının en kullanışlılarından biridir; bu yüzden tüm
+Bu fonksiyonun açıklanmaya değer daha fazla davranışı var; bu yüzden tüm
 detaylarıyla anlatıyoruz.
 
 `replace`, string içinde `eski`'nin **her** geçtiği yeri bulur ve her birini
@@ -547,9 +547,9 @@ print("text");      // text
 print(true);        // 1   (bool 1 / 0 olarak yazdırılır)
 ```
 
-`print`, saQut'un kendi dışına uzanmasının ilk ve en basit örneğidir. Daha
-zengin standart kütüphane fonksiyonları (dosya, matematik vb.) aynı konuk
-fonksiyon mekanizmasıyla gelecektir.
+`print`, FFI seam'i üzerinden açılan ilk host fonksiyondur. Diğer standart
+kütüphane fonksiyonları (dosya, matematik vb.) aynı host fonksiyon mekanizmasıyla
+açılır.
 
 ## Sırada ne var?
 

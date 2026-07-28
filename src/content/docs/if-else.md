@@ -159,8 +159,8 @@ int? x = getValue();
 print(x + 1);        // ERROR (E003), 'x' might be null
 ```
 
-An `if (x != null)` check **narrows** the type: inside the block, the compiler
-knows `x` is non-null and lets you use it as a plain `int`:
+An `if (x != null)` check **narrows** the type: inside the block, `x` has type
+`int` rather than `int?`, so you can use it as a plain `int`:
 
 ```c
 int? x = getValue();

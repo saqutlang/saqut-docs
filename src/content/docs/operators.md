@@ -3,9 +3,9 @@ title: Operators
 description: Arithmetic, comparison, logical, bitwise, and assignment operators in saQut.
 ---
 
-saQut supports a wide range of operators. The parser uses **Pratt parsing**,
-each operator has a precedence level and associativity, so expressions like
-`-2 + -5` are parsed correctly without ambiguity.
+saQut provides the operators listed below. The parser uses **Pratt parsing**:
+each operator has a precedence level and an associativity, so an expression
+like `-2 + -5` parses to a single unambiguous tree.
 
 ## Operator Precedence Table
 

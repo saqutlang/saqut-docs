@@ -190,13 +190,12 @@ int findMax(int[] arr) {
 
 ## /builtin-functions/
 
-saQut ships with a set of **built-in functions** for the types you use most:
-strings, arrays, and structs. You don't import them and you don't define them,
-they are always available. This page explains every one of them from the ground
-up, with a runnable example for each.
+saQut provides a set of **built-in functions** on three types: strings, arrays,
+and structs. You do not import them and you do not define them; they are always
+available. This page documents each one with a runnable example.
 
-If you have never used a "method" before, start with the next section. If you
-just want the signatures, jump to the [quick reference tables](#quick-reference).
+If you have not used a "method" before, start with the next section. For the
+signatures on their own, jump to the [quick reference tables](#quick-reference).
 
 ## Calling a built-in
 
@@ -218,9 +217,9 @@ print(s.replace("world", "saQut"));   // s is the value; "world" and
                                        // "saQut" are the two arguments
 ```
 
-> **Not object-orientation.** The dot here is just convenient syntax. saQut has
-> no classes, objects, or methods-on-types in the OOP sense, `name.upper()` is
-> simply sugar for a plain function call that happens to read left to right.
+> **Not object-orientation.** The dot here is syntax only. saQut has no classes,
+> objects, or methods-on-types in the OOP sense; `name.upper()` is sugar for a
+> plain function call that reads left to right.
 
 Because most string built-ins return a new value, you can **chain** calls, each
 result flows into the next dot:
@@ -251,8 +250,8 @@ print("hello".length());    // 5
 print("".length());         // 0
 ```
 
-Counts the **bytes** in the string, and for plain English/ASCII text one byte =
-one character, so this is what you expect.
+Counts the **bytes** in the string. For plain English/ASCII text one byte = one
+character, so the byte count and the character count are the same.
 
 > **UTF-8 gotcha.** saQut stores text as UTF-8, where non-ASCII characters take
 > more than one byte. `length()` returns the **byte count**, not the number of
@@ -299,7 +298,7 @@ if (input.trim() == "yes") {
 
 ### `replace(old, new)` (swap text, everywhere)
 
-This is one of the most useful string functions, so here it is in full detail.
+This function has more behavior worth spelling out, so here it is in full detail.
 
 `replace` finds **every** occurrence of `old` in the string and returns a **new
 string** with each one swapped for `new`. The original is untouched.
@@ -367,8 +366,8 @@ print(s.substring(1, 4));  // "bcde" (start 1, take 4)
 print(s.substring(0, 0));  // ""     (take 0 characters)
 ```
 
-If you ask for more characters than remain, you simply get whatever is left
-(no error):
+If you ask for more characters than remain, you get whatever is left, with no
+error:
 
 ```c
 print("abcdef".substring(4, 99));   // "ef"  (only 2 characters remained)
@@ -731,9 +730,9 @@ print("text");      // text
 print(true);        // 1   (bool prints as 1 / 0)
 ```
 
-`print` is the first and simplest example of saQut reaching outside itself.
-Richer standard-library functions (files, math, and so on) will arrive through
-the same host-function mechanism.
+`print` is the first host function exposed through the FFI seam. Other
+standard-library functions (files, math, and so on) are exposed through the same
+host-function mechanism.
 
 ## What's Next?
 
@@ -741,11 +740,229 @@ the same host-function mechanism.
 - Learn how [arrays](/arrays/) store and share sequences
 - Split your program across files with [modules](/modules/)
 
+## /capabilities/
+
+saQut runs programs in a **deny-by-default** sandbox. Your program has no
+access to the file system, network, or system calls unless you explicitly
+grant it. This page explains the permission model for practitioners building
+real programs.
+
+## The three capabilities
+
+| Capability | Flag | What it unlocks |
+|---|---|---|
+| File system | `--allow fs` | `readFile`, `writeFile`, `readDir`, `exists`, `remove` |
+| Network | `--allow net` | HTTP requests, sockets (planned 0.9) |
+| System | `--allow sys` | `random`, `randomRange`, `env`, `args`, `sleep`, `date::now()` |
+
+Multiple capabilities are comma-separated:
+
+```bash
+saqut run --allow fs,net prog.sqt
+saqut run --allow fs --allow sys prog.sqt   # repeated flag also works
+```
+
+## How enforcement works
+
+saQut uses a **two-layer model** (A+B):
+
+**Layer A: compile time.** When you import a function that requires a
+capability (e.g. `readFile` requires `fs`), the compiler checks whether the
+matching `--allow` flag was passed. If not, you get a compile error before the
+program ever runs.
+
+**Layer B: runtime backstop.** Even if layer A passes, the VM checks again
+before every capability-gated call. This catches edge cases like
+`caps::drop()` removing a capability mid-program. If a call is blocked, the
+program throws a catchable `E_CAP_MISSING` error.
+
+## Querying capabilities
+
+You can ask the compiler which capabilities a program needs without running it:
+
+```bash
+saqut ir --capabilities prog.sqt
+```
+
+Output:
+
+```
+fs, sys
+```
+
+This scans all imported functions and reports every capability they declare.
+
+## caps module
+
+The `caps` module lets your program inspect and manage its own permissions at
+runtime:
+
+```c
+import { has, drop } from caps;
+
+if (caps::has("fs")) {
+    string data = readFile("secret.txt");
+    caps::drop("fs");     // renounce fs for the rest of the program
+}
+```
+
+- `caps::has(name)` returns `true` if the capability is currently active
+- `caps::drop(name)` removes it permanently; there is no way to regain it
+
+This lets you follow the principle of least privilege: keep a capability only
+for as long as you need it.
+
+## Why this matters for practitioners
+
+- Your build script can read source files and write output, but cannot open
+  sockets; `--allow fs` is enough
+- Your HTTP client program needs network but should not touch the file system;
+  grant `--allow net` only
+- A utility that reads environment variables and command-line arguments
+  only needs `--allow sys`
+
+Each program declares exactly what it needs. The compiler and runtime enforce
+it. There is no ambient authority.
+
+## /cli-reference/
+
+This page covers every `saqut` subcommand and flag a practitioner needs. For
+installing the compiler, see [Getting Started](/getting-started/).
+
+## Subcommands
+
+### run
+
+Compile and execute a program.
+
+```bash
+saqut run program.sqt
+```
+
+| Flag | Purpose |
+|---|---|
+| `--allow fs,net,sys` | Grant runtime capabilities |
+| `--jit` | Run through the experimental MIR JIT instead of the VM |
+| `--optimized` | Apply constant folding and DCE |
+| `--gc-threshold N` | Trigger GC after N allocations |
+| `--gc-stats` | Print GC statistics after execution |
+| `--profile` | Print a per-stage profile (tokenizing, parsing, IR generation, execution) with a work count per stage |
+
+The bytecode VM is the default and reference backend. The `--jit` flag runs the
+program through the experimental MIR JIT, which currently handles whole programs
+made of integer and float scalar code; a program that uses anything else stops
+with an explicit error instead of running partially. Embedded-runtime AOT (a
+`--output` binary) is still planned.
+
+### tokens
+
+Print the token stream as JSON.
+
+```bash
+saqut tokens program.sqt
+```
+
+Each token includes: kind, text, line, column, and byte offset. Useful for
+writing syntax highlighters or custom tooling.
+
+### ast
+
+Print the abstract syntax tree as JSON.
+
+```bash
+saqut ast program.sqt
+saqut ast program.sqt --optimized
+```
+
+The `--optimized` flag prints the tree after constant folding and dead code
+elimination. The original AST is preserved; optimization works on a clone.
+
+### symbols
+
+Print the symbol table as JSON.
+
+```bash
+saqut symbols program.sqt
+```
+
+Shows all functions, variables, structs, enums, and their types. Includes
+scope information.
+
+### ir
+
+Print the intermediate representation (three-address code).
+
+```bash
+saqut ir program.sqt
+saqut ir --capabilities program.sqt
+```
+
+The `--capabilities` flag scans the IR and reports which capabilities
+(`fs`, `net`, `sys`) the program needs, without executing it.
+
+### check
+
+Run semantic analysis only; report errors and warnings as JSON.
+
+```bash
+saqut check program.sqt
+```
+
+Exit code 0 means no errors. Non-zero means errors found. Warnings do not affect
+the exit code.
+
+### exec
+
+Run a single expression or statement interactively.
+
+```bash
+saqut exec "3 + 4 * 2"
+```
+
+Outputs the result directly. Useful for quick experiments without creating a
+file.
+
+### bench
+
+Measure execution time of a program.
+
+```bash
+saqut bench program.sqt
+```
+
+Runs the program multiple times and prints timing statistics.
+
+### lsp / dap
+
+Start the Language Server or Debug Adapter. These are used by the VS Code
+extension, not run directly:
+
+```bash
+saqut lsp
+saqut dap
+```
+
+## Common patterns
+
+```bash
+# Run with full introspection
+saqut run --allow fs --gc-stats --profile program.sqt
+
+# Check before running
+saqut check program.sqt && saqut run program.sqt
+
+# Inspect what a program needs
+saqut ir --capabilities program.sqt
+
+# See the optimized AST
+saqut ast program.sqt --optimized
+```
+
 ## /compiler-errors/
 
-When saQut can't accept your program, it doesn't just say "error": it gives you
-a **code** (like `E002`), a message, a source location, and usually a hint. This
-page is the catalogue: every diagnostic, what triggers it, and how to fix it.
+When saQut cannot accept your program, each diagnostic carries a **code** (like
+`E002`), a message, a source location, and usually a hint. This page is the
+catalogue: every diagnostic, what triggers it, and how to fix it.
 
 Diagnostics come in two families:
 
@@ -1047,9 +1264,6 @@ out, and what happens in between is hidden. saQut is different: it is a
 **glass box**. Every stage of compilation is a separate step that you can
 inspect and pipe into other tools.
 
-This page explains what each stage is, why it exists, and when you might need
-it.
-
 ---
 
 ## Pipeline Overview
@@ -1107,36 +1321,45 @@ delimiter ";"
 
 ### Why do tokens exist?
 
-The computer doesn't understand text: it needs structured pieces. The
-tokenizer (also called a **lexer**) converts raw characters into a list of
-tagged chunks. Comments and whitespace are stripped here.
+Later compiler stages operate on structured pieces, not raw text. The tokenizer
+(also called a **lexer**) converts the character stream into a list of tagged
+chunks. Comments and whitespace are stripped here.
 
 ### When would you use `saqut tokens`?
 
-- **Learning:** See exactly how the compiler understands your code
 - **Debugging:** If something isn't parsing, check what tokens are produced
 - **Tooling:** Build a syntax highlighter or code formatter on top of the
-  token stream
+  token stream, or verify that source files are lexically valid
+
+Here is the token stream from an insertion sort program
+(`examples/algorithm/03_insertion_sort.sqt`):
 
 ```bash
-saqut tokens hello.sqt
+saqut tokens examples/algorithm/03_insertion_sort.sqt
 ```
 
-Example output:
-
-```json
-[
-  {"type": "keyword", "value": "int", "line": 1, "col": 1},
-  {"type": "identifier", "value": "main", "line": 1, "col": 5},
-  {"type": "delimiter", "value": "(", "line": 1, "col": 9},
-  {"type": "delimiter", "value": ")", "line": 1, "col": 10},
-  {"type": "delimiter", "value": "{", "line": 1, "col": 12}
-]
+```
+Tokenler (134 adet):
+  [keyword] "int"
+  [identifier] "main"
+  [delimiter] "("
+  [delimiter] ")"
+  [delimiter] "{"
+  [keyword] "int"
+  [delimiter] "["
+  [delimiter] "]"
+  [identifier] "arr"
+  [operator] "="
+  [delimiter] "["
+  [number] "5"
+  [delimiter] ","
+  [number] "3"
+  ...
 ```
 
 ---
 
-## 2. AST (Abstract Syntax Tree (`saqut ast`))
+## 2. AST (Abstract Syntax Tree: `saqut ast`)
 
 ### What is an AST?
 
@@ -1147,11 +1370,11 @@ represents the grammatical structure of your program.
 For `2 + 3 * 4`:
 
 ```
-    (+)
-   /   \
-  2     (*)
-       /   \
-      3     4
+     (+)
+    /   \
+   2     (*)
+        /   \
+       3     4
 ```
 
 Each **node** in the tree is something meaningful: a function definition, a
@@ -1169,15 +1392,34 @@ makes the parser smaller and easier to extend.
 
 ### When would you use `saqut ast`?
 
-- **Learning:** See how the compiler interprets nested expressions
 - **Debugging:** If a program doesn't behave as expected, check if the AST
   matches your intention
 - **Tooling:** Generate documentation, compute complexity metrics, or build
   code-analysis tools
 
+Here is the AST from an insertion sort program:
+
 ```bash
-saqut ast hello.sqt --format=json
-saqut ast hello.sqt --optimized    # AST after optimization
+saqut ast examples/algorithm/03_insertion_sort.sqt --format=json
+```
+
+```
+Program
+  FunctionDecl (main : int)
+    Block
+      VariableDecl (arr : int[])
+        ArrayLiteral [5 eleman]
+     Literal {5} integer
+     Literal {3} integer
+     Literal {1} integer
+     Literal {6} integer
+     Literal {4} integer
+      VariableDecl (n : int)
+    Literal {5} integer
+      ForStatement
+        VariableDecl (i : int)
+     Literal {1} integer
+  ...
 ```
 
 The `--optimized` flag shows the AST **after** constant folding and dead code
@@ -1206,7 +1448,7 @@ The symbol table would contain:
 | Name | Kind | Type | Scope |
 |------|------|------|-------|
 | `x` | Variable | `int` | Global |
-| `add` | Function | `(int, int) → int` | Global |
+| `add` | Function | `(int, int) -> int` | Global |
 | `a` | Parameter | `int` | Function `add` |
 | `b` | Parameter | `int` | Function `add` |
 
@@ -1233,14 +1475,31 @@ int fibonacci(int n) {
 
 ### When would you use `saqut symbols`?
 
-- **Learning:** Understand scoping, where does each variable live?
 - **Debugging:** "Undeclared identifier" errors become clear when you see
   what's in the table
 - **Tooling:** The symbol table is enough to build a "Go to definition"
   feature, list all functions, or compute dependency graphs
 
+Here is the symbol table from an insertion sort program:
+
 ```bash
-saqut symbols hello.sqt
+saqut symbols examples/algorithm/03_insertion_sort.sqt
+```
+
+```
+examples/algorithm/03_insertion_sort.sqt:2:1  fn()->int  main (function)
+examples/algorithm/03_insertion_sort.sqt:3:5  int[]  arr
+        refs  ...:7:19  ...:9:26  ...:10:13  ...:10:26  ...:13:9  ...:17:15
+examples/algorithm/03_insertion_sort.sqt:4:5  int  n
+        refs  ...:6:25  ...:16:25
+examples/algorithm/03_insertion_sort.sqt:6:10  int  i
+        refs  ...:6:21  ...:6:28  ...:6:32  ...:7:23  ...:8:17
+examples/algorithm/03_insertion_sort.sqt:7:9  int  key
+        refs  ...:9:35  ...:13:22
+examples/algorithm/03_insertion_sort.sqt:8:9  int  j
+        refs  ...:9:16  ...:9:30  ...:10:17  ...:10:30  ...:11:13 ...
+examples/algorithm/03_insertion_sort.sqt:16:10  int  k
+        refs  ...:16:21  ...:16:28  ...:16:32  ...:17:19
 ```
 
 A stranger with no access to your source code could write an LSP (Language
@@ -1255,7 +1514,7 @@ After semantic analysis (the `check` command verifies types, detects errors),
 the AST is **annotated** with type information. Then the **optimizer** can
 optionally run.
 
-saQut's optimizer works on a **clone** of the AST, the original is preserved.
+saQut's optimizer works on a **clone** of the AST; the original is preserved.
 Two passes run in a fixpoint loop:
 
 ### Constant Folding
@@ -1287,7 +1546,7 @@ saqut ast hello.sqt --optimized    # see optimized AST
 
 ---
 
-## 5. IR (Intermediate Representation (`saqut ir`))
+## 5. IR (Intermediate Representation: `saqut ir`)
 
 ### What is IR?
 
@@ -1325,19 +1584,18 @@ adds them, and puts the result in a third. `CALLHOST` calls a host function
 
 ### Why does IR exist?
 
-The AST is great for analysis but not for execution. The IR bridges the gap
-between the high-level tree and the low-level bytecode VM:
+The AST suits analysis but not direct execution. The IR bridges the high-level
+tree and the low-level bytecode VM:
 
-- **AST** = "what the code means" (tree)
-- **IR** = "how to do it" (linear instructions)
-- **Bytecode VM** = "do it" (interpreter loop)
+- **AST** = what the code means (tree)
+- **IR** = how to do it (linear instructions)
+- **Bytecode VM** = do it (interpreter loop)
 
 Splitting IR from the VM makes it possible to add new backends (like a MIR
 JIT compiler or an AOT packager) without changing the frontend.
 
 ### When would you use `saqut ir`?
 
-- **Learning:** Understand how high-level code maps to low-level instructions
 - **Debugging:** If a program crashes at runtime, the IR shows exactly what
   the VM is executing
 - **Performance:** Count instructions, spot redundant operations, see how
@@ -1355,8 +1613,41 @@ The **VM (Virtual Machine)** is the final stage. It takes the IR, resolves
 function entry points, allocates frames and slots, and executes instructions
 in a loop.
 
+Here is an insertion sort algorithm and its output:
+
+```c
+// examples/algorithm/03_insertion_sort.sqt
+int main() {
+    int[] arr = [5, 3, 1, 6, 4];
+    int n = 5;
+
+    for (int i = 1; i < n; i = i + 1) {
+        int key = arr[i];
+        int j = i - 1;
+        while (j >= 0 && arr[j] > key) {
+            arr[j + 1] = arr[j];
+            j = j - 1;
+        }
+        arr[j + 1] = key;
+    }
+
+    for (int k = 0; k < n; k = k + 1) {
+        print(arr[k]);
+    }
+    return 0;
+}
+```
+
 ```bash
-saqut run hello.sqt
+saqut run examples/algorithm/03_insertion_sort.sqt
+```
+
+```
+1
+3
+4
+5
+6
 ```
 
 The VM is the **reference backend**: it must produce the correct output
@@ -1383,7 +1674,7 @@ for the same input.
 > output alone. That is the test saQut is designed to pass."
 
 Every stage is **machine-readable** (JSON), **pipeable** (Unix-friendly), and
-**stable** (designed as a public interface). You are not locked into the CLI,
+**stable** (designed as a public interface). You are not locked into the CLI;
 you can write scripts that consume `saqut ast --format=json` and build your
 own tools on top of saQut's pipeline.
 
@@ -1413,7 +1704,7 @@ Range: `-2,147,483,648` to `2,147,483,647`
 
 ### `float` (Floating-Point)
 
-A 32-bit decimal number. Use scientific notation with `e` or `E`.
+A 64-bit floating-point number (IEEE 754 double precision). Use scientific notation with `e` or `E`.
 
 ```c
 float x = 3.14;
@@ -1670,6 +1961,232 @@ switch (c) {
 - Learn how to create and use [variables](/variables/)
 - See how [operators](/operators/) work with different types
 
+## /editor-setup/
+
+saQut ships with a VS Code extension that provides syntax highlighting, code
+completion, and an integrated debugger. This page covers installing it and what
+each feature does.
+
+## Install the extension
+
+The saQut extension is distributed as a `.vsix` file. Install it in one of two
+ways.
+
+**From a downloaded release (most users).** Download `saqut-0.4.0.vsix` from
+[GitHub Releases](https://github.com/saqutlang/saqut/releases), then install it
+by its full path:
+
+```bash
+code --install-extension /path/to/saqut-0.4.0.vsix
+```
+
+Or through VS Code: open the Extensions panel (`Ctrl+Shift+X`), click the `...`
+menu (top right), select **Install from VSIX...**, and choose the file you
+downloaded.
+
+**From a source checkout.** If you cloned the compiler repository, the `.vsix`
+already sits in `editor/vscode/`, so you can install it from the repo root:
+
+```bash
+code --install-extension editor/vscode/saqut-0.4.0.vsix
+```
+
+Once installed, `.sqt` files get automatic syntax highlighting.
+
+## Features
+
+### Syntax highlighting
+
+The extension highlights keywords (`int`, `float`, `string`, `struct`, `enum`,
+`if`, `for`, `return`), string literals, comments, and type annotations. It
+uses a TextMate grammar (`sqt.tmLanguage.json`) so it works in any editor that
+supports TextMate grammars (VS Code, Sublime Text, JetBrains with plugin).
+
+### LSP (Language Server Protocol)
+
+The extension connects to saQut's built-in LSP server for:
+
+- **Go to definition**: `F12` on any function or variable to jump to its
+  declaration
+- **Find references**: `Shift+F12` to find all uses of a symbol, even across
+  files
+- **Hover information**: hover over any symbol to see its type
+- **Rename symbol**: `F2` to rename a function or variable across the entire
+  project
+- **Auto-completion**: suggestions as you type, including built-in methods on
+  strings, arrays, and structs
+- **Syntax error diagnostics**: red squiggly underlines with error messages
+  as you edit, even without saving
+
+The LSP server starts automatically when you open a `.sqt` file. You need
+`saqut` on your `PATH` or configure the path in VS Code settings.
+
+### DAP (Debug Adapter Protocol)
+
+saQut includes a debugger that supports:
+
+- **Breakpoints**: click the gutter to set a red dot; execution pauses there
+- **Step over / step in / step out**: walk through your program line by line
+- **Variable inspection**: hover over variables in debug mode to see their
+  current values
+- **Stop on entry**: optionally pause at the first line of your program
+
+To start debugging, open a `.sqt` file and press `F5`. VS Code uses the
+launch configuration that comes with the extension:
+
+```json
+{
+    "type": "sqt",
+    "request": "launch",
+    "name": "saQut Debug",
+    "program": "${file}",
+    "stopOnEntry": true
+}
+```
+
+### Additional editor settings
+
+The extension registers `.sqt` files with these editor features:
+- Auto-closing brackets and quotes
+- Comment toggling (`Ctrl+/`)
+- Breakpoint support (`F9` to toggle)
+
+## Troubleshooting
+
+**LSP not starting**: Make sure `saqut` is on your `PATH`. Run `saqut lsp`
+from a terminal to verify it starts without errors.
+
+**Debugger not connecting**: The debug adapter requires `saqut` on `PATH` as
+well. Check that `saqut dap` runs from the terminal.
+
+**No syntax highlighting**: Verify the extension is installed and enabled.
+The file must end with `.sqt`.
+
+If issues persist, [open an issue](https://github.com/saqutlang/saqut/issues)
+with your VS Code version and OS details.
+
+## /enums/
+
+An **enum** (short for enumeration) is a way to define a set of named
+constants. Instead of passing around bare numbers like `0`, `1`, `2` whose
+meaning you have to remember, you give each value a name.
+
+## Declaring an enum
+
+```c
+enum Color { Red, Green, Blue }
+```
+
+This creates a new type called `Color` with three possible values. Each value
+gets an integer index starting from `0`: `Red` is `0`, `Green` is `1`, `Blue`
+is `2`.
+
+## Using enums
+
+Access enum values with the dot syntax:
+
+```c
+Color c = Color.Green;
+```
+
+You can print an enum value; it outputs its index:
+
+```c
+print(Color.Red);              // 0
+print(Color.Green);            // 1
+print(Color.Blue);             // 2
+```
+
+## Enums in switch
+
+Enums and `switch` work naturally together:
+
+```c
+enum Status { Pending, Active, Done }
+
+string describeStatus(Status s) {
+    switch (s) {
+        case Status.Pending: return "waiting";
+        case Status.Active:  return "in progress";
+        case Status.Done:    return "finished";
+    }
+    return "";
+}
+
+int main() {
+    Status task = Status.Active;
+    print(describeStatus(task));   // "in progress"
+    return 0;
+}
+```
+
+Each `case` covers one enum member. A `switch` is not required to cover every
+member; there is no exhaustiveness check, so add a `default` or a trailing
+`return` if some members are unhandled.
+
+## Enums as function parameters
+
+Pass enums to functions to make the intention clear:
+
+```c
+enum Direction { North, East, South, West }
+
+void move(Direction d) {
+    switch (d) {
+        case Direction.North: print("going up");    break;
+        case Direction.East:  print("going right"); break;
+        case Direction.South: print("going down");  break;
+        case Direction.West:  print("going left");  break;
+    }
+}
+```
+
+Without an enum, this function would take an `int`, and `move(7)` would compile
+even though `7` is not a valid direction. With a `Direction` parameter, the
+type checker rejects any argument that is not a `Direction` value.
+
+## Enum values are integers
+
+You can compare enum values and cast them to `int`:
+
+```c
+Direction d = Direction.North;
+int idx = d as int;            // 0
+
+if (d == Direction.North) {
+    print("facing north");
+}
+```
+
+Enums are **not** integers directly. You cannot assign `0` to a `Direction`
+variable; you must write `Direction.North`. This prevents accidentally mixing
+up unrelated constants.
+
+## Why use enums instead of int constants
+
+Compare these two approaches:
+
+```c
+// With int constants (error-prone)
+int MOVE_LEFT  = 0;
+int MOVE_RIGHT = 1;
+int MOVE_UP    = 2;
+
+void move(int direction) { /* ... */ }
+move(7);   // compiles, means nothing
+
+// With enum (safe)
+enum Move { Left, Right, Up }
+
+void move(Move direction) { /* ... */ }
+// move(7);                  // compile error
+move(Move.Left);              // explicit and correct
+```
+
+With the enum, `move(7)` is a compile error rather than a call that runs with a
+meaningless value, and each call site names the value it passes (`Move.Left`)
+instead of a bare integer.
+
 ## /error-handling/
 
 saQut supports **unchecked** error handling with `try`, `catch`, and `throw`.
@@ -1824,6 +2341,88 @@ try {
 
 - Learn about the [compiler tools](/compiler-tools/), how to inspect
   tokens, AST, symbols, and IR
+
+## /ffi/
+
+saQut is a small language by design. It does not try to replace every library
+ever written. Instead, it provides a single, controlled door to C and C++
+code: the **Foreign Function Interface (FFI)**.
+
+## What FFI is for
+
+The FFI lets you call functions written in C or C++ from saQut. These **host
+functions** are declared in a special file inside the compiler and dispatched
+by numeric ID. You don't need to write C code yourself to use the standard
+library (`fs`, `math`, `sys`, `date`); that's already done for you.
+
+You would use the FFI directly when:
+- You are extending saQut with your own host function
+- You are embedding saQut as a scripting engine in a larger C++ application
+
+## How it works
+
+Host functions are declared in the compiler's embedded `root.sqt` using the
+`ffi` keyword:
+
+```
+ffi float sqrt(float x) : MATH_SQRT from math;
+ffi string readFile(string path) : FS_READFILE from fs requires fs;
+```
+
+Each declaration specifies: the **signature** (types for type checking), a
+**symbolic host ID** (maps to C++ `HostFnId` enum), a **module** (for
+import-gating), and optionally a **capability** and stability flag.
+
+When you write:
+
+```c
+import { sqrt } from math;
+
+int main() {
+    print(sqrt(81));   // 9.0
+    return 0;
+}
+```
+
+- The import gate resolves `math` to the embedded module
+- The `sqrt` call becomes a `CALLHOST MATH_SQRT` instruction in the IR
+- The VM dispatches to the C++ function via the `HostFnId` enum (O(1) lookup)
+- The result is pushed back as a saQut value
+
+No string matching. No runtime reflection. A single numeric dispatch.
+
+## Capability and FFI
+
+Host functions that reach outside the VM (file I/O, network, system calls)
+must declare `requires fs` (or `net`, `sys`). The compiler and runtime both
+enforce this. A host function without a `requires` clause is pure and needs
+no `--allow` flag.
+
+## print() is also FFI
+
+The `print()` function you've been using since Hello World is itself a host
+function (`: PRINT from core`). It is always available because it is declared in
+the core module, which needs no import and no capability.
+
+## Writing your own host function
+
+This is an advanced topic. In short: add a `ffi` declaration to the embedded
+root, implement the C++ body in `host_functions.hpp`, assign a new
+`HostFnId`, and recompile saQut. For step-by-step instructions, see the
+[contributing guide](https://github.com/saqutlang/saqut/blob/main/CONTRIBUTING.md).
+
+## FFI vs. standard library
+
+| What | Mechanism | Import required | Capability required |
+|---|---|---|---|
+| `s.upper()`, `arr.append()` | UFCS built-in | No | No |
+| `readFile()`, `sqrt()` | FFI (stdlib) | Yes | Depends on function |
+| `print()` | FFI (core) | No | No |
+
+The standard library is a set of FFI declarations shipped with the compiler.
+You don't see the FFI machinery when using `import { readFile } from fs`
+because it's already wired up. The seam is there if you ever need to extend
+it.
 
 ## /functions/
 
@@ -2001,8 +2600,8 @@ it. If you don't want that, the function should avoid writing to its parameter.
 
 ## Returning Compound Types
 
-Returning a **struct** works exactly as you'd expect: the caller receives a
-reference to the returned value:
+When a function returns a **struct**, the caller receives a reference to the
+returned value:
 
 ```c
 struct Point { int x; int y; }
@@ -2087,7 +2686,7 @@ file, thanks to the two-pass symbol collector.)
 Your program creates data as it runs: strings, arrays, and structs. Something has
 to free the memory when that data is no longer needed. saQut does this
 automatically with a **garbage collector (GC)**, so you never write `free` or
-`delete`. This page explains, in plain terms, *when* it runs and *what survives*.
+`delete`.
 
 ## First: not everything is garbage-collected
 
@@ -2097,44 +2696,36 @@ The GC only deals with **heap objects** (the reference types):
 |-------------------|----------------------------|
 | `string` | `int` |
 | `struct` | `float` |
-| `array` (`int[]`, `Point[]`, …) | `bool` |
+| `array` (`int[]`, `Point[]`, ...) | `bool` |
 | | `byte` |
 
 Primitives (`int`, `float`, `bool`, `byte`) are **values**. They live directly
-in a variable's slot, are copied when assigned, and simply vanish when the slot
-goes away. There is nothing to collect. (See
-[data types](/data-types/) for the value-vs-reference split.) So when we talk
-about "garbage," we always mean unreachable *reference* objects.
+in a variable's slot, are copied when assigned, and disappear when the slot goes
+away. There is nothing to collect. (See
+[data types](/data-types/) for the value-vs-reference split.)
 
 ---
 
 ## What survives: reachability, not counting
 
-The key question, *"are all my variables deleted, or do the ones with
-references stay?"*, has a precise answer: **an object survives if it is still
-reachable, and is freed if it is not.**
+An object survives if it is still reachable from a live variable, and is freed
+if nothing can reach it. saQut uses a **mark-sweep** collector in two phases:
 
-saQut uses a **mark-sweep** collector, which works in two phases:
-
-1. **Mark.** Start from the **roots**, the live variables the program can still
-   touch right now, and follow every reference. Everything you can reach from a
-   root gets marked as *alive*.
-2. **Sweep.** Walk the heap and free every object that was **not** marked.
-   Nothing reachable was skipped; everything unreachable is reclaimed.
+1. **Mark.** Start from the **roots** (live variables the program can still
+   touch right now) and follow every reference. Everything reachable gets
+   marked alive.
+2. **Sweep.** Walk the heap and free every unmarked object.
 
 The roots are:
 
-- **Global (module) variables** that are still in scope
-- **Local variables** in every active function call (the current call stack)
+- **Global (module) variables** still in scope
+- **Local variables** in every active function call (the call stack)
 - A value currently being **thrown** (an in-flight error)
 
-So the rule is exactly what you'd hope:
-
 > If a live variable, or a chain of objects starting from a live variable,
-> can reach an object, that object **stays**. If nothing can reach it, it is
-> **freed**.
+> can reach an object, that object stays. If nothing can reach it, it is freed.
 
-### A worked example
+### Worked example
 
 ```c
 int[] keep = [1, 2, 3];
@@ -2146,20 +2737,15 @@ for (int i = 0; i < 100000; i = i + 1) {
 print(keep.length());          // 3
 ```
 
-`keep` is referenced by a live variable for the whole program, so it is a root
-and **never collected**. Each `temp` array, on the other hand, becomes
-unreachable the instant the next iteration begins: no variable points at the
-old one anymore, so the collector reclaims it. Running this with GC stats shows
-tens of thousands of `temp` arrays freed while `keep` stays alive the whole time.
+`keep` is referenced by a live variable the whole time and **never collected**.
+Each `temp` array becomes unreachable the instant the next iteration starts:
+no variable points at the old one anymore, so the collector reclaims it.
 
 ### Cycles are collected too
 
-Because survival is based on *reachability from roots*, not on counting how many
-things point at an object, saQut correctly frees **cyclic** structures. Two
-structs that point at each other but are unreachable from any root are still
-garbage, and mark-sweep collects them. (This is the trap a naive
-reference-counting collector falls into, and a deliberate reason saQut does not
-use one.)
+Because survival is based on reachability from roots, not on reference counting,
+saQut correctly frees **cyclic** structures. Two structs that point at each
+other but are unreachable from any root are still garbage.
 
 ```c
 struct Node { Node other; }
@@ -2168,34 +2754,28 @@ void makeGarbage() {
     Node a;
     Node b;
     a.other = b;
-    b.other = a;      // a ⇄ b point at each other
+    b.other = a;      // a and b point at each other
 }                     // after this returns nothing reaches a or b;
-                      // the cycle is unreachable and WILL be collected
+                      // the cycle is unreachable and will be deleted
 ```
 
 ---
 
 ## When does it run?
 
-The collector is **threshold-based**. As your program allocates objects, saQut
-tracks how much live data exists. When allocation crosses a threshold, the next
-**safepoint** triggers a collection.
+The collector is **threshold-based**. When allocation crosses a threshold, the
+next **safepoint** triggers a collection.
 
-- **Safepoints are at instruction boundaries.** The collector never runs in the
-  middle of an operation, only between VM instructions, when every object is in
-  a consistent, fully-formed state. (An object being built mid-instruction is
-  never mistaken for garbage.)
-- **It's stop-the-world.** During a collection the program pauses briefly, the
-  mark-sweep runs to completion, then execution resumes. There is no concurrent
-  or incremental collection to reason about.
+- **Safepoints are at instruction boundaries.** The collector never runs
+  mid-operation; only between VM instructions, when every object is in a
+  consistent state.
+- **It is stop-the-world.** During collection the program pauses briefly,
+  mark-sweep runs to completion, then execution resumes.
 - **The threshold adapts.** After a collection, the next threshold is set
-  relative to how much data survived (roughly *live × 2*). A program with a
-  large working set collects less often; a program that churns through
-  short-lived objects collects more often.
+  relative to how much data survived (roughly live times 2).
 
-This makes the *timing* of collection an implementation detail, but the
-*outcome* fully deterministic: the same program frees the same objects, a
-property that matters for saQut's inspectable, reproducible design.
+The timing of collection is an implementation detail, but the outcome is
+deterministic: the same program frees the same objects every time.
 
 ---
 
@@ -2213,9 +2793,9 @@ saqut run --gc-stats myfile.sqt
 gc: runs=97 freed=99134 live=867
 ```
 
-- **`runs`**: how many collections happened
-- **`freed`**: total objects reclaimed
-- **`live`**: objects still alive at the end
+- `runs`: how many collections happened
+- `freed`: total objects reclaimed
+- `live`: objects still alive at the end
 
 ### `--gc-threshold=N` (change how eagerly it collects)
 
@@ -2223,56 +2803,59 @@ gc: runs=97 freed=99134 live=867
 saqut run --gc-threshold=1000 --gc-stats myfile.sqt
 ```
 
-A **lower** threshold collects more frequently: memory stays leaner but the GC
-runs more often. A **higher** threshold does the opposite. On the example above,
-dropping the threshold turns `runs=97 … live=867` into `runs=100 … live=201`:
-more frequent sweeps, far less memory held at any moment.
-
-This is a tuning knob and an inspection aid; you never *need* it for
-correctness, but it lets you see the collector's behavior directly.
+A lower threshold collects more frequently: memory stays leaner. A higher
+threshold does the opposite. This is a tuning knob and an inspection aid; you
+never need it for correctness.
 
 ---
 
 ## Design notes
 
 - **Simple on purpose.** No copying, no compaction, no generations, no
-  concurrency. GC is historically a common source of performance problems, so
-  saQut reduces that risk by keeping the collector small and predictable.
+  concurrency. The collector is small and predictable.
 - **Reachability beats counting.** Mark-sweep collects cycles that reference
-  counting would leak, which is why saQut does not lean on `shared_ptr`-style
-  counting as its model.
-- **Deterministic outcome.** Timing may vary with the threshold, but *which*
+  counting would leak.
+- **Deterministic outcome.** Timing may vary with the threshold, but which
   objects are freed does not.
 
-## What's Next?
+## What's next?
 
 - Review the value-vs-reference distinction in [data types](/data-types/)
 - See how references are shared in [structs](/structs/#reference-semantics) and [arrays](/arrays/#reference-semantics)
-- Explore the executing VM in [compiler tools](/compiler-tools/#6-bytecode-vm-saqut-run)
+- Explore the executing VM in [compiler tools](/compiler-tools/)
 
 ## /getting-started/
 
-Welcome to saQut. This guide walks through getting the compiler, writing your
-first program, and understanding the basic structure of a saQut project.
+This guide covers getting the compiler onto your machine, which platforms are
+supported, and the basic structure of a saQut project. To start writing code
+first, go to [Hello World](/hello-world/).
 
 ## Get saQut
 
-<CardGrid>
-  <LinkCard
-    title="Build from source"
-    description="C++17, CMake ≥ 3.16, Ninja. Step-by-step build instructions in the README."
-    href="https://github.com/saqutlang/saqut#readme"
-  />
-  <LinkCard
-    title="Download a release"
-    description="Pre-built binaries for Linux x86-64. Grab the latest version from GitHub Releases."
-    href="https://github.com/saqutlang/saqut/releases"
-  />
-</CardGrid>
+You have two options: build from source, or download a pre-built release.
 
-### Build from source (terminal)
+### 1. Download a release (recommended)
 
-saQut requires **C++17**, **CMake ≥ 3.16**, and **Ninja**.
+Pre-built binaries are available for the following platforms:
+
+| Platform | Architecture | Status |
+|---|---|---|
+| Linux (all distributions) | x86-64 | Supported |
+| Windows 11 | x86-64 | Supported |
+
+Grab the latest version from [GitHub Releases](https://github.com/saqutlang/saqut/releases).
+Extract the archive, then run the binary directly:
+
+```bash
+./saqut --help
+```
+
+No installer, no system-wide dependencies. The binary is self-contained.
+
+### 2. Build from source
+
+If you prefer to compile saQut yourself, you need **C++17**, **CMake >= 3.16**,
+and **Ninja**.
 
 ```bash
 git clone https://github.com/saqutlang/saqut
@@ -2281,10 +2864,7 @@ cmake -B build -G Ninja
 cmake --build build
 ```
 
-The binary lands at `build/saqut`. Tested on Linux (x86-64). macOS and Windows
-are untested but no platform-specific code is used, so they should work.
-
-Check that it works:
+The binary lands at `build/saqut`.
 
 ```bash
 ./build/saqut --help
@@ -2292,32 +2872,18 @@ Check that it works:
 
 You should see a list of available commands.
 
-## Your First Program
+## Supported platforms
 
-Create a file called `hello.sqt`:
+saQut targets Linux x86-64 and Windows 11 x86-64. There is no platform-specific
+code in the compiler; it uses only standard C++17 and portable libraries. ARM
+(aarch64) and other architectures are planned for a later release but are not
+shipped yet. macOS is not a target and will not be supported.
 
-```c
-int main() {
-    print("Hello, world!");
-    return 0;
-}
-```
+If you run into issues on an untested platform, [open an
+issue](https://github.com/saqutlang/saqut/issues) with your OS, architecture,
+and compiler version.
 
-Run it:
-
-```bash
-./build/saqut run hello.sqt
-```
-
-Output:
-
-```
-Hello, world!
-```
-
-You just compiled and ran your first saQut program.
-
-## Program Structure
+## Program structure
 
 A saQut program is a list of **function definitions** and **global variable
 declarations**. There is no mandatory `class` or boilerplate; execution starts
@@ -2340,7 +2906,7 @@ int main() {
 
 Each statement ends with `;`. Blocks are enclosed in `{ }`.
 
-## The `print()` Function
+## The `print()` function
 
 `print()` is a built-in **host function**: it is implemented in C++ inside the
 compiler itself, not in saQut code. It accepts a single argument of any type
@@ -2353,11 +2919,98 @@ print("text");       // string
 print(true);         // boolean, outputs "1" or "0"
 ```
 
-## What's Next?
+## What's next?
 
+- Write your [first program](/hello-world/) from scratch
 - Learn about [variables](/variables/) and how to store and name data
 - Explore [data types](/data-types/) to see what kinds of values exist
 - Try the interactive `saqut exec` command to experiment with expressions
+
+## /hello-world/
+
+This page walks you through writing, running, and understanding your first
+saQut program. If you haven't installed the compiler yet, follow the
+[Getting Started](/getting-started/) guide first.
+
+## Write it
+
+Create a file called `hello.sqt`:
+
+```c
+int main() {
+    print("Hello, world!");
+    return 0;
+}
+```
+
+Those four lines are the complete program.
+
+## What each line does
+
+```c
+int main() {
+```
+
+`main` is a function. Every saQut program must have one; execution starts here.
+`int` is the return type: `main` gives back an integer to the operating system.
+
+```c
+    print("Hello, world!");
+```
+
+`print()` writes text to the terminal. The argument `"Hello, world!"` is a
+**string literal**, text between double quotes. Each statement ends with `;`.
+
+```c
+    return 0;
+```
+
+Returning `0` from `main` means "everything went fine." The `{ }` braces group
+statements into a block.
+
+## Run it
+
+```bash
+saqut run hello.sqt
+```
+
+If you built from source the command is `./build/saqut run hello.sqt`.
+
+Output:
+
+```
+Hello, world!
+```
+
+## Try a few variations
+
+Change the string inside `print()` and run again:
+
+```c
+int main() {
+    print("Hello from saQut!");
+    return 0;
+}
+```
+
+Add a second `print()`:
+
+```c
+int main() {
+    print("First line");
+    print("Second line");
+    return 0;
+}
+```
+
+Each `print()` writes to its own line.
+
+## Next steps
+
+Now that you can run a program, learn how to store and name data with
+[variables](/variables/). If you want to understand the overall structure of a
+saQut program (functions, blocks, entry point), the [Getting
+Started](/getting-started/#program-structure) guide covers it in detail.
 
 ## /if-else/
 
@@ -2517,8 +3170,8 @@ int? x = getValue();
 print(x + 1);        // ERROR (E003), 'x' might be null
 ```
 
-An `if (x != null)` check **narrows** the type: inside the block, the compiler
-knows `x` is non-null and lets you use it as a plain `int`:
+An `if (x != null)` check **narrows** the type: inside the block, `x` has type
+`int` rather than `int?`, so you can use it as a plain `int`:
 
 ```c
 int? x = getValue();
@@ -2571,11 +3224,11 @@ Use `if` for running statements; use `?:` when you just need to pick a value.
 
 ## /
 
-## Not a black box (a glass box)
+## A glass box, not a black box
 
-Most compilers hide everything between source and output. saQut turns the
-pipeline inside out: **every stage is a first-class command** you can run,
-inspect, and pipe into your own tools.
+A typical compiler exposes only its source input and its final output; the
+stages in between are not observable. saQut exposes each stage as a separate
+command that produces a named, machine-readable result:
 
 ```bash
 saqut tokens  hello.sqt     # token stream      (JSON)
@@ -2585,8 +3238,8 @@ saqut ir      hello.sqt     # 3-address IR
 saqut run     hello.sqt     # compile & execute
 ```
 
-The language itself is deliberately small and C-flavoured; it's the vehicle.
-The product is the **inspectable pipeline**.
+The language is deliberately small and C-flavoured. It exists to give the
+inspectable pipeline something to compile.
 
 ---
 
@@ -2617,8 +3270,8 @@ The product is the **inspectable pipeline**.
 
 </Steps>
 
-Ready to go deeper? The [Getting Started](/getting-started/) guide walks through
-building the compiler and writing real programs.
+The [Getting Started](/getting-started/) guide covers building the compiler
+and writing longer programs.
 
 ---
 
@@ -2638,39 +3291,40 @@ int main() {
 }
 ```
 
-Just functions, control flow, and `print()`. No mandatory scaffolding.
+Functions, control flow, and `print()`. No mandatory scaffolding.
 
 ---
 
-## What makes saQut different
+## How saQut is built
 
 <CardGrid stagger>
   <Card title="Glass box pipeline" icon="open-book">
     Tokens, AST, symbol table, and IR are each a named, machine-readable
     output. Pipe `saqut ast` into your own tool, diff the optimized tree, or
-    write an LSP from `saqut symbols` alone.
+    build an LSP from `saqut symbols` alone.
   </Card>
-  <Card title="Procedural & explicit" icon="pencil">
+  <Card title="Procedural and explicit" icon="pencil">
     C-family syntax. No OOP, no generics, no hidden type coercion. Integer and
-    float mixing follows one clear rule. What you write is what runs.
+    float mixing follows one stated rule. The compiler runs what you wrote.
   </Card>
-  <Card title="Value & reference, no pointers" icon="setting">
+  <Card title="Value and reference, no pointers" icon="setting">
     Primitives (`int`, `float`, `bool`, `byte`) copy. Compounds (`string`,
-    `struct`, `array`) share by reference. No user-visible `&` or `*`.
+    `struct`, `array`) share by reference. There is no user-visible `&` or `*`.
   </Card>
-  <Card title="Null safety, zero runtime cost" icon="approve-check">
-    Nullable is opt-in with <code>T?</code>. The compiler proves non-null values
-    are safe before you can use them, all verified at compile time.
+  <Card title="Nullable is opt-in" icon="approve-check">
+    A value is non-null unless you declare it <code>T?</code>. The type checker
+    verifies that a non-null value cannot be null before you use it, so there is
+    no null check at run time.
   </Card>
   <Card title="Deterministic VM" icon="random">
-    The bytecode VM is the reference backend: same input, same output, every
-    time. LLVM is intentionally not used. A MIR JIT and embedded-runtime AOT are
-    planned next.
+    The bytecode VM is the reference backend: the same input produces the same
+    output on every run. LLVM is intentionally not used. An experimental MIR JIT
+    runs via <code>--jit</code>; embedded-runtime AOT is planned next.
   </Card>
   <Card title="Catchable errors" icon="error">
     <code>try</code> / <code>catch</code> / <code>throw</code> with struct-based
-    errors. Out-of-bounds, divide-by-zero, and null derefs are catchable: they
-    never silently crash the program.
+    errors. Out-of-bounds access, divide-by-zero, and null derefs raise a
+    catchable error instead of terminating the program silently.
   </Card>
 </CardGrid>
 
@@ -2692,24 +3346,23 @@ Just functions, control flow, and `print()`. No mandatory scaffolding.
 ## The pipeline, end to end
 
 ```
-Source → Tokenizer → Parser → AST → Symbol Collector → Type Checker
-  → Optimizer (constant folding + DCE) → IR Generator → Bytecode VM → output
+Source -> Tokenizer -> Parser -> AST -> Symbol Collector -> Type Checker
+  -> Optimizer (constant folding + DCE) -> IR Generator -> Bytecode VM -> output
 ```
 
-Every arrow is a CLI command you can run and inspect.
+Each arrow corresponds to a CLI command you can run and inspect.
 
 ## /modules/
 
-As a program grows, keeping everything in one file becomes painful. saQut lets
-you split code across many `.sqt` files and share pieces between them using two
-keywords: **`export`** (make something available to other files) and
+As a program grows, splitting it across several files keeps each file focused.
+saQut lets you split code across many `.sqt` files and share pieces between them
+using two keywords: **`export`** (make something available to other files) and
 **`import`** (pull something in from another file).
 
-This page starts with the simplest possible two-file program and builds up to
-multi-file dependency graphs, path rules, and how saQut protects you from
-circular imports.
+This page starts with a two-file program and builds up to multi-file dependency
+graphs, path resolution rules, and how the compiler handles circular imports.
 
-## The 30-Second Version
+## A minimal two-file program
 
 ```c
 // math.sqt
@@ -2734,8 +3387,9 @@ Run the file that contains `main()`:
 saqut run main.sqt
 ```
 
-saQut automatically finds `math.sqt`, compiles it, and links `square` in. You
-never list `math.sqt` on the command line; the `import` statement is enough.
+The compiler resolves `math.sqt` from the `import` statement, compiles it, and
+links `square` in. You do not list `math.sqt` on the command line; the `import`
+statement is the only place the dependency is named.
 
 The rest of this page fills in the details.
 
@@ -2895,9 +3549,9 @@ The module that defines `main()` is the one you run. Modules like
 
 ---
 
-## Diamond dependencies are fine
+## Diamond dependencies
 
-A common worry: what if two of my modules both import the same third module?
+What happens when two modules both import the same third module?
 
 ```
        main.sqt
@@ -2907,9 +3561,9 @@ A common worry: what if two of my modules both import the same third module?
       base.sqt        ← imported by BOTH left and right
 ```
 
-This is called a **diamond**, and it is *not* a problem. saQut loads each
-module **exactly once** and reuses it. `base.sqt` is compiled a single time
-even though two modules depend on it:
+This shape is called a **diamond**. The compiler loads each module **exactly
+once** and reuses it, so `base.sqt` is compiled a single time even though two
+modules depend on it:
 
 ```c
 // base.sqt
@@ -3016,11 +3670,120 @@ import from `common.sqt`, and remove the A↔B imports.
 - Bundle data with [structs](/structs/)
 - Explore the compiler pipeline with the [compiler tools](/compiler-tools/)
 
+## /nullable-types/
+
+Not every variable always has a value. A function may fail to find something, a
+lookup may return nothing, or a field may not be set yet. saQut represents the
+absence of a value with **nullable types**.
+
+## Declaring a nullable
+
+Add `?` after any type to make it nullable:
+
+```c
+int? maybeNumber = 42;
+maybeNumber = null;            // allowed
+
+string? maybeName = "Alex";
+maybeName = null;              // allowed
+```
+
+A non-nullable variable cannot hold `null`:
+
+```c
+int normalNumber = 42;
+// normalNumber = null;        // compile error
+```
+
+This is checked entirely at compile time. The check adds no run-time cost, and
+a non-nullable variable cannot hold `null` at any point during execution.
+
+## Null safety: you must check first
+
+You cannot use a nullable value directly. The compiler requires you to prove
+it is not `null` before you access it:
+
+```c
+int? x = getValue();
+
+// print(x);                   // compile error: x might be null
+
+if (x != null) {
+    print(x);                  // OK, x is narrowed to non-null here
+}
+```
+
+Inside the `if (x != null)` block, the type checker **narrows** the type from
+`int?` to `int`. This is called flow-sensitive typing.
+
+## Nullable with compound types
+
+Structs, arrays, and strings can all be nullable:
+
+```c
+struct Point { int x; int y; }
+
+Point? maybePoint = null;
+maybePoint = Point(10, 20);
+
+if (maybePoint != null) {
+    print(maybePoint.x);       // OK
+}
+
+int[]? maybeList = null;
+string? maybeText = null;
+```
+
+## Nullable in function returns
+
+A function that might not produce a result should return a nullable type:
+
+```c
+int? findIndex(int[] arr, int target) {
+    for (int i = 0; i < arr.length; i = i + 1) {
+        if (arr[i] == target) {
+            return i;
+        }
+    }
+    return null;               // not found
+}
+```
+
+The caller then checks the result:
+
+```c
+int[] numbers = [10, 20, 30];
+int? pos = findIndex(numbers, 20);
+
+if (pos != null) {
+    print(pos);                // 1
+} else {
+    print("not found");
+}
+```
+
+## Default value
+
+A nullable variable declared without an initial value defaults to `null`:
+
+```c
+int? x;                        // x is null
+string? s;                     // s is null
+```
+
+## Summary
+
+- `T?` means the value may be null
+- The type checker rejects any use of a nullable value that is not checked first
+- `if (x != null)` narrows the type to non-null inside the block
+- No run-time overhead; all checks happen at compile time
+- Functions that may not produce a result return `T?`
+
 ## /operators/
 
-saQut supports a wide range of operators. The parser uses **Pratt parsing**,
-each operator has a precedence level and associativity, so expressions like
-`-2 + -5` are parsed correctly without ambiguity.
+saQut provides the operators listed below. The parser uses **Pratt parsing**:
+each operator has a precedence level and an associativity, so an expression
+like `-2 + -5` parses to a single unambiguous tree.
 
 ## Operator Precedence Table
 
@@ -3296,10 +4059,10 @@ While reasoning about constants, the compiler can also warn about a constant
 
 ## What it does *not* do
 
-This part matters just as much. saQut's optimizer is **deliberately conservative**.
-The goal is "acceptable, predictable speed with a determinism guarantee," not
-"squeeze out every cycle." Knowing the boundaries means you won't expect a
-rewrite that doesn't come.
+The boundaries are as important as the transforms. saQut's optimizer is
+**deliberately conservative**. The goal is predictable speed with a determinism
+guarantee, not the removal of every possible cycle. Knowing what the optimizer
+leaves alone tells you what not to expect it to rewrite.
 
 ### Float expressions are not folded
 
@@ -3357,6 +4120,576 @@ you can no longer recognize.
 - See how the optimized tree becomes instructions in [compiler tools](/compiler-tools/#5-ir--intermediate-representation-saqut-ir)
 - Learn which warnings the optimizer raises in [compiler errors](/compiler-errors/)
 - Understand runtime memory in [garbage collection](/garbage-collection/)
+
+## /stdlib-date/
+
+The `date` module provides a `date` type for working with calendar dates and
+timestamps. Only `now()` requires `--allow sys`; all other functions are pure
+computation and need no capability.
+
+## Import
+
+```c
+import { now, date, dateEpoch, parse, addDays, diffDays } from date;
+```
+
+## Functions
+
+### now
+
+Returns the current date and time. Requires `--allow sys`.
+
+```c
+import { now } from date;
+
+int main() {
+    date d = now();
+    print(d);                // 2026-07-15T14:30:00Z
+    return 0;
+}
+```
+
+### Constructing a date
+
+Create a date from year, month, and day. Months are 1-based.
+
+```c
+import { date } from date;
+
+int main() {
+    date d = date(2026, 7, 15);
+    print(d);                // 2026-07-15T00:00:00Z
+    return 0;
+}
+```
+
+### dateEpoch
+
+Create a date from epoch milliseconds.
+
+```c
+import { dateEpoch } from date;
+
+int main() {
+    date d = dateEpoch(1752580800000);
+    print(d);
+    return 0;
+}
+```
+
+### parse
+
+Parse a date string in ISO 8601 format.
+
+```c
+import { parse } from date;
+
+int main() {
+    date? d = parse("2026-07-15");
+    if (d != null) {
+        print(d);            // 2026-07-15T00:00:00Z
+    }
+    return 0;
+}
+```
+
+Returns `date?` (nullable): `null` if the string is not a valid date.
+
+### addDays / addMonths / addYears
+
+Add time to a date and return a new one. The original is unchanged.
+
+```c
+import { date, addDays } from date;
+
+int main() {
+    date today = date(2026, 7, 15);
+    date tomorrow = addDays(today, 1);
+    print(tomorrow);         // 2026-07-16T00:00:00Z
+    return 0;
+}
+```
+
+### diffDays
+
+Returns the number of days between two dates.
+
+```c
+import { date, diffDays } from date;
+
+int main() {
+    date start = date(2026, 7, 1);
+    date end   = date(2026, 7, 15);
+    print(diffDays(start, end));   // 14
+    return 0;
+}
+```
+
+Negative if the second date is earlier than the first.
+
+### Accessors
+
+Extract individual components from a date.
+
+```c
+import { date } from date;
+
+int main() {
+    date d = date(2026, 7, 15);
+    print(d.year);           // 2026
+    print(d.month);          // 7
+    print(d.day);            // 15
+    return 0;
+}
+```
+
+## /stdlib-fs/
+
+The `fs` module lets your program interact with the file system. All functions
+require `--allow fs` at runtime.
+
+## Import
+
+```c
+import { readFile, writeFile, readDir, exists, remove } from fs;
+```
+
+## Functions
+
+### readFile
+
+Reads the entire contents of a file and returns it as a string.
+
+```c
+import { readFile } from fs;
+
+int main() {
+    string content = readFile("data.txt");
+    print(content);
+    return 0;
+}
+```
+
+If the file does not exist, `readFile` throws a catchable error. Wrap it in
+`try`/`catch` or check with `exists` first.
+
+### writeFile
+
+Writes a string to a file. Creates the file if it does not exist; overwrites
+it if it does.
+
+```c
+import { writeFile } from fs;
+
+int main() {
+    writeFile("output.txt", "Hello, saQut!");
+    return 0;
+}
+```
+
+### readDir
+
+Returns an array of entry names in a directory.
+
+```c
+import { readDir } from fs;
+
+int main() {
+    string[] entries = readDir(".");
+    for (int i = 0; i < entries.length; i = i + 1) {
+        print(entries[i]);
+    }
+    return 0;
+}
+```
+
+### exists
+
+Returns `true` if a file or directory exists at the given path.
+
+```c
+import { exists } from fs;
+
+int main() {
+    if (exists("config.txt")) {
+        string c = readFile("config.txt");
+        print(c);
+    } else {
+        print("no config found");
+    }
+    return 0;
+}
+```
+
+### remove
+
+Deletes a file. Throws if the path does not exist or is a directory.
+
+```c
+import { remove } from fs;
+
+int main() {
+    remove("temp.txt");
+    return 0;
+}
+```
+
+## Run with fs access
+
+```bash
+saqut run --allow fs program.sqt
+```
+
+## /stdlib-math/
+
+The `math` module provides mathematical constants and functions. It does not
+require any capability; pure computation only.
+
+## Import
+
+```c
+import { E, PI, sqrt, abs, min, max, floor, ceil, round, pow, sin, cos } from math;
+```
+
+## Constants
+
+| Constant | Value |
+|---|---|
+| `E` | 2.7182818284 |
+| `PI` | 3.1415926535 |
+
+```c
+import { PI } from math;
+
+int main() {
+    print(PI);                    // 3.141593
+    float area = PI * 5 * 5;     // circle area, radius 5
+    print(area);
+    return 0;
+}
+```
+
+## Functions
+
+### sqrt
+
+Square root.
+
+```c
+import { sqrt } from math;
+
+int main() {
+    print(sqrt(25));    // 5.0
+    return 0;
+}
+```
+
+### abs
+
+Absolute value. Works for `int` and `float`.
+
+```c
+import { abs } from math;
+
+int main() {
+    print(abs(-42));       // 42
+    print(abs(-3.14));     // 3.14
+    return 0;
+}
+```
+
+### min / max
+
+Returns the smaller or larger of two numbers.
+
+```c
+import { min, max } from math;
+
+int main() {
+    print(min(10, 20));    // 10
+    print(max(3.5, 2.1));  // 3.5
+    return 0;
+}
+```
+
+### floor / ceil / round
+
+Round a float to the nearest integer.
+
+```c
+import { floor, ceil, round } from math;
+
+int main() {
+    print(floor(3.9));    // 3
+    print(ceil(3.1));     // 4
+    print(round(3.5));    // 4
+    return 0;
+}
+```
+
+### pow
+
+Returns `base` raised to the power of `exponent`. Both arguments are `float`.
+
+```c
+import { pow } from math;
+
+int main() {
+    print(pow(3, 4));     // 81.0
+    return 0;
+}
+```
+
+### sin / cos
+
+Sine and cosine. Input is in radians.
+
+```c
+import { sin, cos, PI } from math;
+
+int main() {
+    print(sin(PI / 2));   // ~1.0
+    print(cos(PI));        // ~-1.0
+    return 0;
+}
+```
+
+## /stdlib-net/
+
+> **Status: Planned for 0.9.** The `net` module is not yet available in the
+> current release. This page describes the planned API.
+
+The `net` module will provide HTTP client functionality and basic socket
+communication. It will require `--allow net` at runtime.
+
+## Planned functions
+
+### httpGet
+
+Sends an HTTP GET request and returns the response body as a string.
+
+```c
+import { httpGet } from net;
+
+int main() {
+    string body = httpGet("https://example.com");
+    print(body);
+    return 0;
+}
+```
+
+### httpPost
+
+Sends an HTTP POST request with a body and returns the response.
+
+```c
+import { httpPost } from net;
+
+int main() {
+    string resp = httpPost("https://example.com/api", "{\"key\":\"value\"}");
+    print(resp);
+    return 0;
+}
+```
+
+## Capability
+
+All `net` functions require `--allow net`:
+
+```bash
+saqut run --allow net program.sqt
+```
+
+The `net` capability is separate from `fs` and `sys`. A program that only
+reads files and makes HTTP requests would run with:
+
+```bash
+saqut run --allow fs,net program.sqt
+```
+
+## When will it be available
+
+The `net` module is planned for version 0.9. Track progress on
+[GitHub Issues](https://github.com/saqutlang/saqut/issues).
+
+## /stdlib-overview/
+
+saQut's standard library is a set of **import-gated modules** that give your
+programs access to the file system, networking, system information, math, and
+dates. Unlike the built-in functions (`.upper()`, `.append()`) which are always
+available, standard library functions must be explicitly imported.
+
+## How importing works
+
+Each module is imported by name without quotes:
+
+```c
+import { readFile, writeFile } from fs;
+import { sqrt, abs } from math;
+```
+
+A quoted name means a file path; an unquoted name means a standard library
+module:
+
+```c
+import { greet } from "./helpers.sqt";   // file
+import { readFile } from fs;             // stdlib module
+```
+
+You can import multiple functions in one statement, or use `*` for everything:
+
+```c
+import * from fs;       // all fs functions
+import { readFile } from fs;  // just one
+```
+
+## Capability gates
+
+Some modules require **runtime permission**. By default saQut denies all
+external access. You grant it on the command line:
+
+```bash
+saqut run --allow fs prog.sqt
+saqut run --allow fs,net,sys prog.sqt
+```
+
+| Capability | What it allows |
+|---|---|
+| `fs` | File system access (read, write, list) |
+| `net` | Network access (HTTP, sockets) |
+| `sys` | System calls: current time, random, environment, args |
+
+Functions that require a capability declare it (`requires fs`). If you try to
+use them without the matching `--allow` flag, the compiler produces an error
+at compile time. The runtime also checks before each call as a backstop.
+
+You can query which capabilities a program needs without running it:
+
+```bash
+saqut ir --capabilities prog.sqt
+```
+
+## Module index
+
+| Module | Import from | Requires | Status |
+|---|---|---|---|
+| File system | `fs` | `--allow fs` | Available |
+| System | `sys` | `--allow sys` | Available |
+| Math | `math` | none | Available |
+| Date | `date` | `--allow sys` (only `now()`) | Available |
+| Network | `net` | `--allow net` | Planned (0.9) |
+
+## Does not import from anywhere
+
+The built-in type methods (`.upper()`, `.append()`, `.toJson()`) are not part
+of the standard library. They use UFCS (Uniform Function Call Syntax) dot
+notation and are always available without import. See [Built-in Functions
+(UFCS)](/builtin-functions/).
+
+## /stdlib-sys/
+
+The `sys` module provides access to system-level features. All functions
+require `--allow sys` at runtime.
+
+## Import
+
+```c
+import { random, randomRange, env, args, sleep } from sys;
+```
+
+## Functions
+
+### random
+
+Returns a random positive integer.
+
+```c
+import { random } from sys;
+
+int main() {
+    int r = random();
+    print(r);     // e.g. 1634872934
+    return 0;
+}
+```
+
+The result comes from a general-purpose CSPRNG. For cryptographic randomness
+use the planned `crypto` module.
+
+### randomRange
+
+Returns a random integer between `min` (inclusive) and `max` (exclusive).
+
+```c
+import { randomRange } from sys;
+
+int main() {
+    int dice = randomRange(1, 7);   // 1 to 6
+    print(dice);
+    return 0;
+}
+```
+
+### env
+
+Returns the value of an environment variable, or an empty string if not set.
+
+```c
+import { env } from sys;
+
+int main() {
+    string home = env("HOME");
+    print(home);     // e.g. "/home/saqut"
+    return 0;
+}
+```
+
+### args
+
+Returns the command-line arguments passed to the program as a string array.
+
+```c
+import { args } from sys;
+
+int main() {
+    string[] a = args();
+    for (int i = 0; i < a.length; i = i + 1) {
+        print(a[i]);
+    }
+    return 0;
+}
+```
+
+The first element (`a[0]`) is the program name; following elements are the
+arguments.
+
+```bash
+saqut run --allow sys prog.sqt hello world
+# a[0] = "prog.sqt"
+# a[1] = "hello"
+# a[2] = "world"
+```
+
+### sleep
+
+Pauses the program for the given number of seconds (supports fractional).
+
+```c
+import { sleep } from sys;
+
+int main() {
+    print("waiting...");
+    sleep(1.5);
+    print("done");
+    return 0;
+}
+```
+
+## Run with sys access
+
+```bash
+saqut run --allow sys program.sqt
+```
 
 ## /strings/
 
@@ -3798,8 +5131,8 @@ switch (x) {
 // Output: two
 ```
 
-saQut finds the **one** matching case, runs its statements, and then leaves the
-switch. Only `two` is printed.
+The switch runs the statements of the **one** matching case and then exits.
+Only `two` is printed.
 
 ## No fall-through (cases break automatically)
 
@@ -3821,8 +5154,8 @@ switch (x) {
 ```
 
 In a C-style language this would print `one two other`. In saQut it prints only
-`one`. Each case is self-contained, no accidental fall-through, no forgotten
-`break` bugs.
+`one`. Each case is self-contained. The tradeoff is that sharing a body across
+values is explicit rather than implicit; the next section shows how.
 
 ## Multiple statements per case (no braces needed)
 
@@ -3860,8 +5193,8 @@ explicit replacement for C's "stack the cases and fall through" trick.
 
 ## `default`
 
-`default` runs when no other case matches. It is **optional**, if you omit it
-and nothing matches, the switch simply does nothing:
+`default` runs when no other case matches. It is **optional**: if you omit it
+and nothing matches, the switch does nothing:
 
 ```c
 switch (color) {
@@ -3978,7 +5311,8 @@ switch (value) {
 }
 ```
 
-This is a clean way to branch on "missing vs present" alongside the real cases.
+This lets you branch on the missing case alongside the value cases in one
+statement.
 
 ## `switch` vs `if / else if`
 
@@ -3993,6 +5327,342 @@ This is a clean way to branch on "missing vs present" alongside the real cases.
 - Branch on conditions with [if / else](/if-else/)
 - Repeat code with [for loops](/loops/for-loop/)
 - Handle the `null` case safely via [data types](/data-types/#nullable-types)
+
+## /tutorial-task-tracker/
+
+You have learned the pieces. Now put them together. This tutorial walks through
+building a small **task tracker** step by step. By the end you will have a
+working program that stores tasks, marks them done, and prints a summary.
+
+## What we are building
+
+The program lets you:
+
+- Add tasks with a title and priority (Low, Medium, High)
+- Mark a task as done
+- Print all tasks with their status
+
+A session looks like this:
+
+```
+--- Tasks ---
+[ ] Buy groceries (Medium)
+[x] Pay bills (High)
+[ ] Call mom (Low)
+Done: 1 / 3
+```
+
+## Step 1: Define the data
+
+We need two things: a way to represent a task, and a place to store several
+tasks.
+
+```c
+enum Priority { Low, Medium, High }
+
+struct Task {
+    string title;
+    Priority priority;
+    bool   done;
+}
+```
+
+`enum Priority` gives us three named levels. `struct Task` bundles a title, a
+priority, and a done flag into one unit. Create a file called `tasks.sqt` and
+put this at the top.
+
+## Step 2: Store the task list
+
+We will keep tasks in an array. Since we don't know how many tasks there will
+be, we start with an empty array and append to it:
+
+```c
+Task[] tasks;
+```
+
+Add a function to create and append a task:
+
+```c
+void addTask(string title, Priority prio) {
+    Task t;
+    t.title    = title;
+    t.priority = prio;
+    t.done     = false;
+    tasks.append(t);
+}
+```
+
+`tasks.append(t)` puts `t` at the end of the array and grows it by one.
+
+## Step 3: Mark a task as done
+
+We need a way to find a task by its position and mark it:
+
+```c
+void markDone(int index) {
+    if (index >= 0 && index < tasks.length) {
+        tasks[index].done = true;
+    }
+}
+```
+
+The `if` check prevents going out of bounds.
+
+## Step 4: Print the list
+
+Now we loop through every task and print it:
+
+```c
+string prioLabel(Priority p) {
+    switch (p) {
+        case Priority.Low:    return "Low";
+        case Priority.Medium: return "Medium";
+        case Priority.High:   return "High";
+    }
+    return "";
+}
+
+void printTasks() {
+    print("--- Tasks ---");
+    int doneCount = 0;
+    for (int i = 0; i < tasks.length; i = i + 1) {
+        string checkbox = "[ ]";
+        if (tasks[i].done) {
+            checkbox = "[x]";
+            doneCount = doneCount + 1;
+        }
+        print(checkbox + " " + tasks[i].title +
+              " (" + prioLabel(tasks[i].priority) + ")");
+    }
+    print("Done: " + (doneCount as string) + " / " +
+          (tasks.length as string));
+}
+```
+
+## Step 5: Put it all together
+
+Now `main` ties everything together:
+
+```c
+int main() {
+    addTask("Buy groceries", Priority.Medium);
+    addTask("Pay bills",     Priority.High);
+    addTask("Call mom",      Priority.Low);
+
+    markDone(1);   // the second task (index 1)
+
+    printTasks();
+    return 0;
+}
+```
+
+## The full program
+
+Here is the complete file:
+
+```c
+enum Priority { Low, Medium, High }
+
+struct Task {
+    string title;
+    Priority priority;
+    bool   done;
+}
+
+Task[] tasks;
+
+void addTask(string title, Priority prio) {
+    Task t;
+    t.title    = title;
+    t.priority = prio;
+    t.done     = false;
+    tasks.append(t);
+}
+
+void markDone(int index) {
+    if (index >= 0 && index < tasks.length) {
+        tasks[index].done = true;
+    }
+}
+
+string prioLabel(Priority p) {
+    switch (p) {
+        case Priority.Low:    return "Low";
+        case Priority.Medium: return "Medium";
+        case Priority.High:   return "High";
+    }
+    return "";
+}
+
+void printTasks() {
+    print("--- Tasks ---");
+    int doneCount = 0;
+    for (int i = 0; i < tasks.length; i = i + 1) {
+        string checkbox = "[ ]";
+        if (tasks[i].done) {
+            checkbox = "[x]";
+            doneCount = doneCount + 1;
+        }
+        print(checkbox + " " + tasks[i].title +
+              " (" + prioLabel(tasks[i].priority) + ")");
+    }
+    print("Done: " + (doneCount as string) + " / " +
+          (tasks.length as string));
+}
+
+int main() {
+    addTask("Buy groceries", Priority.Medium);
+    addTask("Pay bills",     Priority.High);
+    addTask("Call mom",      Priority.Low);
+
+    markDone(1);
+
+    printTasks();
+    return 0;
+}
+```
+
+Run it:
+
+```bash
+saqut run tasks.sqt
+```
+
+Output:
+
+```
+--- Tasks ---
+[ ] Buy groceries (Medium)
+[x] Pay bills (High)
+[ ] Call mom (Low)
+Done: 1 / 3
+```
+
+## What this program uses
+
+| Concept | Where |
+|---|---|
+| `enum` | Priority levels |
+| `struct` | Task data |
+| Array | Task list |
+| Function | `addTask`, `markDone`, `prioLabel`, `printTasks` |
+| `for` loop | Iterating tasks |
+| `if` / `else` | Checkbox and bounds |
+| `switch` | Priority label |
+| `as` (cast) | `int` to `string` for output |
+| String concat | `+` in `print()` |
+| `.length` | Array size |
+| `.append()` | Adding to array |
+
+## Try these on your own
+
+- Add a `removeTask` function that deletes a task by index
+- Sort tasks so high-priority ones appear first
+- Read task titles from user input (using a placeholder for now)
+- Add a due date field to `Task`
+
+This program combines the features from the previous pages in one place: data
+modeling with `struct` and `enum`, storage in an array, iteration with a `for`
+loop, conditionals, a `switch`, and formatted output. The exercises above extend
+it in the same style.
+
+## /type-casting/
+
+saQut does not perform implicit type conversions. To turn an `int` into a
+`float`, or a `string` into an `int`, you write the conversion explicitly with
+the `as` operator.
+
+## Basic conversions
+
+```c
+int   a = 42;
+float b = a as float;          // 42.0
+int   c = 3;                   // (int)3
+float d = c as float;          // 3.0, not 3
+```
+
+The `as` operator makes the conversion explicit. There is no hidden promotion
+from `int` to `float` during arithmetic: if you divide two integers, you get
+integer division. If you want float division, cast one of them first.
+
+## Numeric conversions
+
+| From | To | Behavior |
+|------|----|----------|
+| `int` | `float` | Widening, always safe |
+| `float` | `int` | Truncates toward zero |
+| `int` | `byte` | Fail if out of 0-255 range |
+| `byte` | `int` | Widening, always safe |
+| `int` | `bool` | `0` becomes false, non-zero becomes true |
+| `bool` | `int` | false becomes `0`, true becomes `1` |
+
+```c
+float pi = 3.99;
+int   n  = pi as int;          // 3 (truncated)
+
+byte  b  = 200;
+int   i  = b as int;           // 200
+
+int   big = 300;
+// byte small = big as byte;   // runtime error: out of range
+```
+
+## String conversions
+
+Numbers can be parsed from strings. When the conversion might fail, cast to a
+**nullable** target:
+
+```c
+string s = "42";
+int?   n = s as int?;          // 42
+if (n != null) { print(n); }
+
+string t = "hello";
+int?   m = t as int?;          // null (not a number)
+```
+
+Floats work the same way:
+
+```c
+string s = "3.14";
+float? f = s as float?;        // 3.14
+```
+
+## Converting to string
+
+Any type can be cast to `string`:
+
+```c
+int   a = 42;
+string s = a as string;        // "42"
+
+float f = 3.14;
+string t = f as string;        // "3.14"
+
+bool  b = true;
+string u = b as string;        // "true"
+```
+
+## Struct conversions
+
+You cannot cast between different struct types. Each struct has its own layout;
+there is no automatic conversion.
+
+```c
+struct Point  { int x; int y; }
+struct Vector { int x; int y; }
+
+Point p = Point(1, 2);
+// Vector v = p as Vector;     // compile error
+```
+
+## Summary
+
+- `as` is the only type conversion operator in saQut
+- Int to float widens; float to int truncates
+- String parsing returns `null` on failure when cast to nullable
+- Any type can become `string` with `as string`
+- Structs cannot be cast between each other
 
 ## /variables/
 
@@ -4124,8 +5794,9 @@ int main() {
 
 ## Constants?
 
-saQut does not have a `const` keyword yet. The convention is to use a
-variable and not reassign it; the compiler trusts you.
+saQut does not have a `const` keyword yet. The convention is to declare a
+variable and not reassign it. The compiler does not enforce this; it is a
+convention the developer maintains.
 
 ## Common Mistakes
 
@@ -4143,6 +5814,235 @@ int b = a + 5;    // OK, 'a' is 0, so 'b' is 5
 
 - See all [data types](/data-types/) available in saQut
 - Learn about [operators](/operators/) to work with values
+
+## /what-is-programming/
+
+If you have never written a line of code before, this page is for you. It
+explains what programming is at its core, without assuming you already know
+terms like "variable" or "loop."
+
+## What is a program
+
+A program is a list of instructions you give to a computer. The computer
+follows them one by one, from top to bottom, exactly as written. It does not
+guess. It does not get bored. It just executes.
+
+Think of it like a recipe. A recipe says: take flour, add water, mix, put in
+oven. A program says: take this number, add five, print the result. Same idea,
+different kitchen.
+
+## Why we need variables
+
+When you cook, you put ingredients in bowls so you can use them later. In a
+program, a **variable** is that bowl. You give it a name and put a value in
+it:
+
+```c
+int age = 25;
+string name = "Alex";
+```
+
+Later, you can read the value or change it. The program remembers it for you.
+
+## Why we need conditions
+
+A recipe sometimes says "if the dough is too dry, add water." That's a
+**condition**. Programs do the same:
+
+```c
+if (score > 50) {
+    print("You passed!");
+}
+```
+
+The line inside the braces `{ }` only runs if `score` is greater than 50.
+Otherwise the program skips it.
+
+## Why we need loops
+
+Imagine a recipe that says "knead the dough 100 times." Nobody wants to write
+that out as 100 separate lines. A **loop** says "do this thing, then do it
+again, until some condition is met." The most common loop is `for`:
+
+```c
+for (int i = 0; i < 5; i = i + 1) {
+    print(i);
+}
+```
+
+This prints `0`, `1`, `2`, `3`, `4`. Five lines of output from three lines of
+code. A loop lets the machine handle repetitive work instead of you writing each
+step by hand.
+
+## Why we need functions
+
+As your recipe grows, you might notice you do the same sub-recipe several times
+: "make the base sauce" appears in three different dishes. Instead of
+repeating it, you give it a name and refer to it. In programming, that's a
+**function**:
+
+```c
+int doubleIt(int x) {
+    return x * 2;
+}
+```
+
+Now `doubleIt(5)` gives you `10` anywhere in the program. Write once, use
+many times.
+
+## Putting it together
+
+A real program combines all of these:
+
+```c
+int calculateBonus(int salary) {
+    if (salary > 5000) {
+        return salary / 10;
+    }
+    return 0;
+}
+
+int main() {
+    print(calculateBonus(6000));   // 600
+    print(calculateBonus(3000));   // 0
+    return 0;
+}
+```
+
+A variable (`salary`), a condition (`if`), a function (`calculateBonus`), and
+an output (`print`). That's a complete, working program.
+
+## Where to go from here
+
+Now that you have a mental model of what variables, conditions, loops, and
+functions are for, the rest of this section teaches you how to use each one
+in saQut. Start with [variables](/variables/).
+
+## /what-is-saqut/
+
+saQut is a programming language whose **compiler is a glass box**. Most
+compilers take source code in, give an executable out, and show nothing in
+between. saQut exposes **every internal stage** as a separate command: tokens,
+AST (abstract syntax tree), symbol table, and IR (intermediate representation).
+
+The same output serves two audiences: someone **learning to code for the first
+time** and a developer **reading how a compiler works internally**.
+
+---
+
+## What saQut is not
+
+saQut was not designed to compete with C, Go, or Rust as a general-purpose
+language, and it is not intended for large production systems. Its purpose is
+to make **every step from source to execution visible**. The language surface
+is small and deliberate, which keeps the number of edge cases a reader has to
+hold in mind while learning one concept low.
+
+---
+
+## Who it is for
+
+This site offers three paths. Pick the one that fits you best.
+
+### 1. I am new to programming
+
+If you have never written code, or you know the basics from another language,
+the **Getting Started** section is for you. It follows a step-by-step order:
+
+- Variables, data types, operators
+- if/else, loops, functions
+- Arrays, strings, structs
+
+Every topic comes with small examples. You can run everything with `saqut run`
+before moving to the next topic.
+
+[Follow the beginner path →](/getting-started/)
+
+### 2. I want to write programs with saQut
+
+You already know how to program. You want to learn saQut's tools and
+libraries. This path covers:
+
+- Built-in functions (string, array, and struct methods)
+- Module system (`import` / `export`)
+- Error handling (`try` / `catch` / `throw`)
+- Compiler tools (`saqut ast`, `saqut tokens`, `saqut ir`)
+- FFI (foreign function interface): the curated host-function seam that exposes the standard library (`fs`, `sys`, `math`, `date`) to your program
+
+It also shows how to add syntax highlighting and completion support to your
+editor.
+
+[Start with built-in functions →](/builtin-functions/)
+
+### 3. I want to understand how the compiler works
+
+You are less interested in the language as a tool and more interested in it
+as a **system to study**. Head straight for the internals:
+
+- Compiler tools: what each command (`tokens`, `ast`, `symbols`, `ir`)
+  produces and how to read the output
+- Optimization: constant folding, dead code elimination, what changes at the
+  IR level
+- Garbage collection: mark-sweep algorithm, memory model
+- Virtual machine: bytecode instruction set, deterministic execution
+- MIR JIT and embedded AOT: the second execution path (MIR-based). An experimental JIT already runs via `--jit`; embedded AOT is planned
+
+These sections explain the **compiler**, not just the language.
+
+[Explore the compiler tools →](/compiler-tools/)
+
+---
+
+## The language at a glance
+
+```c
+// A simple function
+int square(int x) {
+    return x * x;
+}
+
+// Arrays and loops
+int sum(int[] numbers) {
+    int result = 0;
+    for (int i = 0; i < numbers.length; i = i + 1) {
+        result = result + numbers[i];
+    }
+    return result;
+}
+
+int main() {
+    print(square(5));           // 25
+    print(sum([1, 2, 3]));     // 6
+    return 0;
+}
+```
+
+- `int`, `float`, `bool`, `byte`, `string` as primitive types
+- `struct` for custom data structures
+- Arrays (`int[]`) and strings (`string`) are passed by reference
+- No pointers (`&`, `*`); opt-in null with `T?`
+- No classes, inheritance, generics, or automatic type inference
+- `import` / `export` for splitting into modules
+
+---
+
+## When to use saQut vs. another language
+
+| Situation | Recommendation |
+|---|---|
+| I am learning to code and want to understand compiler concepts too | saQut |
+| I need a quick script to get something done | Python, Node.js |
+| I am building a web server or API | Go, Rust, C# |
+| I am working on embedded systems or an OS | C, Rust |
+| I want to see every step inside a compiler | saQut |
+| I am building a large-scale, team-developed project | Any mainstream language with Git support |
+
+saQut is built for **learning, teaching, and querying the compiler**.
+It is not built for production systems.
+
+---
+
+Ready? Continue with [Getting Started](/getting-started/).
 
 ## /loops/do-while-loop/
 
@@ -4632,8 +6532,8 @@ print(steps);                        // Collatz steps to reach 1
 ```
 
 This keeps the loop going until *some* event happens, rather than forcing every
-exit reason into a single top-of-loop condition. Just make sure at least one
-`break` (or `return`) is reachable, or the loop never ends.
+exit reason into a single top-of-loop condition. At least one `break` (or
+`return`) must be reachable, or the loop never ends.
 
 ## When to Use `while` vs `for`
 
@@ -4842,13 +6742,13 @@ int findMax(int[] arr) {
 
 ## /tr/builtin-functions/
 
-saQut, en sık kullandığınız tipler için bir dizi **yerleşik fonksiyon** ile
-gelir: string'ler, diziler ve struct'lar. Bunları ne import edersiniz ne de
-tanımlarsınız; her zaman kullanıma hazırdır. Bu sayfa, her birini temelden
-başlayarak, çalıştırılabilir örneklerle açıklar.
+saQut, üç tip üzerinde bir dizi **yerleşik fonksiyon** sağlar: string'ler,
+diziler ve struct'lar. Bunları ne import edersiniz ne de tanımlarsınız; her
+zaman kullanıma hazırdır. Bu sayfa her birini çalıştırılabilir bir örnekle
+belgeler.
 
-Eğer daha önce hiç "metot" kullanmadıysanız bir sonraki bölümden başlayın.
-Yalnızca imzalara bakmak isterseniz [hızlı referans tablolarına](#hızlı-referans) atlayın.
+Daha önce "metot" kullanmadıysanız bir sonraki bölümden başlayın. Yalnızca
+imzalar için [hızlı referans tablolarına](#hızlı-referans) atlayın.
 
 ## Yerleşik bir fonksiyonu çağırmak
 
@@ -4954,7 +6854,7 @@ if (input.trim() == "yes") {
 
 ### `replace(eski, yeni)` (metni değiştir, her yerde)
 
-String fonksiyonlarının en kullanışlılarından biridir; bu yüzden tüm
+Bu fonksiyonun açıklanmaya değer daha fazla davranışı var; bu yüzden tüm
 detaylarıyla anlatıyoruz.
 
 `replace`, string içinde `eski`'nin **her** geçtiği yeri bulur ve her birini
@@ -5386,9 +7286,9 @@ print("text");      // text
 print(true);        // 1   (bool 1 / 0 olarak yazdırılır)
 ```
 
-`print`, saQut'un kendi dışına uzanmasının ilk ve en basit örneğidir. Daha
-zengin standart kütüphane fonksiyonları (dosya, matematik vb.) aynı konuk
-fonksiyon mekanizmasıyla gelecektir.
+`print`, FFI seam'i üzerinden açılan ilk host fonksiyondur. Diğer standart
+kütüphane fonksiyonları (dosya, matematik vb.) aynı host fonksiyon mekanizmasıyla
+açılır.
 
 ## Sırada ne var?
 
@@ -5396,11 +7296,231 @@ fonksiyon mekanizmasıyla gelecektir.
 - [Dizilerin](/arrays/) sıralı veriyi nasıl sakladığını ve paylaştığını öğrenin
 - Programınızı [modüllerle](/modules/) birden çok dosyaya bölün
 
+## /tr/capabilities/
+
+saQut programları **varsayılan olarak reddet** prensibiyle bir korumalı alanda
+çalıştırır. Programın dosya sistemine, ağa veya sistem çağrılarına erişimi
+yoktur; sen açıkça izin vermedikçe olmaz. Bu sayfa gerçek programlar yazan
+pratisyenler için izin modelini açıklar.
+
+## Üç capability
+
+| Capability | Bayrak | Açtıkları |
+|---|---|---|
+| Dosya sistemi | `--allow fs` | `readFile`, `writeFile`, `readDir`, `exists`, `remove` |
+| Ağ | `--allow net` | HTTP istekleri, soketler (planlanan 0.9) |
+| Sistem | `--allow sys` | `random`, `randomRange`, `env`, `args`, `sleep`, `date::now()` |
+
+Birden fazla capability virgülle ayrılır:
+
+```bash
+saqut run --allow fs,net prog.sqt
+saqut run --allow fs --allow sys prog.sqt   // tekrarlanan bayrak da çalışır
+```
+
+## Denetim nasıl çalışır
+
+saQut **iki katmanlı bir model** (A+B) kullanır:
+
+**A Katmani: derleme zamani.** Capability gerektiren bir fonksiyonu import
+ettiğinde (örn. `readFile` `fs` ister), derleyici eşleşen `--allow` bayrağının
+verilip verilmediğini kontrol eder. Verilmediyse program hiç çalışmadan
+derleme hatası alırsın.
+
+**B Katmani: calisma zamani guvencesi.** A katmanı geçse bile, VM her
+capability-kapılı çağrıdan önce tekrar kontrol eder. Bu, `caps::drop()` ile
+program ortasında capability kaldırma gibi uç durumları yakalar. Çağrı
+engellenirse program yakalanabilir bir `E_CAP_MISSING` hatası fırlatır.
+
+## Capability sorgulama
+
+Bir programın hangi capability'lere ihtiyaç duyduğunu çalıştırmadan
+derleyiciye sorabilirsin:
+
+```bash
+saqut ir --capabilities prog.sqt
+```
+
+Çıktı:
+
+```
+fs, sys
+```
+
+Bu, import edilen tüm fonksiyonları tarar ve bildirdikleri her capability'yi
+raporlar.
+
+## caps modülü
+
+`caps` modülü programının kendi izinlerini çalışma zamanında denetlemesini ve
+yönetmesini sağlar:
+
+```c
+import { has, drop } from caps;
+
+if (caps::has("fs")) {
+    string veri = readFile("gizli.txt");
+    caps::drop("fs");     // programın geri kalanı için fs'ten vazgeç
+}
+```
+
+- `caps::has(ad)` capability şu anda aktifse `true` döndürür
+- `caps::drop(ad)` kalıcı olarak kaldırır; geri alma yolu yoktur
+
+Bu, en az yetki prensibini uygulamanı sağlar: bir capability'yi yalnızca
+ihtiyacın olduğu sürece tutarsın.
+
+## Pratisyenler için neden önemli
+
+- Derleme betiğin kaynak dosyaları okuyup çıktı yazabilir ama soket acamaz;
+  `--allow fs` yeterlidir
+- HTTP istemci programin aga ihtiyac duyar ama dosya sistemine dokunmamalidir;
+  yalnizca `--allow net` ver
+- Ortam değişkeni ve komut satırı argümanı okuyan bir araç yalnızca
+  `--allow sys` ister
+
+Her program tam olarak neye ihtiyacı olduğunu beyan eder. Derleyici ve
+çalışma zamanı bunu denetler. Gizli yetki yoktur.
+
+## /tr/cli-reference/
+
+Bu sayfa bir pratisyenin ihtiyaç duyduğu tüm `saqut` alt komutlarını ve
+bayraklarını kapsar. Derleyiciyi kurmak için [Hızlı Başlangıç](/tr/getting-started/)
+sayfasına bak.
+
+## Alt komutlar
+
+### run
+
+Bir programı derler ve çalıştırır.
+
+```bash
+saqut run program.sqt
+```
+
+| Bayrak | Amacı |
+|---|---|
+| `--allow fs,net,sys` | Çalışma zamanı capability'lerini verir |
+| `--jit` | Programı VM yerine deneysel MIR JIT ile çalıştırır |
+| `--optimized` | Sabit katlama ve ölü kod eleme uygular |
+| `--gc-threshold N` | N tahsis sonrası GC'yi tetikler |
+| `--gc-stats` | Çalışma sonrası GC istatistiklerini yazar |
+| `--profile` | Aşama başına profil çıkarır (tokenleme, ayrıştırma, IR üretimi, çalıştırma) ve her aşamanın iş miktarını gösterir |
+
+Varsayılan ve referans arka uç bytecode VM'dir. `--jit` bayrağı programı
+deneysel MIR JIT ile çalıştırır; bu şu anda yalnızca tam sayı ve float skaler
+koddan oluşan programları işler. Başka bir şey kullanan program kısmen
+çalışmak yerine açık bir hatayla durur. Gömülü çalışma zamanlı AOT (`--output`
+ikilisi) hâlâ planlanmaktadır.
+
+### tokens
+
+Token akışını JSON olarak yazar.
+
+```bash
+saqut tokens program.sqt
+```
+
+Her token; tür, metin, satır, sütun ve byte ofseti içerir. Söz dizimi
+vurgulayıcı veya özel araç yazmak için kullanışlıdır.
+
+### ast
+
+Soyut söz dizimi ağacını JSON olarak yazar.
+
+```bash
+saqut ast program.sqt
+saqut ast program.sqt --optimized
+```
+
+`--optimized` bayrağı, sabit katlama ve ölü kod eleme sonrası ağacı yazar.
+Orijinal AST korunur; optimizasyon bir klon üzerinde çalışır.
+
+### symbols
+
+Sembol tablosunu JSON olarak yazar.
+
+```bash
+saqut symbols program.sqt
+```
+
+Tüm fonksiyonları, değişkenleri, struct'ları, enum'ları ve tiplerini gösterir.
+Kapsam bilgisi içerir.
+
+### ir
+
+Ara kodu (üç adresli kod) yazar.
+
+```bash
+saqut ir program.sqt
+saqut ir --capabilities program.sqt
+```
+
+`--capabilities` bayrağı IR'yi tarar ve programın hangi capability'lere
+(`fs`, `net`, `sys`) ihtiyaç duyduğunu çalıştırmadan raporlar.
+
+### check
+
+Yalnızca anlamsal analiz yapar; hata ve uyarıları JSON olarak bildirir.
+
+```bash
+saqut check program.sqt
+```
+
+Çıkış kodu 0 hatasız demektir. Sıfır olmayan değer hata bulunduğunu belirtir.
+Uyarılar çıkış kodunu etkilemez.
+
+### exec
+
+Tek bir ifadeyi veya deyimi etkileşimli olarak çalıştırır.
+
+```bash
+saqut exec "3 + 4 * 2"
+```
+
+Sonucu doğrudan yazar. Dosya oluşturmadan hızlı denemeler için kullanışlıdır.
+
+### bench
+
+Bir programın çalışma süresini ölçer.
+
+```bash
+saqut bench program.sqt
+```
+
+Programı birden çok kez çalıştırır ve zamanlama istatistiklerini yazar.
+
+### lsp / dap
+
+Dil Sunucusunu veya Hata Ayıklama Adaptörünü başlatır. Bunlar VS Code eklentisi
+tarafından kullanılır, doğrudan çalıştırılmaz:
+
+```bash
+saqut lsp
+saqut dap
+```
+
+## Sık kullanılan desenler
+
+```bash
+# Tam içgözlemle çalıştır
+saqut run --allow fs --gc-stats --profile program.sqt
+
+# Çalıştırmadan önce kontrol et
+saqut check program.sqt && saqut run program.sqt
+
+# Programın neye ihtiyacı var gör
+saqut ir --capabilities program.sqt
+
+# Optimize edilmiş AST'yi gör
+saqut ast program.sqt --optimized
+```
+
 ## /tr/compiler-errors/
 
-saQut programınızı kabul edemediğinde, yalnızca "hata" demekle kalmaz: size bir
-**kod** (ör. `E002`), bir mesaj, kaynak konumu ve genellikle bir ipucu verir.
-Bu sayfa bir katalogdur: her tanı, neyin tetiklediği ve nasıl düzeltileceği.
+saQut programınızı kabul edemediğinde, her tanı bir **kod** (ör. `E002`), bir
+mesaj, bir kaynak konumu ve genellikle bir ipucu taşır. Bu sayfa bir katalogdur:
+her tanı, neyin tetiklediği ve nasıl düzeltileceği.
 
 Tanılar iki aileye ayrılır:
 
@@ -5704,9 +7824,6 @@ alırsınız ve arada olanlar gizlidir. saQut farklıdır: o bir **cam kutudur**
 Derlemenin her aşaması, inceleyebileceğiniz ve başka araçlara
 aktarabileceğiniz ayrı bir adımdır.
 
-Bu sayfa her aşamanın ne olduğunu, neden var olduğunu ve ne zaman ihtiyaç
-duyabileceğinizi açıklar.
-
 ---
 
 ## İşlem Hattı Genel Görünümü
@@ -5764,32 +7881,43 @@ delimiter ";"
 
 ### Token'lar neden var?
 
-Bilgisayar metni anlamaz: yapılandırılmış parçalara ihtiyaç duyar. Token'layıcı
-(**lexer** olarak da adlandırılır) ham karakterleri etiketlenmiş parçalar
-listesine dönüştürür. Yorumlar ve boşluklar burada atılır.
+Sonraki derleyici aşamaları ham metin üzerinde değil, yapılandırılmış parçalar
+üzerinde çalışır. Token'layıcı (**lexer** olarak da adlandırılır) karakter
+akışını etiketlenmiş parçalar listesine dönüştürür. Yorumlar ve boşluklar burada
+atılır.
 
 ### `saqut tokens` komutunu ne zaman kullanırsınız?
 
-- **Öğrenme:** Derleyicinin kodunuzu tam olarak nasıl anladığını görün
 - **Hata ayıklama:** Bir şey çözümlenmiyorsa, hangi token'ların üretildiğini
   kontrol edin
 - **Araç geliştirme:** Token akışı üzerine bir sözdizimi vurgulayıcı veya kod
-  biçimlendirici inşa edin
+  biçimlendirici inşa edin, kaynak dosyaların sözcüksel olarak geçerli olup
+  olmadığını doğrulayın
+
+İşte bir insertion sort programının token akışı
+(`examples/algorithm/03_insertion_sort.sqt`):
 
 ```bash
-saqut tokens hello.sqt
+saqut tokens examples/algorithm/03_insertion_sort.sqt
 ```
 
-Örnek çıktı:
-
-```json
-[
-  {"type": "keyword", "value": "int", "line": 1, "col": 1},
-  {"type": "identifier", "value": "main", "line": 1, "col": 5},
-  {"type": "delimiter", "value": "(", "line": 1, "col": 9},
-  {"type": "delimiter", "value": ")", "line": 1, "col": 10},
-  {"type": "delimiter", "value": "{", "line": 1, "col": 12}
-]
+```
+Tokenler (134 adet):
+  [keyword] "int"
+  [identifier] "main"
+  [delimiter] "("
+  [delimiter] ")"
+  [delimiter] "{"
+  [keyword] "int"
+  [delimiter] "["
+  [delimiter] "]"
+  [identifier] "arr"
+  [operator] "="
+  [delimiter] "["
+  [number] "5"
+  [delimiter] ","
+  [number] "3"
+  ...
 ```
 
 ---
@@ -5805,11 +7933,11 @@ ağaç, programınızın dilbilgisel yapısını temsil eder.
 `2 + 3 * 4` için:
 
 ```
-     (+)
-    /   \
-   2     (*)
-        /   \
-       3     4
+      (+)
+     /   \
+    2     (*)
+         /   \
+        3     4
 ```
 
 Ağaçtaki her **düğüm** anlamlı bir şeydir: bir fonksiyon tanımı, bir değişken
@@ -5827,15 +7955,34 @@ yönetir. Bu, çözümleyiciyi daha küçük ve genişletmesi daha kolay hale ge
 
 ### `saqut ast` komutunu ne zaman kullanırsınız?
 
-- **Öğrenme:** Derleyicinin iç içe ifadeleri nasıl yorumladığını görün
 - **Hata ayıklama:** Bir program beklendiği gibi davranmıyorsa, AST'nin
   niyetinizle eşleşip eşleşmediğini kontrol edin
 - **Araç geliştirme:** Dokümantasyon üretin, karmaşıklık metrikleri hesaplayın
   veya kod analiz araçları inşa edin
 
+İşte bir insertion sort programının AST'si:
+
 ```bash
-saqut ast hello.sqt --format=json
-saqut ast hello.sqt --optimized    # optimizasyon sonrası AST
+saqut ast examples/algorithm/03_insertion_sort.sqt --format=json
+```
+
+```
+Program
+  FunctionDecl (main : int)
+    Block
+      VariableDecl (arr : int[])
+        ArrayLiteral [5 eleman]
+     Literal {5} integer
+     Literal {3} integer
+     Literal {1} integer
+     Literal {6} integer
+     Literal {4} integer
+      VariableDecl (n : int)
+    Literal {5} integer
+      ForStatement
+        VariableDecl (i : int)
+     Literal {1} integer
+  ...
 ```
 
 `--optimized` bayrağı, sabit katlama ve ölü kod temizliği **sonrası** AST'yi
@@ -5864,7 +8011,7 @@ Sembol tablosu şunları içerir:
 | İsim | Türü | Tip | Kapsam |
 |------|------|------|-------|
 | `x` | Değişken | `int` | Global |
-| `add` | Fonksiyon | `(int, int) → int` | Global |
+| `add` | Fonksiyon | `(int, int) -> int` | Global |
 | `a` | Parametre | `int` | `add` fonksiyonu |
 | `b` | Parametre | `int` | `add` fonksiyonu |
 
@@ -5892,15 +8039,32 @@ int fibonacci(int n) {
 
 ### `saqut symbols` komutunu ne zaman kullanırsınız?
 
-- **Öğrenme:** Kapsamlamayı anlayın; her değişken nerede yaşar?
 - **Hata ayıklama:** "Bildirilmemiş tanımlayıcı" hataları, tabloda ne olduğunu
   gördüğünüzde netleşir
 - **Araç geliştirme:** Sembol tablosu, bir "Tanıma git" özelliği inşa etmek,
   tüm fonksiyonları listelemek veya bağımlılık grafikleri hesaplamak için
   yeterlidir
 
+İşte bir insertion sort programının sembol tablosu:
+
 ```bash
-saqut symbols hello.sqt
+saqut symbols examples/algorithm/03_insertion_sort.sqt
+```
+
+```
+examples/algorithm/03_insertion_sort.sqt:2:1  fn()->int  main (function)
+examples/algorithm/03_insertion_sort.sqt:3:5  int[]  arr
+        refs  ...:7:19  ...:9:26  ...:10:13  ...:10:26  ...:13:9  ...:17:15
+examples/algorithm/03_insertion_sort.sqt:4:5  int  n
+        refs  ...:6:25  ...:16:25
+examples/algorithm/03_insertion_sort.sqt:6:10  int  i
+        refs  ...:6:21  ...:6:28  ...:6:32  ...:7:23  ...:8:17
+examples/algorithm/03_insertion_sort.sqt:7:9  int  key
+        refs  ...:9:35  ...:13:22
+examples/algorithm/03_insertion_sort.sqt:8:9  int  j
+        refs  ...:9:16  ...:9:30  ...:10:17  ...:10:30  ...:11:13 ...
+examples/algorithm/03_insertion_sort.sqt:16:10  int  k
+        refs  ...:16:21  ...:16:28  ...:16:32  ...:17:19
 ```
 
 Kaynak kodunuza erişimi olmayan biri, yalnızca `saqut symbols` çıktısından
@@ -5986,20 +8150,18 @@ gibi) çağırır.
 
 ### IR neden var?
 
-AST analiz için harikadır ama yürütme için değildir. IR, yüksek seviyeli ağaç
-ile düşük seviyeli bayt kodu VM arasında köprü kurar:
+AST analize uygundur ama doğrudan yürütmeye uygun değildir. IR, yüksek seviyeli
+ağaç ile düşük seviyeli bayt kodu VM arasında köprü kurar:
 
-- **AST** = "kodun anlamı ne" (ağaç)
-- **IR** = "nasıl yapılır" (doğrusal komutlar)
-- **Bayt Kodu VM** = "yap" (yorumlayıcı döngüsü)
+- **AST** = kodun anlamı ne (ağaç)
+- **IR** = nasıl yapılır (doğrusal komutlar)
+- **Bayt Kodu VM** = yap (yorumlayıcı döngüsü)
 
 IR'yi VM'den ayırmak, ön yüzü değiştirmeden yeni arka yüzler (MIR JIT
 derleyicisi veya AOT paketleyici gibi) eklemeyi mümkün kılar.
 
 ### `saqut ir` komutunu ne zaman kullanırsınız?
 
-- **Öğrenme:** Yüksek seviyeli kodun düşük seviyeli komutlara nasıl
-  eşlendiğini anlayın
 - **Hata ayıklama:** Bir program çalışma zamanında çökerse, IR tam olarak
   VM'nin neyi yürüttüğünü gösterir
 - **Performans:** Komutları sayın, gereksiz işlemleri tespit edin, bir
@@ -6016,8 +8178,41 @@ saqut ir hello.sqt
 **VM (Sanal Makine)** son aşamadır. IR'yi alır, fonksiyon giriş noktalarını
 çözümler, çerçeveler ve yuvalar tahsis eder ve komutları bir döngüde yürütür.
 
+İşte bir insertion sort algoritması ve çıktısı:
+
+```c
+// examples/algorithm/03_insertion_sort.sqt
+int main() {
+    int[] arr = [5, 3, 1, 6, 4];
+    int n = 5;
+
+    for (int i = 1; i < n; i = i + 1) {
+        int key = arr[i];
+        int j = i - 1;
+        while (j >= 0 && arr[j] > key) {
+            arr[j + 1] = arr[j];
+            j = j - 1;
+        }
+        arr[j + 1] = key;
+    }
+
+    for (int k = 0; k < n; k = k + 1) {
+        print(arr[k]);
+    }
+    return 0;
+}
+```
+
 ```bash
-saqut run hello.sqt
+saqut run examples/algorithm/03_insertion_sort.sqt
+```
+
+```
+1
+3
+4
+5
+6
 ```
 
 VM **referans arka yüzdür**: her zaman doğru çıktıyı üretmelidir. Gelecekteki
@@ -6075,7 +8270,7 @@ Aralık: `-2.147.483.648` ile `2.147.483.647`
 
 ### `float` (Ondalıklı Sayı)
 
-32 bitlik ondalıklı sayı. `e` veya `E` ile bilimsel gösterim kullanabilirsiniz.
+64 bitlik kayan noktalı sayı (IEEE 754 çift hassasiyet). `e` veya `E` ile bilimsel gösterim kullanabilirsiniz.
 
 ```c
 float x = 3.14;
@@ -6333,6 +8528,233 @@ switch (c) {
 - [Değişkenleri](/tr/variables/) nasıl oluşturacağınızı ve kullanacağınızı öğrenin
 - [İşleçlerin](/tr/operators/) farklı türlerle nasıl çalıştığını görün
 
+## /tr/editor-setup/
+
+saQut, söz dizimi vurgulama, kod tamamlama ve tümleşik hata ayıklayıcı sunan bir
+VS Code eklentisiyle birlikte gelir. Bu sayfa kurulumu ve her özelliğin ne
+yaptığını anlatır.
+
+## Eklentiyi yükle
+
+saQut eklentisi bir `.vsix` dosyası olarak dağıtılır. İki yoldan biriyle
+yükleyebilirsin.
+
+**İndirilen sürümden (çoğu kullanıcı).** `saqut-0.4.0.vsix` dosyasını
+[GitHub Releases](https://github.com/saqutlang/saqut/releases) sayfasından
+indir, sonra tam yolunu vererek yükle:
+
+```bash
+code --install-extension /indirilen/yol/saqut-0.4.0.vsix
+```
+
+Veya VS Code üzerinden: Eklentiler panelini aç (`Ctrl+Shift+X`), sağ üstteki
+`...` menüsüne tıkla, **VSIX'ten Yükle...** seç ve indirdiğin dosyayı göster.
+
+**Kaynak kopyasından.** Derleyici deposunu klonladıysan `.vsix` zaten
+`editor/vscode/` içinde olur, depo kökünden yükleyebilirsin:
+
+```bash
+code --install-extension editor/vscode/saqut-0.4.0.vsix
+```
+
+Kurulumdan sonra `.sqt` dosyaları otomatik söz dizimi vurgulaması kazanır.
+
+## Özellikler
+
+### Söz dizimi vurgulama
+
+Eklenti anahtar kelimeleri (`int`, `float`, `string`, `struct`, `enum`, `if`,
+`for`, `return`), metin sabitlerini, yorumları ve tip belirteçlerini renklendirir.
+TextMate gramer (`sqt.tmLanguage.json`) kullanır, bu yüzden TextMate gramer
+destekleyen tüm editörlerde çalışır (VS Code, Sublime Text, eklentiyle
+JetBrains).
+
+### LSP (Language Server Protocol)
+
+Eklenti, saQut'un yerleşik LSP sunucusuna bağlanarak şunları sağlar:
+
+- **Tanıma git**: Herhangi bir fonksiyon veya değişken üzerinde `F12` ile
+  bildirimine atla
+- **Referansları bul**: `Shift+F12` ile bir sembolün tüm kullanımlarını,
+  dosyalar arası dahil, bul
+- **İpucu bilgisi**: Herhangi bir sembolün üzerine gelerek tipini gör
+- **Sembolü yeniden adlandır**: `F2` ile bir fonksiyonu veya değişkeni tüm
+  projede yeniden adlandır
+- **Otomatik tamamlama**: Yazarken öneriler; string, dizi ve struct yerleşik
+  metotları dahil
+- **Söz dizimi hatası teşhisi**: Düzenlerken, kaydetmeden bile, kırmızı
+  dalgalı alt çizgi ve hata mesajları
+
+LSP sunucusu bir `.sqt` dosyası açtığında otomatik başlar. `saqut` komutunun
+`PATH`'inde olması veya VS Code ayarlarından yolunu yapılandırman gerekir.
+
+### DAP (Debug Adapter Protocol)
+
+saQut şu özellikleri destekleyen bir hata ayıklayıcı içerir:
+
+- **Kesme noktaları**: Satır numarasının yanına tıkla, kırmızı nokta konur;
+  çalışma orada duraklar
+- **Adımla / içine adımla / dışına adımla**: Programında satır satır ilerle
+- **Değişken inceleme**: Hata ayıklama modunda değişkenlerin üzerine gelerek
+  güncel değerlerini gör
+- **Girişte dur**: İsteğe bağlı olarak programın ilk satırında duraklat
+
+Hata ayıklamayı başlatmak için bir `.sqt` dosyası aç ve `F5`'e bas. VS Code
+eklentiyle gelen başlatma yapılandırmasını kullanır:
+
+```json
+{
+    "type": "sqt",
+    "request": "launch",
+    "name": "saQut Debug",
+    "program": "${file}",
+    "stopOnEntry": true
+}
+```
+
+### Ek editör ayarları
+
+Eklenti `.sqt` dosyalarına şu editör özelliklerini tanır:
+- Otomatik kapanan parantez ve tırnak
+- Yorum aç/kapat (`Ctrl+/`)
+- Kesme noktası desteği (`F9` ile aç/kapat)
+
+## Sorun giderme
+
+**LSP başlamıyor**: `saqut` komutunun `PATH`'inde olduğundan emin ol.
+Terminalden `saqut lsp` çalıştırarak hatasız başladığını doğrula.
+
+**Hata ayıklayıcı bağlanmıyor**: Hata ayıklama adaptörü de `saqut`'un
+`PATH`'inde olmasını gerektirir. Terminalden `saqut dap` komutunun
+çalıştığını kontrol et.
+
+**Söz dizimi vurgulaması yok**: Eklentinin yüklü ve etkin olduğunu doğrula.
+Dosya `.sqt` ile bitmelidir.
+
+Sorun devam ederse VS Code sürümün ve işletim sistemi bilgilerinle birlikte
+[issue aç](https://github.com/saqutlang/saqut/issues).
+
+## /tr/enums/
+
+**Enum** (enumeration, sıralı liste), bir grup isimlendirilmiş sabit tanımlama
+yöntemidir. `0`, `1`, `2` gibi anlamını ezberlemek zorunda kaldığın çıplak
+sayılar yerine her değere bir isim verirsin.
+
+## Enum tanımlamak
+
+```c
+enum Renk { Kirmizi, Yesil, Mavi }
+```
+
+Bu, `Renk` adında yeni bir tip ve üç olası değer oluşturur. Her değere `0`'dan
+başlayan bir tamsayı indeks atanır: `Kirmizi` `0`, `Yesil` `1`, `Mavi` `2`.
+
+## Enum kullanmak
+
+Enum değerlerine nokta sözdizimiyle erişilir:
+
+```c
+Renk r = Renk.Yesil;
+```
+
+Enum değerini yazdırabilirsin; indeksini verir:
+
+```c
+print(Renk.Kirmizi);           // 0
+print(Renk.Yesil);             // 1
+print(Renk.Mavi);              // 2
+```
+
+## Switch ile enum
+
+Enum ve `switch` doğal bir ikili oluşturur:
+
+```c
+enum Durum { Bekliyor, Aktif, Tamamlandi }
+
+string durumAcikla(Durum d) {
+    switch (d) {
+        case Durum.Bekliyor:    return "beklemede";
+        case Durum.Aktif:       return "devam ediyor";
+        case Durum.Tamamlandi:  return "bitti";
+    }
+    return "";
+}
+
+int main() {
+    Durum gorev = Durum.Aktif;
+    print(durumAcikla(gorev));     // "devam ediyor"
+    return 0;
+}
+```
+
+Her `case` bir enum üyesini kapsar. Bir `switch`'in her üyeyi kapsaması zorunlu
+değildir; tüketicilik (exhaustiveness) denetimi yoktur, bu yüzden bazı üyeler
+işlenmiyorsa bir `default` ya da sonda bir `return` ekle.
+
+## Enum'ları fonksiyon parametresi olarak kullanmak
+
+Fonksiyonlara enum geçerek niyetini açıkça belirt:
+
+```c
+enum Yon { Kuzey, Dogu, Guney, Bati }
+
+void ilerle(Yon y) {
+    switch (y) {
+        case Yon.Kuzey: print("yukari");   break;
+        case Yon.Dogu:  print("saga");     break;
+        case Yon.Guney: print("asagi");    break;
+        case Yon.Bati:  print("sola");     break;
+    }
+}
+```
+
+Enum olmasaydı bu fonksiyon `int` alırdı ve `7` geçerli bir yön olmadığı halde
+`ilerle(7)` derlenirdi. `Yon` parametresiyle tip denetleyici, `Yon` değeri
+olmayan her argümanı reddeder.
+
+## Enum değerleri tamsayıdır
+
+Enum değerlerini karşılaştırabilir ve `int`'e dönüştürebilirsin:
+
+```c
+Yon y = Yon.Kuzey;
+int indeks = y as int;         // 0
+
+if (y == Yon.Kuzey) {
+    print("kuzeye bakiyor");
+}
+```
+
+Enum'lar doğrudan tamsayı **değildir**. Bir `Yon` değişkenine `0` atayamazsın;
+`Yon.Kuzey` yazman gerekir. Bu, ilgisiz sabitlerin yanlışlıkla birbirine
+karışmasını engeller.
+
+## Neden int sabitler yerine enum
+
+İki yaklaşımı karşılaştır:
+
+```c
+// int sabitlerle (hataya açık)
+int SOLA_GIT  = 0;
+int SAGA_GIT = 1;
+int YUKARI_GIT = 2;
+
+void ilerle(int yon) { /* ... */ }
+ilerle(7);     // derlenir, hiçbir anlamı yok
+
+// Enum ile (güvenli)
+enum Hareket { Sola, Saga, Yukari }
+
+void ilerle(Hareket yon) { /* ... */ }
+// ilerle(7);                // derleme hatası
+ilerle(Hareket.Sola);        // açık ve doğru
+```
+
+Enum ile `ilerle(7)`, anlamsız bir değerle çalışan bir çağrı yerine bir derleme
+hatasıdır ve her çağrı yeri, çıplak bir tamsayı yerine geçirdiği değeri
+adlandırır (`Hareket.Sola`).
+
 ## /tr/error-handling/
 
 saQut, `try`, `catch` ve `throw` ile **denetlenmeyen** (unchecked) hata
@@ -6487,6 +8909,89 @@ try {
 ## Sırada Ne Var?
 
 - Token'ları, AST'yi, sembolleri ve IR'yi incelemek için [derleyici araçlarını](/tr/compiler-tools/) öğrenin
+
+## /tr/ffi/
+
+saQut tasarım gereği küçük bir dildir. Şimdiye kadar yazılmış her kütüphaneyi
+yeniden yazmayı hedeflemez. Bunun yerine, C ve C++ koduna açılan tek ve
+kontrollü bir kapı sunar: **FFI (Foreign Function Interface)**.
+
+## FFI ne işe yarar
+
+FFI, saQut içinden C veya C++ ile yazılmış fonksiyonları çağırmanı sağlar. Bu
+**host fonksiyonlar** derleyicinin içinde özel bir dosyada bildirilir ve sayısal
+kimlikle dağıtılır. Standart kütüphaneyi (`fs`, `math`, `sys`, `date`)
+kullanmak için C kodu yazman gerekmez; bu senin için zaten yapılmıştır.
+
+FFI'yı doğrudan şu durumlarda kullanırsın:
+- saQut'a kendi host fonksiyonunu eklerken
+- saQut'u daha büyük bir C++ uygulamasına betik motoru olarak gömerken
+
+## Nasıl çalışır
+
+Host fonksiyonlar derleyicinin gömülü `root.sqt` dosyasında `ffi` anahtar
+kelimesiyle bildirilir:
+
+```
+ffi float sqrt(float x) : MATH_SQRT from math;
+ffi string readFile(string path) : FS_READFILE from fs requires fs;
+```
+
+Her bildirim şunları belirtir: **imza** (tip denetimi için), **sembolik host
+kimliği** (C++ `HostFnId` enum'una eşlenir), **modül** (import-kapısı için)
+ve isteğe bağlı olarak **capability** ve kararlılık bayrağı.
+
+Sen şunu yazdığında:
+
+```c
+import { sqrt } from math;
+
+int main() {
+    print(sqrt(81));   // 9.0
+    return 0;
+}
+```
+
+- Import kapısı `math`'i gömülü modüle çözer
+- `sqrt` çağrısı IR'de `CALLHOST MATH_SQRT` komutuna dönüşür
+- VM `HostFnId` enum'u üzerinden C++ fonksiyonuna O(1) dağıtım yapar
+- Sonuç saQut değeri olarak geri itilir
+
+String eşleştirme yok. Çalışma zamanı yansıması yok. Tek bir sayısal dağıtım.
+
+## Capability ve FFI
+
+VM dışına çıkan host fonksiyonlar (dosya I/O, ağ, sistem çağrıları)
+`requires fs` (veya `net`, `sys`) bildirmek zorundadır. Derleyici ve çalışma
+zamanı bunu denetler. `requires` olmayan bir host fonksiyonu saftır ve
+`--allow` bayrağı gerektirmez.
+
+## print() de bir FFI'dır
+
+Hello World'den beri kullandığın `print()` fonksiyonu da bir host
+fonksiyondur (`: PRINT from core`). Her zaman kullanılabilir olmasının nedeni,
+import gerektirmeyen ve capability istemeyen `core` modülünde bildirilmiş
+olmasıdır.
+
+## Kendi host fonksiyonunu yazmak
+
+Bu ileri seviye bir konudur. Kısaca: gömülü root'a `ffi` bildirimi ekle,
+C++ gövdesini `host_functions.hpp` içinde gerçekle, yeni bir `HostFnId` ata
+ve saQut'u yeniden derle. Adım adım talimatlar için [katkı
+rehberine](https://github.com/saqutlang/saqut/blob/main/CONTRIBUTING.md) bak.
+
+## FFI vs. standart kütüphane
+
+| Ne | Mekanizma | Import gerekir | Capability gerekir |
+|---|---|---|---|
+| `s.upper()`, `dizi.append()` | UFCS yerleşik | Hayır | Hayır |
+| `readFile()`, `sqrt()` | FFI (stdlib) | Evet | Fonksiyona bağlı |
+| `print()` | FFI (core) | Hayır | Hayır |
+
+Standart kütüphane, derleyiciyle birlikte gelen bir FFI bildirimleri
+kümesidir. `import { readFile } from fs` yazarken FFI mekanizmasını görmezsin
+çünkü bağlantılar zaten yapılmıştır. Ama ihtiyacın olursa genişletmen için
+dikiş yeri oradadır.
 
 ## /tr/functions/
 
@@ -6665,8 +9170,8 @@ fonksiyon parametresine yazmaktan kaçınmalıdır.
 
 ## Bileşik Tipleri Döndürmek
 
-Bir **struct** döndürmek tam olarak beklediğiniz gibi çalışır: çağıran,
-dönen değere bir referans alır:
+Bir fonksiyon bir **struct** döndürdüğünde, çağıran dönen değere bir referans
+alır:
 
 ```c
 struct Point { int x; int y; }
@@ -6754,8 +9259,7 @@ fonksiyon aynı dosyada daha sonra tanımlanmışsa sorun olmaz.)
 Programınız çalışırken veri oluşturur: string'ler, diziler ve struct'lar. Bu
 verilere artık ihtiyaç kalmadığında belleği bir şeyin serbest bırakması
 gerekir. saQut bunu bir **çöp toplayıcı (GC)** ile otomatik olarak yapar;
-böylece asla `free` veya `delete` yazmazsınız. Bu sayfa, sade bir dille,
-toplayıcının *ne zaman* çalıştığını ve *neyin hayatta kaldığını* açıklar.
+böylece asla `free` veya `delete` yazmazsınız.
 
 ## Önce: her şey çöp toplamaya tabi değildir
 
@@ -6765,43 +9269,36 @@ GC yalnızca **yığın nesneleriyle** (referans türleri) ilgilenir:
 |-------------------|----------------------------|
 | `string` | `int` |
 | `struct` | `float` |
-| `array` (`int[]`, `Point[]`, …) | `bool` |
+| `array` (`int[]`, `Point[]`, ...) | `bool` |
 | | `byte` |
 
 İlkeller (`int`, `float`, `bool`, `byte`) **değer** türleridir. Doğrudan bir
 değişkenin yuvasında yaşar, atandıklarında kopyalanır ve yuva ortadan
-kalktığında kendiliğinden yok olurlar. Toplanacak bir şey yoktur. (Değer-referans
-ayrımı için [veri türlerine](/data-types/) bakın.) Dolayısıyla "çöp"ten
-bahsettiğimizde, her zaman erişilemez *referans* nesnelerini kastederiz.
+kalktığında kendiliğinden yok olurlar. (Değer-referans ayrımı için
+[veri türlerine](/data-types/) bakın.)
 
 ---
 
 ## Ne hayatta kalır: erişilebilirlik, sayım değil
 
-Kritik sorunun, *"tüm değişkenlerim silinir mi, yoksa referansı olanlar kalır
-mı?"* sorusunun kesin bir cevabı vardır: **bir nesne hâlâ erişilebilirse
-hayatta kalır, değilse serbest bırakılır.**
-
-saQut bir **işaretle-süpür** (mark-sweep) toplayıcı kullanır; bu iki aşamada
-çalışır:
+Bir nesne, canlı bir değişkenden hâlâ erişilebiliyorsa hayatta kalır; hiçbir
+şey erişemiyorsa silinir. saQut bir **işaretle-süpür** (mark-sweep) toplayıcı
+kullanır; iki aşamada çalışır:
 
 1. **İşaretle.** Programın şu anda hâlâ dokunabileceği canlı değişkenler olan
-   **köklerden** başla ve her referansı takip et. Bir kökten
-   erişebildiğin her şey *canlı* olarak işaretlenir.
+   **köklerden** başla ve her referansı takip et. Erişebildiğin her şey canlı
+   olarak işaretlenir.
 2. **Süpür.** Yığını tara ve işaretlenmemiş her nesneyi serbest bırak.
-   Erişilebilir hiçbir şey atlanmaz; erişilemez her şey geri kazanılır.
 
 Kökler şunlardır:
 
 - Hâlâ kapsamda olan **global (modül) değişkenleri**
-- Her aktif fonksiyon çağrısındaki **yerel değişkenler** (mevcut çağrı yığını)
+- Her aktif fonksiyon çağrısındaki **yerel değişkenler** (çağrı yığını)
 - O anda **fırlatılmakta** olan bir değer (uçuş halindeki bir hata)
 
-Yani kural tam da umduğunuz gibidir:
-
 > Eğer canlı bir değişken veya canlı bir değişkenden başlayan bir nesne
-> zinciri bir nesneye erişebiliyorsa, o nesne **kalır**. Hiçbir şey
-> erişemiyorsa, **serbest bırakılır**.
+> zinciri bir nesneye erişebiliyorsa, o nesne kalır. Hiçbir şey erişemiyorsa
+> silinir.
 
 ### Örnekle açıklama
 
@@ -6815,22 +9312,15 @@ for (int i = 0; i < 100000; i = i + 1) {
 print(keep.length());          // 3
 ```
 
-`keep`, tüm program boyunca canlı bir değişken tarafından referanslanır;
-dolayısıyla bir köktür ve **asla toplanmaz**. Buna karşılık her `temp` dizisi,
-bir sonraki yineleme başladığı anda erişilemez hale gelir: artık hiçbir
-değişken eski diziyi göstermez, bu yüzden toplayıcı onu geri kazanır. Bu
-kodu GC istatistikleriyle çalıştırmak, on binlerce `temp` dizisinin
-serbest bırakıldığını, `keep`'in ise tüm süre boyunca canlı kaldığını
-gösterir.
+`keep` tüm program boyunca canlı bir değişken tarafından referanslanır ve
+**asla toplanmaz**. Her `temp` dizisi ise bir sonraki yineleme başladığı anda
+erişilemez hale gelir ve toplayıcı onu geri kazanır.
 
-### Döngüler de toplanır
+### Döngüler de silinir
 
-Hayatta kalma, bir nesneyi kaç şeyin gösterdiğine değil, **köklerden
-erişilebilirliğe** dayandığı için, saQut **döngüsel** yapıları da doğru
-şekilde serbest bırakır. Birbirini gösteren ama hiçbir kökten erişilemeyen
-iki struct hâlâ çöptür ve işaretle-süpür onları toplar. (Bu, naif bir
-referans sayımı toplayıcısının düştüğü tuzaktır ve saQut'un bilinçli olarak
-referans sayımı kullanmama nedenidir.)
+Hayatta kalma, bir nesneyi kaç şeyin gösterdiğine değil köklerden
+erişilebilirliğe dayandığı için, saQut **döngüsel** yapıları da doğru
+şekilde siler.
 
 ```c
 struct Node { Node other; }
@@ -6839,34 +9329,28 @@ void makeGarbage() {
     Node a;
     Node b;
     a.other = b;
-    b.other = a;      // a ⇄ b birbirini gösterir
-}                     // bu fonksiyon döndükten sonra hiçbir şey a veya b'ye erişemez;
-                      // döngü erişilemezdir ve toplanACAKTIR
+    b.other = a;      // a ve b birbirini gösterir
+}                     // fonksiyon döndükten sonra hiçbir şey a veya b'ye erişemez;
+                      // döngü erişilemezdir ve silinecektir
 ```
 
 ---
 
 ## Ne zaman çalışır?
 
-Toplayıcı **eşik tabanlıdır**. Programınız nesne tahsis ettikçe, saQut ne
-kadar canlı veri olduğunu takip eder. Tahsis bir eşiği aştığında, bir
-sonraki **güvenli nokta** (safepoint) bir toplamayı tetikler.
+Toplayıcı **eşik tabanlıdır**. Tahsis bir eşiği aştığında, bir sonraki
+**güvenli nokta** (safepoint) bir toplamayı tetikler.
 
 - **Güvenli noktalar komut sınırlarındadır.** Toplayıcı asla bir işlemin
-  ortasında çalışmaz; yalnızca VM komutları arasında, her nesnenin tutarlı,
-  tam olarak oluşmuş durumda olduğu anlarda çalışır. (Bir komutun ortasında
-  inşa edilmekte olan bir nesne asla çöp sanılmaz.)
+  ortasında çalışmaz; yalnızca VM komutları arasında, her nesnenin tutarlı
+  durumda olduğu anlarda çalışır.
 - **Dünyayı durdurur (stop-the-world).** Bir toplama sırasında program kısa
-  bir süre duraklar; işaretle-süpür tamamlanana kadar çalışır, sonra yürütme
-  devam eder. Eşzamanlı veya artımlı toplama yoktur.
-- **Eşik uyarlanır.** Bir toplamadan sonra, bir sonraki eşik ne kadar verinin
-  hayatta kaldığına bağlı olarak ayarlanır (kabaca *canlı × 2*). Büyük bir
-  çalışma kümesine sahip bir program daha seyrek toplar; kısa ömürlü nesneleri
-  hızla tüketen bir program daha sık toplar.
+  süre duraklar; işaretle-süpür tamamlanır, sonra yürütme devam eder.
+- **Eşik uyarlanır.** Bir toplamadan sonraki eşik, ne kadar verinin hayatta
+  kaldığına bağlı olarak ayarlanır (kabaca canlı çarpı 2).
 
-Bu, toplamanın *zamanlamasını* bir gerçekleme detayı yapar, ancak *sonucu*
-tamamen belirleyicidir: aynı program aynı nesneleri serbest bırakır; bu
-özellik, saQut'un incelenebilir, tekrarlanabilir tasarımı için önemlidir.
+Toplamanın zamanlaması bir gerçekleme detayıdır, ama sonucu belirleyicidir:
+aynı program her seferinde aynı nesneleri siler.
 
 ---
 
@@ -6884,9 +9368,9 @@ saqut run --gc-stats myfile.sqt
 gc: runs=97 freed=99134 live=867
 ```
 
-- **`runs`**: kaç toplama gerçekleşti
-- **`freed`**: geri kazanılan toplam nesne sayısı
-- **`live`**: sonunda hâlâ canlı olan nesneler
+- `runs`: kaç toplama gerçekleşti
+- `freed`: geri kazanılan toplam nesne sayısı
+- `live`: sonunda hâlâ canlı olan nesneler
 
 ### `--gc-threshold=N` (ne kadar hevesle toplayacağını değiştir)
 
@@ -6894,56 +9378,62 @@ gc: runs=97 freed=99134 live=867
 saqut run --gc-threshold=1000 --gc-stats myfile.sqt
 ```
 
-**Daha düşük** bir eşik daha sık toplar: bellek daha az yer kaplar ama GC
-daha sık çalışır. **Daha yüksek** bir eşik tam tersini yapar. Yukarıdaki
-örnekte, eşiği düşürmek `runs=97 … live=867` çıktısını `runs=100 … live=201`
-haline getirir: daha sık süpürme, her an çok daha az bellek tutulması.
-
-Bu bir ayar düğmesi ve bir inceleme yardımcısıdır; doğruluk için asla
-ihtiyacınız olmaz, ama toplayıcının davranışını doğrudan görmenizi sağlar.
+Daha düşük bir eşik daha sık toplar; bellek daha az yer kaplar. Daha yüksek
+bir eşik tam tersini yapar. Bu bir ayar düğmesi ve inceleme yardımcısıdır;
+doğruluk için asla ihtiyacınız olmaz.
 
 ---
 
 ## Tasarım notları
 
 - **Bilinçli olarak basit.** Kopyalama, sıkıştırma, nesiller, eşzamanlılık
-  yok. GC, tarihsel olarak performans sorunlarının yaygın bir kaynağıdır; bu
-  yüzden saQut toplayıcıyı küçük ve öngörülebilir tutarak bu riski azaltır.
+  yok. Toplayıcı küçük ve öngörülebilirdir.
 - **Erişilebilirlik sayıma üstün gelir.** İşaretle-süpür, referans sayımının
-  sızdıracağı döngüleri toplar; saQut'un model olarak `shared_ptr` tarzı
-  sayıma dayanmama nedeni budur.
-- **Belirleyici sonuç.** Zamanlama eşikle değişebilir, ama *hangi* nesnelerin
-  serbest bırakıldığı değişmez.
+  sızdıracağı döngüleri siler.
+- **Belirleyici sonuç.** Zamanlama eşikle değişebilir, ama hangi nesnelerin
+  silindiği değişmez.
 
-## Sırada Ne Var?
+## Sırada ne var?
 
 - Değer-referans ayrımını [veri türlerinde](/data-types/) gözden geçirin
 - Referansların nasıl paylaşıldığını [struct'larda](/structs/#reference-semantics) ve [dizilerde](/arrays/#reference-semantics) görün
-- Yürüten VM'yi [derleyici araçlarında](/tr/compiler-tools/#6-bayt-kodu-vm-saqut-run) keşfedin
+- Yürüten VM'yi [derleyici araçlarında](/tr/compiler-tools/) keşfedin
 
 ## /tr/getting-started/
 
-saQut'a hoş geldiniz. Bu rehber, derleyiciyi edinmeyi, ilk programınızı yazmayı
-ve bir saQut projesinin temel yapısını kavramayı adım adım anlatır.
+Bu rehber, derleyiciyi edinmeyi, hangi platformların desteklendiğini ve bir
+saQut projesinin temel yapısını anlatır. Önce doğrudan kod yazmaya başlamak
+isterseniz [Merhaba Dünya](/tr/hello-world/) sayfasına gidin.
 
-## saQut'u Edinin
+## saQut'u edinin
 
-<CardGrid>
-  <LinkCard
-    title="Kaynak koddan derleyin"
-    description="C++17, CMake ≥ 3.16, Ninja. Adım adım derleme talimatları README'de."
-    href="https://github.com/saqutlang/saqut#readme"
-  />
-  <LinkCard
-    title="Hazır sürümü indirin"
-    description="Linux x86-64 için önceden derlenmiş ikili dosya. En son sürümü GitHub Releases'ten alın."
-    href="https://github.com/saqutlang/saqut/releases"
-  />
-</CardGrid>
+İki seçeneğiniz var: kaynak koddan derleyebilir ya da hazır sürümü
+indirebilirsiniz.
 
-### Kaynak koddan derleme (terminal)
+### 1. Hazır sürümü indirin (önerilen)
 
-saQut **C++17**, **CMake ≥ 3.16** ve **Ninja** gerektirir.
+Aşağıdaki platformlar için önceden derlenmiş ikili dosyalar yayınlanmaktadır:
+
+| Platform | Mimari | Durum |
+|---|---|---|
+| Linux (tüm dağıtımlar) | x86-64 | Destekleniyor |
+| Windows 11 | x86-64 | Destekleniyor |
+
+[GitHub Releases](https://github.com/saqutlang/saqut/releases) sayfasından en
+son sürümü indirin. Arşivi açtıktan sonra ikili dosyayı doğrudan
+çalıştırabilirsiniz:
+
+```bash
+./saqut --help
+```
+
+Kurulum gerektirmez, sisteme bağımlılık eklemez. Tek başına çalışan bir
+ikili dosyadır.
+
+### 2. Kaynak koddan derleyin
+
+saQut'u kendiniz derlemek isterseniz **C++17**, **CMake >= 3.16** ve **Ninja**
+gereklidir.
 
 ```bash
 git clone https://github.com/saqutlang/saqut
@@ -6952,84 +9442,155 @@ cmake -B build -G Ninja
 cmake --build build
 ```
 
-Derlenen ikili dosya `build/saqut` altında oluşur. Linux (x86-64) üzerinde test
-edilmiştir. macOS ve Windows denenmemiştir ancak platforma özgü kod
-kullanılmadığı için çalışmaları beklenir.
-
-Çalıştığını doğrulayın:
+Derlenen ikili dosya `build/saqut` altında oluşur.
 
 ```bash
 ./build/saqut --help
 ```
 
-Kullanılabilir komutların bir listesini görmelisiniz.
+Kullanılabilir komutların listesini görmelisiniz.
 
-## İlk Programınız
+## Desteklenen platformlar
 
-`hello.sqt` adında bir dosya oluşturun:
+saQut, Linux x86-64 ve Windows 11 x86-64 sistemlerini hedefler. Derleyici
+içinde platforma özgü kod bulunmaz; yalnızca standart C++17 ve taşınabilir
+kütüphaneler kullanılır. ARM (aarch64) ve diğer mimariler ileriki bir sürüm
+için planlanmaktadır ancak henüz yayınlanmamıştır. macOS bir hedef değildir
+ve desteklenmeyecektir.
 
-```c
-int main() {
-    print("Hello, world!");
-    return 0;
-}
-```
+Test edilmemiş bir platformda sorunla karşılaşırsanız işletim sisteminizi,
+mimarinizi ve derleyici sürümünüzü belirterek [issue
+açabilirsiniz](https://github.com/saqutlang/saqut/issues).
 
-Çalıştırın:
-
-```bash
-./build/saqut run hello.sqt
-```
-
-Çıktı:
-
-```
-Hello, world!
-```
-
-Az önce ilk saQut programınızı derleyip çalıştırdınız.
-
-## Program Yapısı
+## Program yapısı
 
 Bir saQut programı, **fonksiyon tanımları** ve **global değişken
 bildirimlerinden** oluşan bir listedir. Zorunlu bir `class` ya da hazır kalıp
-kod (boilerplate) yoktur; yürütme `main` adlı fonksiyondan başlar.
+kod yoktur; yürütme `main` adlı fonksiyondan başlar.
 
 ```c
 // Önce fonksiyon tanımları gelir
-int greet(string name) {
-    print("Hello");
-    print(name);
+int selamla(string isim) {
+    print("Merhaba");
+    print(isim);
     return 0;
 }
 
 // Ardından giriş noktası
 int main() {
-    greet("saQut");
+    selamla("saQut");
     return 0;
 }
 ```
 
 Her ifade `;` ile sonlanır. Bloklar `{ }` ile sarılır.
 
-## `print()` Fonksiyonu
+## `print()` fonksiyonu
 
-`print()` yerleşik bir **konak (host) fonksiyondur**: saQut koduyla değil,
-bizzat derleyicinin içinde C++ ile gerçeklenmiştir. Herhangi bir türde tek bir
+`print()` yerleşik bir **konak fonksiyondur**: saQut koduyla değil, bizzat
+derleyicinin içinde C++ ile gerçeklenmiştir. Herhangi bir türde tek bir
 argüman alır ve onu terminale yazar:
 
 ```c
 print(42);           // tamsayı
 print(3.14);         // ondalıklı sayı
-print("text");       // metin
+print("metin");      // metin
 print(true);         // mantıksal, "1" ya da "0" çıktısı verir
 ```
 
-## Sırada Ne Var?
+## Sırada ne var?
 
-- Veriyi saklamayı ve adlandırmayı öğrenmek için [değişkenler](/tr/variables/) sayfasına bakın
-- Hangi değer türlerinin bulunduğunu keşfetmek için [veri türlerini](/tr/data-types/) inceleyin
+- İlk programınızı sıfırdan yazın: [Merhaba Dünya](/tr/hello-world/)
+- Veriyi saklamayı ve adlandırmayı öğrenin: [değişkenler](/tr/variables/)
+- Hangi değer türlerinin bulunduğunu keşfedin: [veri türleri](/tr/data-types/)
 - İfadelerle denemeler yapmak için etkileşimli `saqut exec` komutunu deneyin
+
+## /tr/hello-world/
+
+Bu sayfa ilk saQut programınızı yazmanızı, çalıştırmanızı ve anlamanızı
+sağlar. Derleyiciyi henüz kurmadıysanız önce [Hızlı Başlangıç](/tr/getting-started/)
+rehberini takip edin.
+
+## Yazın
+
+`hello.sqt` adında bir dosya oluşturun:
+
+```c
+int main() {
+    print("Merhaba dünya!");
+    return 0;
+}
+```
+
+Bu dört satır programın tamamıdır.
+
+## Her satır ne yapıyor
+
+```c
+int main() {
+```
+
+`main` bir fonksiyondur. Her saQut programında bir tane bulunması zorunludur;
+program buradan çalışmaya başlar. `int` dönüş tipidir; `main` işletim
+sistemine bir tamsayı döndürür.
+
+```c
+    print("Merhaba dünya!");
+```
+
+`print()` terminale metin yazar. Argümanı olan `"Merhaba dünya!"` bir **metin
+sabitidir**; çift tırnak arasındaki karakter dizisi. Her ifade `;` ile sonlanır.
+
+```c
+    return 0;
+```
+
+`main`'den `0` döndürmek "her şey yolunda gitti" anlamına gelir. `{ }`
+işaretleri ifadeleri bir blok halinde gruplandırır.
+
+## Çalıştırın
+
+```bash
+saqut run hello.sqt
+```
+
+Kaynak koddan derlediyseniz komut `./build/saqut run hello.sqt` olacaktır.
+
+Çıktı:
+
+```
+Merhaba dünya!
+```
+
+## Birkaç değişiklik deneyin
+
+`print()` içindeki metni değiştirip tekrar çalıştırın:
+
+```c
+int main() {
+    print("saQut'tan merhaba!");
+    return 0;
+}
+```
+
+İkinci bir `print()` ekleyin:
+
+```c
+int main() {
+    print("Birinci satır");
+    print("İkinci satır");
+    return 0;
+}
+```
+
+Her `print()` kendi satırına yazar.
+
+## Sıradaki adım
+
+Artık bir programı çalıştırabildiğinize göre, veriyi saklamayı ve adlandırmayı
+[değişkenler](/tr/variables/) sayfasında öğrenin. Programın genel yapısını
+(fonksiyonlar, bloklar, giriş noktası) daha ayrıntılı öğrenmek isterseniz
+[Hızlı Başlangıç](/tr/getting-started/#program-yapisi) rehberine bakabilirsiniz.
 
 ## /tr/if-else/
 
@@ -7192,8 +9753,8 @@ int? x = getValue();
 print(x + 1);        // HATA (E003), 'x' null olabilir
 ```
 
-Bir `if (x != null)` kontrolü türü **daraltır**: blok içinde derleyici `x`'in
-null olmadığını bilir ve onu düz bir `int` olarak kullanmanıza izin verir:
+Bir `if (x != null)` kontrolü türü **daraltır**: blok içinde `x`'in tipi `int?`
+değil `int`'tir, bu yüzden onu düz bir `int` olarak kullanabilirsiniz:
 
 ```c
 int? x = getValue();
@@ -7249,9 +9810,9 @@ kullanın.
 
 ## Kara kutu değil, şeffaf kutu
 
-Çoğu derleyici kaynak kod ile çalışan program arasındaki her şeyi gizler. saQut
-bunu tersine çevirir: **her aşama başlı başına bir komuttur**. Çalıştırır,
-inceler, çıktısını kendi aracınıza yönlendirirsiniz.
+Tipik bir derleyici yalnızca kaynak girdisini ve son çıktısını gösterir;
+aradaki aşamalar gözlemlenemez. saQut her aşamayı, isimlendirilmiş ve makinece
+okunabilir bir sonuç üreten ayrı bir komut olarak sunar:
 
 ```bash
 saqut tokens  hello.sqt     # token akışı        (JSON)
@@ -7261,8 +9822,8 @@ saqut ir      hello.sqt     # 3 adresli ara kod
 saqut run     hello.sqt     # derle ve çalıştır
 ```
 
-Dilin kendisi bilinçli olarak küçük ve C benzeri tutuldu; dil bir araç. Asıl
-ürün **içine bakabildiğiniz bu işlem zinciri**.
+Dil bilinçli olarak küçük ve C benzeri tutuldu. Amacı, incelenebilir işlem
+zincirine derlenecek bir kaynak sağlamaktır.
 
 ---
 
@@ -7293,8 +9854,8 @@ Dilin kendisi bilinçli olarak küçük ve C benzeri tutuldu; dil bir araç. As�
 
 </Steps>
 
-Devam etmek ister misiniz? [Başlangıç](/tr/getting-started/) rehberi derleyiciyi
-kurmaktan gerçek programlar yazmaya kadar her şeyi adım adım anlatıyor.
+[Başlangıç](/tr/getting-started/) rehberi derleyiciyi kurmayı ve daha uzun
+programlar yazmayı anlatır.
 
 ---
 
@@ -7314,43 +9875,43 @@ int main() {
 }
 ```
 
-Fonksiyonlar, kontrol akışı ve `print()`. Hepsi bu. Zorunlu tören kodu yok.
+Fonksiyonlar, kontrol akışı ve `print()`. Zorunlu tören kodu yok.
 
 ---
 
-## saQut'u farklı kılan nedir
+## saQut nasıl kuruldu
 
 <CardGrid stagger>
   <Card title="Şeffaf işlem zinciri" icon="open-book">
     Token, AST, sembol tablosu ve ara kodun her biri isimlendirilmiş ve
     makinece okunabilir bir çıktıdır. `saqut ast` çıktısını kendi aracınıza
     yönlendirin, optimize edilmiş ağacı karşılaştırın ya da yalnızca
-    `saqut symbols` çıktısıyla bir LSP yazın.
+    `saqut symbols` çıktısından bir LSP kurun.
   </Card>
   <Card title="Prosedürel ve açık" icon="pencil">
     C ailesi sözdizimi. Nesne yönelimi yok, jenerik tip yok, gizli tip
-    dönüşümü yok. `int` ile `float` karıştığında tek bir net kural geçerli.
-    Yazdığınız şey çalışan şeydir.
+    dönüşümü yok. `int` ile `float` karıştığında belirtilmiş tek bir kural
+    geçerli. Derleyici yazdığınız şeyi çalıştırır.
   </Card>
   <Card title="Değer ve referans, işaretçi yok" icon="setting">
     Temel tipler (`int`, `float`, `bool`, `byte`) kopyalanır. Bileşik tipler
     (`string`, `struct`, `array`) referans ile paylaşılır. Programcının
     görebileceği `&` veya `*` yoktur.
   </Card>
-  <Card title="Null güvenliği, sıfır maliyet" icon="approve-check">
-    Nullable olmak isteğe bağlıdır: <code>T?</code>. Derleyici, null olamaz
-    bir değeri siz daha kullanmadan güvenli olduğunu kanıtlar. Tamamı derleme
-    zamanında, çalışma anına hiçbir yük binmeden.
+  <Card title="Nullable isteğe bağlıdır" icon="approve-check">
+    Bir değer, siz <code>T?</code> olarak bildirmedikçe null olamaz. Tip
+    denetleyici, null olamaz bir değerin null olamayacağını kullanımdan önce
+    doğrular; bu yüzden çalışma zamanında null denetimi yapılmaz.
   </Card>
   <Card title="Belirlenimci sanal makine" icon="random">
-    Referans arka uç bir bytecode sanal makinesidir: aynı girdi her zaman aynı
-    çıktıyı verir. LLVM bilinçli olarak kullanılmaz. Sırada MIR tabanlı JIT
-    ve gömülü sistemler için AOT desteği var.
+    Referans arka uç bir bytecode sanal makinesidir: aynı girdi her çalıştırmada
+    aynı çıktıyı üretir. LLVM bilinçli olarak kullanılmaz. Deneysel bir MIR JIT
+    <code>--jit</code> ile çalışır; sırada gömülü çalışma zamanlı AOT var.
   </Card>
   <Card title="Yakalanabilir hatalar" icon="error">
-    <code>try</code> / <code>catch</code> / <code>throw</code> ile
-    struct tabanlı hata yönetimi. Sınır aşımı, sıfıra bölme ve null
-    referans hataları yakalanabilir; programı sessizce çökertmez.
+    <code>try</code> / <code>catch</code> / <code>throw</code> ile struct tabanlı
+    hata yönetimi. Sınır aşımı, sıfıra bölme ve null referans hataları programı
+    sessizce sonlandırmak yerine yakalanabilir bir hata fırlatır.
   </Card>
 </CardGrid>
 
@@ -7359,12 +9920,12 @@ Fonksiyonlar, kontrol akışı ve `print()`. Hepsi bu. Zorunlu tören kodu yok.
 ## Öğrenmeye başlayın
 
 <CardGrid>
-  <LinkCard title="Veri Tipleri" href="data-types/" description="int, float, bool, byte, string, struct, array, nullable ve tip yükseltme kuralları." />
-  <LinkCard title="Operatörler" href="operators/" description="Aritmetik, mantıksal, bitsel, atama, üçlü ve as dönüşümü; tam öncelik tablosuyla birlikte." />
-  <LinkCard title="Yerleşik Fonksiyonlar" href="builtin-functions/" description="Her string, array ve struct metodu örneklerle sıfırdan anlatılıyor." />
-  <LinkCard title="Modüller" href="modules/" description="Kodu import/export ile dosyalara bölün; iki dosyalı programdan bağımlılık çizgelerine kadar." />
-  <LinkCard title="Hata Yönetimi" href="error-handling/" description="try / catch / throw ile çalışma zamanı hatalarını yakalayın ve fırlatın." />
-  <LinkCard title="Derleyici Araçları" href="compiler-tools/" description="Token, AST, sembol ve IR nedir, her birine ne zaman başvurmalısınız." />
+  <LinkCard title="Veri Tipleri" href="tr/data-types/" description="int, float, bool, byte, string, struct, array, nullable ve tip yükseltme kuralları." />
+  <LinkCard title="Operatörler" href="tr/operators/" description="Aritmetik, mantıksal, bitsel, atama, üçlü ve as dönüşümü; tam öncelik tablosuyla birlikte." />
+  <LinkCard title="Yerleşik Fonksiyonlar" href="tr/builtin-functions/" description="Her string, array ve struct metodu örneklerle sıfırdan anlatılıyor." />
+  <LinkCard title="Modüller" href="tr/modules/" description="Kodu import/export ile dosyalara bölün; iki dosyalı programdan bağımlılık çizgelerine kadar." />
+  <LinkCard title="Hata Yönetimi" href="tr/error-handling/" description="try / catch / throw ile çalışma zamanı hatalarını yakalayın ve fırlatın." />
+  <LinkCard title="Derleyici Araçları" href="tr/compiler-tools/" description="Token, AST, sembol ve IR nedir, her birine ne zaman başvurmalısınız." />
 </CardGrid>
 
 ---
@@ -7372,24 +9933,25 @@ Fonksiyonlar, kontrol akışı ve `print()`. Hepsi bu. Zorunlu tören kodu yok.
 ## İşlem zinciri, uçtan uca
 
 ```
-Kaynak → Sözcük Analizi → Sözdizimi Analizi → AST → Sembol Toplama → Tip Denetimi
-  → Optimizasyon (sabit katlama + ölü kod temizliği) → Ara Kod → Bytecode VM → çıktı
+Kaynak -> Sözcük Analizi -> Sözdizimi Analizi -> AST -> Sembol Toplama -> Tip Denetimi
+  -> Optimizasyon (sabit katlama + ölü kod temizliği) -> Ara Kod -> Bytecode VM -> çıktı
 ```
 
-Her ok, çalıştırıp inceleyebileceğiniz bir CLI komutudur.
+Her ok, çalıştırıp inceleyebileceğiniz bir CLI komutuna karşılık gelir.
 
 ## /tr/modules/
 
-Program büyüdükçe her şeyi tek bir dosyada tutmak can sıkıcı olur. saQut,
-kodu birden çok `.sqt` dosyasına bölmenizi ve dosyalar arasında paylaşmanızı
-sağlayan iki anahtar kelime sunar: **`export`** (bir şeyi diğer dosyaların
-kullanımına açar) ve **`import`** (başka bir dosyadan bir şeyi içeri çeker).
+Program büyüdükçe kodu birden çok dosyaya bölmek her dosyayı odaklı tutar.
+saQut, kodu birden çok `.sqt` dosyasına bölmenizi ve dosyalar arasında
+paylaşmanızı sağlayan iki anahtar kelime sunar: **`export`** (bir şeyi diğer
+dosyaların kullanımına açar) ve **`import`** (başka bir dosyadan bir şeyi içeri
+çeker).
 
-Bu sayfa, olabilecek en basit iki dosyalı programla başlar ve çok dosyalı
-bağımlılık çizgelerine, yol kurallarına ve saQut'un sizi dairesel içe
-aktarmalardan nasıl koruduğuna kadar uzanır.
+Bu sayfa iki dosyalı bir programla başlar ve çok dosyalı bağımlılık çizgelerine,
+yol çözümleme kurallarına ve derleyicinin dairesel içe aktarmaları nasıl ele
+aldığına kadar uzanır.
 
-## 30 Saniyelik Özet
+## Minimal iki dosyalı program
 
 ```c
 // math.sqt
@@ -7414,8 +9976,9 @@ int main() {
 saqut run main.sqt
 ```
 
-saQut otomatik olarak `math.sqt`'i bulur, derler ve `square`'i bağlar.
-Komut satırında `math.sqt`'i asla belirtmezsiniz; `import` ifadesi yeterlidir.
+Derleyici, `import` ifadesinden `math.sqt`'i çözer, derler ve `square`'i bağlar.
+Komut satırında `math.sqt`'i belirtmezsiniz; bağımlılığın adlandırıldığı tek yer
+`import` ifadesidir.
 
 Bu sayfanın geri kalanı detayları doldurur.
 
@@ -7575,9 +10138,9 @@ modüller kütüphanedir: `main()` içermeleri gerekmez.
 
 ---
 
-## Baklava bağımlılıkları sorun değildir
+## Baklava bağımlılıkları
 
-Sık sorulan bir soru: iki modülüm de aynı üçüncü modülü import ederse ne olur?
+İki modül de aynı üçüncü modülü import ederse ne olur?
 
 ```
        main.sqt
@@ -7587,9 +10150,9 @@ Sık sorulan bir soru: iki modülüm de aynı üçüncü modülü import ederse 
       base.sqt        ← HEM left hem right tarafından import ediliyor
 ```
 
-Buna **baklava (diamond)** denir ve bu bir sorun *değildir*. saQut her modülü
-**tam olarak bir kez** yükler ve yeniden kullanır. `base.sqt`, iki modül ona
-bağımlı olsa da tek bir kez derlenir:
+Bu şekle **baklava (diamond)** denir. Derleyici her modülü **tam olarak bir
+kez** yükler ve yeniden kullanır; bu yüzden iki modül ona bağımlı olsa da
+`base.sqt` tek bir kez derlenir:
 
 ```c
 // base.sqt
@@ -7698,12 +10261,122 @@ hem A hem B `ortak.sqt`'ten import etsin ve A↔B import'larını kaldırın.
 - Veriyi [struct'larla](/structs/) bir araya getirin
 - Derleyici zincirini [derleyici araçlarıyla](/compiler-tools/) keşfedin
 
+## /tr/nullable-types/
+
+Her değişken her zaman bir değere sahip olmayabilir. Bazen bir fonksiyon aradığını
+bulamaz, bir sorgu sonuç döndürmez veya bir alan henüz atanmamıştır. saQut bu
+durumları **nullable tipler** ile yönetir.
+
+## Nullable tanımlamak
+
+Herhangi bir tipin sonuna `?` ekleyerek nullable yapabilirsin:
+
+```c
+int? belkiSayi = 42;
+belkiSayi = null;              // geçerli
+
+string? belkiIsim = "Ali";
+belkiIsim = null;              // geçerli
+```
+
+Nullable olmayan bir değişken `null` alamaz:
+
+```c
+int normalSayi = 42;
+// normalSayi = null;          // derleme hatası
+```
+
+Bu denetim tamamen derleme zamanında yapılır. Denetim çalışma zamanına maliyet
+eklemez ve null olamaz bir değişken, çalışma boyunca hiçbir anda `null`
+tutamaz.
+
+## Null güvenliği: önce kontrol etmelisin
+
+Nullable bir değeri doğrudan kullanamazsın. Derleyici, değeri kullanmadan önce
+`null` olmadığını kanıtlamanı ister:
+
+```c
+int? x = degerGetir();
+
+// print(x);                   // derleme hatası: x null olabilir
+
+if (x != null) {
+    print(x);                  // geçerli, x burada null olmayacak biçimde daraltıldı
+}
+```
+
+`if (x != null)` bloğunun içinde tip denetleyici tipi `int?`'ten `int`'e
+**daraltır**. Buna akışa duyarlı tiplendirme denir.
+
+## Bileşik tiplerle nullable
+
+Struct, dizi ve metin tiplerinin hepsi nullable olabilir:
+
+```c
+struct Nokta { int x; int y; }
+
+Nokta? belkiNokta = null;
+belkiNokta = Nokta(10, 20);
+
+if (belkiNokta != null) {
+    print(belkiNokta.x);       // geçerli
+}
+
+int[]? belkiListe = null;
+string? belkiMetin = null;
+```
+
+## Fonksiyon dönüşlerinde nullable
+
+Sonuç üretemeyebilecek bir fonksiyon nullable tip döndürmelidir:
+
+```c
+int? indeksBul(int[] dizi, int hedef) {
+    for (int i = 0; i < dizi.length; i = i + 1) {
+        if (dizi[i] == hedef) {
+            return i;
+        }
+    }
+    return null;               // bulunamadı
+}
+```
+
+Çağıran taraf sonucu kontrol eder:
+
+```c
+int[] sayilar = [10, 20, 30];
+int? konum = indeksBul(sayilar, 20);
+
+if (konum != null) {
+    print(konum);              // 1
+} else {
+    print("bulunamadı");
+}
+```
+
+## Varsayılan değer
+
+Başlangıç değeri verilmeden tanımlanan nullable değişken `null` olur:
+
+```c
+int? x;                        // x null
+string? s;                     // s null
+```
+
+## Özet
+
+- `T?`, değerin null olabileceği anlamına gelir
+- Tip denetleyici, nullable bir değerin önce kontrol edilmeyen her kullanımını reddeder
+- `if (x != null)` tipi blok içinde null olmayacak biçimde daraltır
+- Çalışma zamanında hiçbir yük yoktur; tüm denetimler derleme zamanındadır
+- Sonuç üretemeyebilecek fonksiyonlar `T?` döndürür
+
 ## /tr/operators/
 
-saQut geniş bir işleç yelpazesi sunar. Ayrıştırıcı **Pratt ayrıştırması
-(Pratt parsing)** kullanır; her işlecin bir öncelik seviyesi ve birleşme
-yönü vardır. Böylece `-2 + -5` gibi ifadeler belirsizliğe yer kalmadan doğru
-biçimde ayrıştırılır.
+saQut aşağıda listelenen işleçleri sağlar. Ayrıştırıcı **Pratt ayrıştırması
+(Pratt parsing)** kullanır: her işlecin bir öncelik seviyesi ve bir birleşme
+yönü vardır; böylece `-2 + -5` gibi bir ifade tek ve belirsizliksiz bir ağaca
+ayrıştırılır.
 
 ## İşleç Öncelik Tablosu
 
@@ -7982,10 +10655,10 @@ sabit **sıfıra bölme** hakkında da uyarı verebilir. Bu,
 
 ## Ne yapmaz
 
-Bu kısım en az diğeri kadar önemlidir. saQut'un optimize edicisi **bilinçli
-olarak muhafazakardır**. Hedef, "her döngüyü sıkıştırmak" değil, "belirlilik
-garantisiyle kabul edilebilir, öngörülebilir hız"dır. Sınırları bilmek,
-gelmeyen bir yeniden yazımı beklemeyeceğiniz anlamına gelir.
+Sınırlar, dönüşümler kadar önemlidir. saQut'un optimize edicisi **bilinçli
+olarak muhafazakardır**. Hedef, olası her döngüyü çıkarmak değil, belirlilik
+garantisiyle öngörülebilir hızdır. Optimize edicinin neye dokunmadığını bilmek,
+onun neyi yeniden yazmasını beklememeniz gerektiğini söyler.
 
 ### Float ifadeler katlanmaz
 
@@ -8043,6 +10716,577 @@ dönüştüren bir ön yüze değil.
 - Optimize edilmiş ağacın nasıl komutlara dönüştüğünü [derleyici araçlarında](/tr/compiler-tools/#5-ir-ara-gösterim--saqut-ir) görün
 - Optimize edicinin hangi uyarıları ürettiğini [derleyici hatalarında](/tr/compiler-errors/) öğrenin
 - Çalışma zamanı belleğini [çöp toplamada](/tr/garbage-collection/) anlayın
+
+## /tr/stdlib-date/
+
+`date` modülü takvim tarihleri ve zaman damgalarıyla çalışmak için bir `date`
+tipi sunar. Yalnızca `now()` `--allow sys` gerektirir; diğer tüm fonksiyonlar
+saf hesaplamadır ve capability istemez.
+
+## Import
+
+```c
+import { now, date, dateEpoch, parse, addDays, diffDays } from date;
+```
+
+## Fonksiyonlar
+
+### now
+
+Güncel tarih ve saati döndürür. `--allow sys` gerektirir.
+
+```c
+import { now } from date;
+
+int main() {
+    date d = now();
+    print(d);                // 2026-07-15T14:30:00Z
+    return 0;
+}
+```
+
+### Tarih oluşturma
+
+Yıl, ay ve günden bir tarih oluşturur. Aylar 1 tabanlıdır.
+
+```c
+import { date } from date;
+
+int main() {
+    date d = date(2026, 7, 15);
+    print(d);                // 2026-07-15T00:00:00Z
+    return 0;
+}
+```
+
+### dateEpoch
+
+Epoch milisaniyesinden bir tarih oluşturur.
+
+```c
+import { dateEpoch } from date;
+
+int main() {
+    date d = dateEpoch(1752580800000);
+    print(d);
+    return 0;
+}
+```
+
+### parse
+
+ISO 8601 formatındaki bir tarih dizgisini ayrıştırır.
+
+```c
+import { parse } from date;
+
+int main() {
+    date? d = parse("2026-07-15");
+    if (d != null) {
+        print(d);            // 2026-07-15T00:00:00Z
+    }
+    return 0;
+}
+```
+
+`date?` (nullable) döndürür: geçerli bir tarih değilse `null`.
+
+### addDays / addMonths / addYears
+
+Bir tarihe zaman ekler ve yeni bir tarih döndürür. Orijinal değişmez.
+
+```c
+import { date, addDays } from date;
+
+int main() {
+    date bugun = date(2026, 7, 15);
+    date yarin = addDays(bugun, 1);
+    print(yarin);            // 2026-07-16T00:00:00Z
+    return 0;
+}
+```
+
+### diffDays
+
+İki tarih arasındaki gün farkını döndürür.
+
+```c
+import { date, diffDays } from date;
+
+int main() {
+    date baslangic = date(2026, 7, 1);
+    date bitis     = date(2026, 7, 15);
+    print(diffDays(baslangic, bitis));   // 14
+    return 0;
+}
+```
+
+İkinci tarih birinciden önceyse negatif değer döner.
+
+### Erişimciler
+
+Bir tarihten bileşenleri ayrı ayrı al.
+
+```c
+import { date } from date;
+
+int main() {
+    date d = date(2026, 7, 15);
+    print(d.year);           // 2026
+    print(d.month);          // 7
+    print(d.day);            // 15
+    return 0;
+}
+```
+
+## /tr/stdlib-fs/
+
+`fs` modülü programının dosya sistemiyle etkileşime girmesini sağlar. Tüm
+fonksiyonlar çalışma zamanında `--allow fs` gerektirir.
+
+## Import
+
+```c
+import { readFile, writeFile, readDir, exists, remove } from fs;
+```
+
+## Fonksiyonlar
+
+### readFile
+
+Bir dosyanın tüm içeriğini okur ve string olarak döndürür.
+
+```c
+import { readFile } from fs;
+
+int main() {
+    string icerik = readFile("veri.txt");
+    print(icerik);
+    return 0;
+}
+```
+
+Dosya yoksa `readFile` yakalanabilir bir hata fırlatır. `try`/`catch` ile
+sarabilir veya önce `exists` ile kontrol edebilirsin.
+
+### writeFile
+
+Bir string'i dosyaya yazar. Dosya yoksa oluşturur, varsa üzerine yazar.
+
+```c
+import { writeFile } from fs;
+
+int main() {
+    writeFile("cikti.txt", "Merhaba saQut!");
+    return 0;
+}
+```
+
+### readDir
+
+Bir dizindeki giriş adlarını dizi olarak döndürür.
+
+```c
+import { readDir } from fs;
+
+int main() {
+    string[] girisler = readDir(".");
+    for (int i = 0; i < girisler.length; i = i + 1) {
+        print(girisler[i]);
+    }
+    return 0;
+}
+```
+
+### exists
+
+Verilen yolda bir dosya veya dizin varsa `true` döndürür.
+
+```c
+import { exists } from fs;
+
+int main() {
+    if (exists("ayar.txt")) {
+        string a = readFile("ayar.txt");
+        print(a);
+    } else {
+        print("ayar dosyası bulunamadı");
+    }
+    return 0;
+}
+```
+
+### remove
+
+Bir dosyayı siler. Yol yoksa veya bir dizinse hata fırlatır.
+
+```c
+import { remove } from fs;
+
+int main() {
+    remove("gecici.txt");
+    return 0;
+}
+```
+
+## fs erişimiyle çalıştırma
+
+```bash
+saqut run --allow fs program.sqt
+```
+
+## /tr/stdlib-math/
+
+`math` modülü matematiksel sabitler ve fonksiyonlar sağlar. Hiçbir capability
+gerektirmez; tamamen saf hesaplamadir.
+
+## Import
+
+```c
+import { E, PI, sqrt, abs, min, max, floor, ceil, round, pow, sin, cos } from math;
+```
+
+## Sabitler
+
+| Sabit | Değer |
+|---|---|
+| `E` | 2.7182818284 |
+| `PI` | 3.1415926535 |
+
+```c
+import { PI } from math;
+
+int main() {
+    print(PI);                    // 3.141593
+    float alan = PI * 5 * 5;     // daire alanı, yarıçap 5
+    print(alan);
+    return 0;
+}
+```
+
+## Fonksiyonlar
+
+### sqrt
+
+Karekök.
+
+```c
+import { sqrt } from math;
+
+int main() {
+    print(sqrt(25));    // 5.0
+    return 0;
+}
+```
+
+### abs
+
+Mutlak değer. `int` ve `float` ile çalışır.
+
+```c
+import { abs } from math;
+
+int main() {
+    print(abs(-42));       // 42
+    print(abs(-3.14));     // 3.14
+    return 0;
+}
+```
+
+### min / max
+
+İki sayıdan küçük veya büyük olanı döndürür.
+
+```c
+import { min, max } from math;
+
+int main() {
+    print(min(10, 20));    // 10
+    print(max(3.5, 2.1));  // 3.5
+    return 0;
+}
+```
+
+### floor / ceil / round
+
+Float değeri en yakın tam sayıya yuvarlar.
+
+```c
+import { floor, ceil, round } from math;
+
+int main() {
+    print(floor(3.9));    // 3
+    print(ceil(3.1));     // 4
+    print(round(3.5));    // 4
+    return 0;
+}
+```
+
+### pow
+
+`taban` üzeri `us` hesaplar. İki argüman da `float`'tır.
+
+```c
+import { pow } from math;
+
+int main() {
+    print(pow(3, 4));     // 81.0
+    return 0;
+}
+```
+
+### sin / cos
+
+Sinüs ve kosinüs. Girdi radyan cinsindendir.
+
+```c
+import { sin, cos, PI } from math;
+
+int main() {
+    print(sin(PI / 2));   // ~1.0
+    print(cos(PI));        // ~-1.0
+    return 0;
+}
+```
+
+## /tr/stdlib-net/
+
+> **Durum: 0.9 için planlandı.** `net` modülü henüz mevcut sürümde
+> kullanılamaz. Bu sayfa planlanan API'yi açıklar.
+
+`net` modülü HTTP istemci işlevselliği ve temel soket iletişimi sağlayacak.
+Çalışma zamanında `--allow net` gerektirecek.
+
+## Planlanan fonksiyonlar
+
+### httpGet
+
+Bir HTTP GET isteği gönderir ve yanıt gövdesini string olarak döndürür.
+
+```c
+import { httpGet } from net;
+
+int main() {
+    string govde = httpGet("https://example.com");
+    print(govde);
+    return 0;
+}
+```
+
+### httpPost
+
+Gövdeli bir HTTP POST isteği gönderir ve yanıtı döndürür.
+
+```c
+import { httpPost } from net;
+
+int main() {
+    string yanit = httpPost("https://example.com/api", "{\"anahtar\":\"deger\"}");
+    print(yanit);
+    return 0;
+}
+```
+
+## Capability
+
+Tüm `net` fonksiyonları `--allow net` gerektirir:
+
+```bash
+saqut run --allow net program.sqt
+```
+
+`net` capability'si `fs` ve `sys`'ten ayrıdır. Yalnızca dosya okuyan ve HTTP
+isteği yapan bir program şöyle çalışır:
+
+```bash
+saqut run --allow fs,net program.sqt
+```
+
+## Ne zaman kullanılabilir olacak
+
+`net` modülü 0.9 sürümü için planlanmıştır. Gelişmeleri
+[GitHub Issues](https://github.com/saqutlang/saqut/issues) üzerinden takip
+edebilirsin.
+
+## /tr/stdlib-overview/
+
+saQut'un standart kütüphanesi, programlarınıza dosya sistemi, ağ, sistem
+bilgisi, matematik ve tarih erişimi sağlayan **import-kapılı modüllerden**
+oluşur. Her zaman erişilebilir olan yerleşik fonksiyonların (`.upper()`,
+`.append()`) aksine, standart kütüphane fonksiyonları açıkça import edilmelidir.
+
+## Import nasıl çalışır
+
+Her modül tırnaksız adıyla import edilir:
+
+```c
+import { readFile, writeFile } from fs;
+import { sqrt, abs } from math;
+```
+
+Tırnaklı ad dosya yolunu, tırnaksız ad standart kütüphane modülünü belirtir:
+
+```c
+import { selamla } from "./yardimci.sqt";   // dosya
+import { readFile } from fs;                // stdlib modülü
+```
+
+Birden fazla fonksiyonu tek ifadede import edebilir veya `*` ile hepsini
+alabilirsin:
+
+```c
+import * from fs;              // tüm fs fonksiyonları
+import { readFile } from fs;   // yalnızca biri
+```
+
+## Capability kapıları
+
+Bazı modüller **çalışma zamanı izni** gerektirir. saQut varsayılan olarak tüm
+dış erişimi reddeder. Komut satırından izin verirsin:
+
+```bash
+saqut run --allow fs prog.sqt
+saqut run --allow fs,net,sys prog.sqt
+```
+
+| Capability | Neye izin verir |
+|---|---|
+| `fs` | Dosya sistemi erişimi (okuma, yazma, listeleme) |
+| `net` | Ağ erişimi (HTTP, soket) |
+| `sys` | Sistem çağrıları: güncel zaman, rastgele sayı, ortam değişkenleri, argümanlar |
+
+Capability gerektiren fonksiyonlar bunu bildirir (`requires fs`). Eşleşen
+`--allow` bayrağı olmadan kullanmaya çalışırsan derleyici derleme zamanında
+hata verir. Çalışma zamanı da her çağrıdan önce son bir güvenlik kontrolü
+yapar.
+
+Bir programın hangi capability'lere ihtiyaç duyduğunu çalıştırmadan
+sorgulayabilirsin:
+
+```bash
+saqut ir --capabilities prog.sqt
+```
+
+## Modül dizini
+
+| Modül | Import | Gerektirir | Durum |
+|---|---|---|---|
+| Dosya sistemi | `fs` | `--allow fs` | Kullanılabilir |
+| Sistem | `sys` | `--allow sys` | Kullanılabilir |
+| Matematik | `math` | yok | Kullanılabilir |
+| Tarih | `date` | `--allow sys` (yalnızca `now()`) | Kullanılabilir |
+| Ağ | `net` | `--allow net` | Planlandı (0.9) |
+
+## Hiçbir yerden import edilmez
+
+Yerleşik tip metotları (`.upper()`, `.append()`, `.toJson()`) standart
+kütüphanenin parçası değildir. UFCS (Uniform Function Call Syntax) nokta
+gösterimiyle çağrılır ve import gerektirmeden her zaman kullanılabilir.
+Bkz. [Yerleşik Fonksiyonlar (UFCS)](/tr/builtin-functions/).
+
+## /tr/stdlib-sys/
+
+`sys` modülü sistem seviyesindeki özelliklere erişim sağlar. Tüm fonksiyonlar
+çalışma zamanında `--allow sys` gerektirir.
+
+## Import
+
+```c
+import { random, randomRange, env, args, sleep } from sys;
+```
+
+## Fonksiyonlar
+
+### random
+
+Rastgele pozitif bir tamsayı döndürür.
+
+```c
+import { random } from sys;
+
+int main() {
+    int r = random();
+    print(r);     // örn. 1634872934
+    return 0;
+}
+```
+
+Sonuç genel amaçlı bir CSPRNG'den gelir. Kriptografik rastgelelik için
+planlanan `crypto` modülünü kullan.
+
+### randomRange
+
+`min` (dahil) ile `max` (hariç) arasında rastgele bir tamsayı döndürür.
+
+```c
+import { randomRange } from sys;
+
+int main() {
+    int zar = randomRange(1, 7);   // 1 ile 6 arası
+    print(zar);
+    return 0;
+}
+```
+
+### env
+
+Bir ortam değişkeninin değerini döndürür; tanımlı değilse boş string.
+
+```c
+import { env } from sys;
+
+int main() {
+    string ev = env("HOME");
+    print(ev);     // örn. "/home/saqut"
+    return 0;
+}
+```
+
+### args
+
+Programa geçirilen komut satırı argümanlarını string dizisi olarak döndürür.
+
+```c
+import { args } from sys;
+
+int main() {
+    string[] a = args();
+    for (int i = 0; i < a.length; i = i + 1) {
+        print(a[i]);
+    }
+    return 0;
+}
+```
+
+İlk eleman (`a[0]`) program adıdır; sonraki elemanlar argümanlardır.
+
+```bash
+saqut run --allow sys prog.sqt merhaba dunya
+# a[0] = "prog.sqt"
+# a[1] = "merhaba"
+# a[2] = "dunya"
+```
+
+### sleep
+
+Programı verilen saniye kadar bekletir (ondalıklı değer desteklenir).
+
+```c
+import { sleep } from sys;
+
+int main() {
+    print("bekleniyor...");
+    sleep(1.5);
+    print("tamam");
+    return 0;
+}
+```
+
+## sys erişimiyle çalıştırma
+
+```bash
+saqut run --allow sys program.sqt
+```
 
 ## /tr/strings/
 
@@ -8493,8 +11737,8 @@ switch (x) {
 // Çıktı: two
 ```
 
-saQut **tek** eşleşen case'i bulur, ifadelerini çalıştırır ve switch'ten
-çıkar. Yalnızca `two` yazdırılır.
+switch, eşleşen **tek** case'in ifadelerini çalıştırır ve çıkar. Yalnızca `two`
+yazdırılır.
 
 ## Fall-through Yok (case'ler otomatik break yapar)
 
@@ -8516,8 +11760,8 @@ switch (x) {
 ```
 
 C tarzı bir dilde bu `one two other` yazdırırdı. saQut'ta yalnızca `one`
-yazdırılır. Her case kendi içinde bağımsızdır; kazara fall-through, unutulmuş
-`break` hataları olmaz.
+yazdırılır. Her case kendi içinde bağımsızdır. Bunun karşılığında bir gövdeyi
+değerler arasında paylaşmak örtük değil açıktır; bir sonraki bölüm bunu gösterir.
 
 ## Case Başına Birden Çok İfade (süslü parantez gerekmez)
 
@@ -8677,8 +11921,8 @@ switch (value) {
 }
 ```
 
-Bu, "yok vs var" dallanmasını gerçek case'lerle birlikte temiz bir şekilde
-ifade etmenin yoludur.
+Bu, eksik durumu değer case'lerinin yanında tek bir ifadede dallandırmanızı
+sağlar.
 
 ## `switch` vs `if / else if`
 
@@ -8693,6 +11937,341 @@ ifade etmenin yoludur.
 - Koşullarla dallanma için [if / else](/if-else/)
 - Kodu tekrarlamak için [for döngüleri](/loops/for-loop/)
 - `null` durumunu güvenle ele almak için [veri türleri](/data-types/#nullable-types)
+
+## /tr/tutorial-task-tracker/
+
+Parçaları öğrendin. Şimdi onları bir araya getir. Bu rehber, adım adım küçük
+bir **görev takip programı** yazmanı sağlar. Sonunda görevleri saklayan,
+tamamlandı olarak işaretleyen ve özet çıkaran çalışan bir programın olacak.
+
+## Ne inşa ediyoruz
+
+Program şunları yapmana izin verecek:
+
+- Başlık ve öncelikle (Düşük, Orta, Yüksek) görev ekleme
+- Bir görevi tamamlandı olarak işaretleme
+- Tüm görevleri durumlarıyla birlikte listeleme
+
+Bir oturum şöyle görünür:
+
+```
+--- Görevler ---
+[ ] Market alışverişi (Orta)
+[x] Faturaları öde (Yüksek)
+[ ] Annemi ara (Düşük)
+Tamamlanan: 1 / 3
+```
+
+## Adım 1: Veriyi tanımla
+
+İki şeye ihtiyacımız var: bir görevi temsil edecek yapı ve birden fazla
+görevi saklayacak yer.
+
+```c
+enum Oncelik { Dusuk, Orta, Yuksek }
+
+struct Gorev {
+    string baslik;
+    Oncelik oncelik;
+    bool   tamamlandi;
+}
+```
+
+`enum Oncelik` bize üç isimlendirilmiş seviye verir. `struct Gorev` bir
+başlığı, önceliği ve tamamlanma durumunu tek bir birimde toplar. `gorevler.sqt`
+adında bir dosya oluştur ve bunu en üste koy.
+
+## Adım 2: Görev listesini sakla
+
+Görevleri bir dizide tutacağız. Kaç görev olacağını bilmediğimiz için boş
+bir diziyle başlayıp sonuna ekleyeceğiz:
+
+```c
+Gorev[] gorevler;
+```
+
+Görev oluşturup ekleyen bir fonksiyon yaz:
+
+```c
+void gorevEkle(string baslik, Oncelik oncelik) {
+    Gorev g;
+    g.baslik     = baslik;
+    g.oncelik    = oncelik;
+    g.tamamlandi = false;
+    gorevler.append(g);
+}
+```
+
+`gorevler.append(g)`, `g`'yi dizinin sonuna koyar ve diziyi bir büyütür.
+
+## Adım 3: Görevi tamamlandı olarak işaretle
+
+Bir görevi konumuna göre bulup işaretlemenin yolunu yazalım:
+
+```c
+void tamamlandiIsaretle(int indeks) {
+    if (indeks >= 0 && indeks < gorevler.length) {
+        gorevler[indeks].tamamlandi = true;
+    }
+}
+```
+
+`if` kontrolü sınırların dışına çıkmayı engeller.
+
+## Adım 4: Listeyi yazdır
+
+Şimdi her görevin üzerinde dönüp yazdıralım:
+
+```c
+string oncelikEtiketi(Oncelik o) {
+    switch (o) {
+        case Oncelik.Dusuk:  return "Düşük";
+        case Oncelik.Orta:   return "Orta";
+        case Oncelik.Yuksek: return "Yüksek";
+    }
+    return "";
+}
+
+void gorevleriYazdir() {
+    print("--- Görevler ---");
+    int tamamSayisi = 0;
+    for (int i = 0; i < gorevler.length; i = i + 1) {
+        string kutu = "[ ]";
+        if (gorevler[i].tamamlandi) {
+            kutu = "[x]";
+            tamamSayisi = tamamSayisi + 1;
+        }
+        print(kutu + " " + gorevler[i].baslik +
+              " (" + oncelikEtiketi(gorevler[i].oncelik) + ")");
+    }
+    print("Tamamlanan: " + (tamamSayisi as string) + " / " +
+          (gorevler.length as string));
+}
+```
+
+## Adım 5: Hepsini birleştir
+
+Şimdi `main` her şeyi birbirine bağlar:
+
+```c
+int main() {
+    gorevEkle("Market alışverişi", Oncelik.Orta);
+    gorevEkle("Faturaları öde",    Oncelik.Yuksek);
+    gorevEkle("Annemi ara",        Oncelik.Dusuk);
+
+    tamamlandiIsaretle(1);   // ikinci görev (indeks 1)
+
+    gorevleriYazdir();
+    return 0;
+}
+```
+
+## Programın tamamı
+
+İşte dosyanın tam hali:
+
+```c
+enum Oncelik { Dusuk, Orta, Yuksek }
+
+struct Gorev {
+    string baslik;
+    Oncelik oncelik;
+    bool   tamamlandi;
+}
+
+Gorev[] gorevler;
+
+void gorevEkle(string baslik, Oncelik oncelik) {
+    Gorev g;
+    g.baslik     = baslik;
+    g.oncelik    = oncelik;
+    g.tamamlandi = false;
+    gorevler.append(g);
+}
+
+void tamamlandiIsaretle(int indeks) {
+    if (indeks >= 0 && indeks < gorevler.length) {
+        gorevler[indeks].tamamlandi = true;
+    }
+}
+
+string oncelikEtiketi(Oncelik o) {
+    switch (o) {
+        case Oncelik.Dusuk:  return "Düşük";
+        case Oncelik.Orta:   return "Orta";
+        case Oncelik.Yuksek: return "Yüksek";
+    }
+    return "";
+}
+
+void gorevleriYazdir() {
+    print("--- Görevler ---");
+    int tamamSayisi = 0;
+    for (int i = 0; i < gorevler.length; i = i + 1) {
+        string kutu = "[ ]";
+        if (gorevler[i].tamamlandi) {
+            kutu = "[x]";
+            tamamSayisi = tamamSayisi + 1;
+        }
+        print(kutu + " " + gorevler[i].baslik +
+              " (" + oncelikEtiketi(gorevler[i].oncelik) + ")");
+    }
+    print("Tamamlanan: " + (tamamSayisi as string) + " / " +
+          (gorevler.length as string));
+}
+
+int main() {
+    gorevEkle("Market alışverişi", Oncelik.Orta);
+    gorevEkle("Faturaları öde",    Oncelik.Yuksek);
+    gorevEkle("Annemi ara",        Oncelik.Dusuk);
+
+    tamamlandiIsaretle(1);
+
+    gorevleriYazdir();
+    return 0;
+}
+```
+
+Çalıştır:
+
+```bash
+saqut run gorevler.sqt
+```
+
+Çıktı:
+
+```
+--- Görevler ---
+[ ] Market alışverişi (Orta)
+[x] Faturaları öde (Yüksek)
+[ ] Annemi ara (Düşük)
+Tamamlanan: 1 / 3
+```
+
+## Bu programda kullanılanlar
+
+| Kavram | Nerede |
+|---|---|
+| `enum` | Öncelik seviyeleri |
+| `struct` | Görev verisi |
+| Dizi | Görev listesi |
+| Fonksiyon | `gorevEkle`, `tamamlandiIsaretle`, `oncelikEtiketi`, `gorevleriYazdir` |
+| `for` döngüsü | Görevler üzerinde dönme |
+| `if` / `else` | Onay kutusu ve sınır kontrolü |
+| `switch` | Öncelik etiketi |
+| `as` (dönüşüm) | `int`'i `string`'e çıktı için |
+| String birleştirme | `print()` içinde `+` |
+| `.length` | Dizi boyutu |
+| `.append()` | Diziye ekleme |
+
+## Kendi başına dene
+
+- İndekse göre görev silen bir `gorevSil` fonksiyonu ekle
+- Görevleri yüksek öncelikliler önce gelecek şekilde sırala
+- Görev başlıklarını kullanıcıdan oku (şimdilik bir yer tutucuyla)
+- `Gorev` struct'ına bir son tarih alanı ekle
+
+Bu program önceki sayfalardaki özellikleri tek bir yerde birleştirir: `struct`
+ve `enum` ile veri modelleme, bir dizide saklama, `for` döngüsüyle yineleme,
+koşullar, bir `switch` ve biçimlendirilmiş çıktı. Yukarıdaki alıştırmalar onu
+aynı tarzda genişletir.
+
+## /tr/type-casting/
+
+saQut örtük tip dönüşümü yapmaz. Bir `int`'i `float`'a veya bir `string`'i
+`int`'e çevirmen gerekiyorsa dönüşümü `as` operatörü ile açıkça yazarsın.
+
+## Temel dönüşümler
+
+```c
+int   a = 42;
+float b = a as float;          // 42.0
+int   c = 3;                   // (int)3
+float d = c as float;          // 3.0
+```
+
+`as` operatörü dönüşümü açık hale getirir. Aritmetik işlemlerde `int`'ten
+`float`'a gizli yükseltme yapılmaz: iki tamsayıyı bölersen tamsayı bölmesi
+alırsın. Float bölme istiyorsan bir tarafı önce dönüştür.
+
+## Sayısal dönüşümler
+
+| Kimden | Kime | Davranış |
+|------|----|----------|
+| `int` | `float` | Genişletme, her zaman güvenli |
+| `float` | `int` | Sıfıra doğru budar |
+| `int` | `byte` | 0-255 aralığı dışındaysa hata |
+| `byte` | `int` | Genişletme, her zaman güvenli |
+| `int` | `bool` | `0` false, sıfır olmayan true |
+| `bool` | `int` | false `0`, true `1` |
+
+```c
+float pi = 3.99;
+int   n  = pi as int;          // 3 (budandı)
+
+byte  b  = 200;
+int   i  = b as int;           // 200
+
+int   buyuk = 300;
+// byte kucuk = buyuk as byte; // çalışma zamanı hatası: aralık dışı
+```
+
+## Metin dönüşümleri
+
+Sayılar metinden ayrıştırılabilir. Dönüşüm başarısız olabileceği için
+**nullable** hedefe dönüştür:
+
+```c
+string s = "42";
+int?   n = s as int?;          // 42
+if (n != null) { print(n); }
+
+string t = "merhaba";
+int?   m = t as int?;          // null (sayı değil)
+```
+
+Float için de aynısı geçerlidir:
+
+```c
+string s = "3.14";
+float? f = s as float?;        // 3.14
+```
+
+## Metne dönüştürme
+
+Herhangi bir tip `string`'e dönüştürülebilir:
+
+```c
+int   a = 42;
+string s = a as string;        // "42"
+
+float f = 3.14;
+string t = f as string;        // "3.14"
+
+bool  b = true;
+string u = b as string;        // "true"
+```
+
+## Struct dönüşümleri
+
+Farklı struct tipleri arasında dönüşüm yapamazsın. Her struct'ın kendi yerleşim
+düzeni vardır; otomatik dönüşüm yoktur.
+
+```c
+struct Nokta  { int x; int y; }
+struct Vektor { int x; int y; }
+
+Nokta n = Nokta(1, 2);
+// Vektor v = n as Vektor;     // derleme hatası
+```
+
+## Özet
+
+- `as` saQut'taki tek tip dönüşüm operatörüdür
+- int'ten float'a genişletir; float'tan int'e budar
+- Metin ayrıştırma başarısız olursa nullable hedefte `null` döner
+- Her tip `as string` ile metne dönüşür
+- Struct'lar birbirine dönüştürülemez
 
 ## /tr/variables/
 
@@ -8847,6 +12426,232 @@ int b = a + 5;    // GEÇERLİ, 'a' 0 olduğundan 'b' 5 olur
 
 - saQut'taki tüm [veri türlerini](/tr/data-types/) görün
 - Değerlerle çalışmak için [işleçleri](/tr/operators/) öğrenin
+
+## /tr/what-is-programming/
+
+Daha önce hiç kod yazmadıysan bu sayfa tam sana göre. Programlamanın ne
+olduğunu, "değişken" veya "döngü" gibi terimleri bildiğini varsaymadan,
+en temelden anlatır.
+
+## Program nedir
+
+Program, bilgisayara verdiğin talimatlar listesidir. Bilgisayar bunları tek
+tek, yukarıdan aşağıya, tam yazdığın gibi uygular. Tahmin etmez, sıkılmaz,
+yorulmaz. Sadece çalıştırır.
+
+Bir yemek tarifi gibi düşün. Tarif der ki: unu al, su ekle, karıştır, fırına
+koy. Program der ki: şu sayıyı al, beş ekle, sonucu yaz. Aynı mantık, farklı
+mutfak.
+
+## Değişkenlere neden ihtiyaç duyarız
+
+Yemek yaparken malzemeleri sonradan kullanmak için kaplara koyarsın. Programda
+**değişken** o kaptır. Bir isim verir, içine değer koyarsın:
+
+```c
+int yas = 25;
+string isim = "Ali";
+```
+
+Daha sonra bu değeri okuyabilir ya da değiştirebilirsin. Program senin için
+hatırlar.
+
+## Koşullara neden ihtiyaç duyarız
+
+Bazı tarifler "hamur çok kuruysa su ekle" der. Bu bir **koşuldur**. Programlar
+da aynısını yapar:
+
+```c
+if (puan > 50) {
+    print("Geçtin!");
+}
+```
+
+Süslü parantez `{ }` içindeki satır yalnızca `puan` 50'den büyükse çalışır.
+Değilse program o kısmı atlar.
+
+## Döngülere neden ihtiyaç duyarız
+
+Bir tarif düşün: "hamuru 100 kere yoğur." Kimse bunu 100 ayrı satır olarak
+yazmak istemez. **Döngü** der ki: "şunu yap, sonra tekrar yap, ta ki bir koşul
+sağlanana kadar." En sık kullanılan döngü `for` döngüsüdür:
+
+```c
+for (int i = 0; i < 5; i = i + 1) {
+    print(i);
+}
+```
+
+Bu kod `0`, `1`, `2`, `3`, `4` yazar. Üç satır koddan beş satır çıktı. Döngü,
+her adımı elle yazmak yerine tekrarlayan işi makinenin yapmasını sağlar.
+
+## Fonksiyonlara neden ihtiyaç duyarız
+
+Tarifin büyüdükçe aynı alt tarifi birden fazla yerde kullandığını fark
+edersin: "temel sosu hazırla" üç ayrı yemekte geçer. Tekrar etmek yerine ona
+bir isim verir, o isimle çağırırsın. Programlamada buna **fonksiyon** denir:
+
+```c
+int ikiKati(int x) {
+    return x * 2;
+}
+```
+
+Artık `ikiKati(5)` sana programın her yerinde `10` verir. Bir kere yaz, çok
+kere kullan.
+
+## Hepsini bir araya getirelim
+
+Gerçek bir program bunların hepsini birleştirir:
+
+```c
+int primHesapla(int maas) {
+    if (maas > 5000) {
+        return maas / 10;
+    }
+    return 0;
+}
+
+int main() {
+    print(primHesapla(6000));   // 600
+    print(primHesapla(3000));   // 0
+    return 0;
+}
+```
+
+Bir değişken (`maas`), bir koşul (`if`), bir fonksiyon (`primHesapla`) ve bir
+çıktı (`print`). Eksiksiz, çalışan bir program.
+
+## Buradan nereye
+
+Artık değişken, koşul, döngü ve fonksiyon kavramlarının ne işe yaradığını
+zihninde oturttuğuna göre, bu bölümün devamı sana her birini saQut içinde
+nasıl kullanacağını öğretir. [Değişkenlerle](/tr/variables/) başla.
+
+## /tr/what-is-saqut/
+
+saQut, **derleyicisi cam kutu gibi açık** bir programlama dilidir. Çoğu
+derleyici kaynak kodu alır, çalıştırılabilir dosya verir; arada ne olduğunu
+göstermez. saQut ise **aradaki her adımı** ayrı bir komutla önüne serer:
+token'lar, AST (soyut söz dizimi ağacı), sembol tablosu, ara kod (IR).
+
+Aynı çıktı iki kitleye hizmet eder: **kod yazmayı ilk kez öğrenen biri** ve
+**bir derleyicinin içeride nasıl çalıştığını okuyan bir geliştirici**.
+
+---
+
+## saQut ne değildir
+
+saQut genel amaçlı bir dil olarak C, Go veya Rust ile rekabet etmek için
+tasarlanmadı ve büyük üretim sistemleri için tasarlanmadı. Amacı, bir programlama
+dilinin kaynak koddan çalıştırmaya kadar geçtiği **her adımı görünür** kılmaktır.
+Dil yüzeyi küçük ve sadedir; bu, tek bir kavramı öğrenirken akılda tutulması
+gereken istisna sayısını düşük tutar.
+
+---
+
+## Kimler için
+
+Bu site üç farklı yol sunar. Kendine en uygun olandan başla.
+
+### 1. Programlamaya yeni başlıyorum
+
+Hiç kod yazmadıysan veya başka bir dilde temel bilgin varsa, **Başlangıç**
+bölümü tam sana göre. Adım adım ilerleyen bir sırayla:
+
+- Değişkenler, veri tipleri, operatörler
+- if/else, döngüler, fonksiyonlar
+- Diziler, metinler, struct (yapılar)
+
+Her konu küçük örneklerle anlatılır. Bir sonraki konuya geçmeden önce
+gördüğün her şeyi `saqut run` ile hemen çalıştırabilirsin.
+
+[Başlangıç yolunu takip et →](/tr/getting-started/)
+
+### 2. Dili kullanarak program yazacağım
+
+Programlama biliyorsun; saQut'un araçlarını ve kütüphanelerini öğrenmek
+istiyorsun. Bu yol sana:
+
+- Yerleşik fonksiyonlar (string, dizi, struct metodları)
+- Modül sistemi (`import` / `export`)
+- Hata yakalama (`try` / `catch` / `throw`)
+- Derleyici araçları (`saqut ast`, `saqut tokens`, `saqut ir`)
+- FFI (yabancı fonksiyon arayüzü): standart kütüphaneyi (`fs`, `sys`, `math`, `date`) programına açan küratörlü host-fonksiyon seam'i
+
+konularında rehberlik eder. Ayrıca editörüne nasıl söz dizimi vurgulama
+ekleyeceğini de anlatırız.
+
+[Yerleşik fonksiyonlarla başla →](/tr/builtin-functions/)
+
+### 3. Derleyicinin iç işleyişini merak ediyorum
+
+Bu dil senin için bir araçtan çok, **incelemek istediğin bir sistem**. O
+zaman doğrudan perde arkasına geç:
+
+- Derleyici araçları: `tokens`, `ast`, `symbols`, `ir` komutlarının her biri
+  ne üretir, nasıl yorumlanır
+- Optimizasyon: sabit katlama, ölü kod eleme, IR seviyesinde neler değişir
+- Çöp toplama (GC): mark-sweep algoritması, bellek modeli
+- Sanal makine (VM): bytecode komut seti, deterministik çalışma
+- MIR JIT ve gömülü AOT: ikinci çalıştırma yolu (MIR tabanlı). Deneysel bir JIT `--jit` ile hâlihazırda çalışıyor; gömülü AOT planlanmaktadır
+
+Bu bölümler dilin kendisinden çok **derleyicinin nasıl çalıştığını** anlatır.
+
+[Derleyici araçlarını incele →](/tr/compiler-tools/)
+
+---
+
+## Dilin kısa bir özeti
+
+```c
+// Basit bir fonksiyon
+int kare(int x) {
+    return x * x;
+}
+
+// Diziler ve donguler
+int toplam(int[] sayilar) {
+    int sonuc = 0;
+    for (int i = 0; i < sayilar.length; i = i + 1) {
+        sonuc = sonuc + sayilar[i];
+    }
+    return sonuc;
+}
+
+int main() {
+    print(kare(5));              // 25
+    print(toplam([1, 2, 3]));   // 6
+    return 0;
+}
+```
+
+- `int`, `float`, `bool`, `byte`, `string` temel tipler
+- `struct` ile kendi veri yapılarını oluşturabilirsin
+- Diziler (`int[]`) ve metinler (`string`) referans ile taşınır
+- Pointer (`&`, `*`) yok; `T?` ile isteğe bağlı null yapabilirsin
+- Sınıf (class), kalıtım, jenerik, otomatik tip çıkarımı yok
+- `import` / `export` ile modüllere bölebilirsin
+
+---
+
+## Ne zaman saQut, ne zaman başka bir dil
+
+| Durum | Tavsiye |
+|---|---|
+| Programlamayı yeni öğreniyorum, derleyici kavramlarını da anlamak istiyorum | saQut |
+| Hızlıca bir betik yazıp işimi görmek istiyorum | Python, Node.js |
+| Bir web sunucusu veya API yazacağım | Go, Rust, C# |
+| Gömülü sistem veya işletim sistemi geliştireceğim | C, Rust |
+| Bir derleyicinin içinde neler döndüğünü adım adım görmek istiyorum | saQut |
+| Büyük ölçekli, ekip halinde geliştirilen bir proje | Git destekli herhangi bir ana dil |
+
+saQut **öğrenmek, öğretmek ve derleyiciyi sorgulamak** için tasarlandı.
+Üretim sistemleri için değil.
+
+---
+
+Hazırsan [Hızlı Başlangıç](/tr/getting-started/) ile devam et.
 
 ## /tr/loops/do-while-loop/
 

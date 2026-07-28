@@ -6,23 +6,40 @@
 ## English Pages
 
 - [Arrays](https://saqut.com/arrays/): Store a sequence of values of the same type.
-- [Built-in Functions](https://saqut.com/builtin-functions/): The complete reference for saQut's built-in methods on strings, arrays, and structs, each one explained from scratch with runnable examples.
+- [Built-in Functions (UFCS)](https://saqut.com/builtin-functions/): The complete reference for saQut's built-in methods on strings, arrays, and structs, each one explained from scratch with runnable examples.
+- [Capabilities & Permissions](https://saqut.com/capabilities/): How --allow flags work, the three capability categories, and the A+B enforcement model.
+- [CLI Reference](https://saqut.com/cli-reference/): Complete reference for the saqut command-line interface: run, compile, debug, and diagnostic flags.
 - [Compiler Errors & Warnings](https://saqut.com/compiler-errors/): Every diagnostic saQut can produce, what triggers it, what it means, and how to fix it. From "undefined variable" to circular modules.
 - [Compiler Tools, Tokens, AST, Symbols & IR](https://saqut.com/compiler-tools/): What are these things, why do they exist, and when would you use them?
 - [Data Types](https://saqut.com/data-types/): Every value in saQut has a type. Here is the complete list.
+- [Editor Setup](https://saqut.com/editor-setup/): Set up VS Code for saQut with syntax highlighting, LSP, and DAP debugging.
+- [Enums](https://saqut.com/enums/): Define a set of named constants with enum, and use them in switch and function parameters.
 - [Error Handling (try / catch / throw)](https://saqut.com/error-handling/): Catch and handle runtime errors in your code.
+- [FFI (Foreign Function Interface)](https://saqut.com/ffi/): How saQut calls C/C++ host functions through the FFI seam.
 - [Functions](https://saqut.com/functions/): Define, call, and return values from functions.
-- [Garbage Collection](https://saqut.com/garbage-collection/): How saQut reclaims memory with a simple, deterministic mark-sweep collector. When it runs, what survives, what gets freed, and how to watch it.
-- [Getting Started](https://saqut.com/getting-started/): Install saQut and run your first program.
+- [Memory Management (Garbage Collection)](https://saqut.com/garbage-collection/): How saQut reclaims memory with a simple, deterministic mark-sweep collector. When it runs, what survives, what gets freed, and how to watch it.
+- [Getting Started](https://saqut.com/getting-started/): Install saQut, understand the supported platforms, and learn the structure of a saQut project.
+- [Hello World](https://saqut.com/hello-world/): Write and run your first saQut program.
 - [if / else](https://saqut.com/if-else/): Make decisions in your code with conditional branching.
 - [saQut](https://saqut.com/): A procedural language whose compiler is a glass box where every phase (tokens, AST, symbols, IR) is inspectable, pipeable, and machine-readable.
-- [Modules (import / export)](https://saqut.com/modules/): Split a program across multiple files with import and export, going from your first two-file program to diamond dependencies and cycle detection.
+- [Modules (import / export)](https://saqut.com/modules/): Split a program across multiple files with import and export, from a two-file program to diamond dependencies and cycle detection.
+- [Nullable Types](https://saqut.com/nullable-types/): How to use T? for values that might be null, with compile-time safety.
 - [Operators](https://saqut.com/operators/): Arithmetic, comparison, logical, bitwise, and assignment operators in saQut.
-- [Optimization](https://saqut.com/optimization/): What saQut's optimizer does and, just as importantly, what it deliberately does not. Constant folding, dead-code elimination, and how to inspect both.
+- [Optimization](https://saqut.com/optimization/): What saQut's optimizer does and what it deliberately does not do. Constant folding, dead-code elimination, and how to inspect both.
+- [date](https://saqut.com/stdlib-date/): Date type, now(), parsing, formatting, and arithmetic with saQut's date module.
+- [fs (File System)](https://saqut.com/stdlib-fs/): Read, write, and list files with saQut's fs module.
+- [math (Mathematical Functions)](https://saqut.com/stdlib-math/): Constants, trigonometric functions, and number utilities in saQut's math module.
+- [net (Network)](https://saqut.com/stdlib-net/): HTTP requests and socket communication (planned for 0.9).
+- [Standard Library](https://saqut.com/stdlib-overview/): An overview of saQut's standard library modules, import model, and capability system.
+- [sys (System)](https://saqut.com/stdlib-sys/): Random numbers, environment variables, command-line arguments, and sleep with saQut's sys module.
 - [Strings](https://saqut.com/strings/): Working with text in saQut using immutable UTF-8 strings.
 - [Structs](https://saqut.com/structs/): Group multiple values into a single named type.
 - [switch / case](https://saqut.com/switch/): Compare one value against many cases, with automatic break, no fall-through, and support for int, float, bool, string, and enum.
+- [Build a Task Tracker](https://saqut.com/tutorial-task-tracker/): Follow along and build a small but real program from scratch. Covers structs, arrays, loops, functions, and if/else in one coherent example.
+- [Type Casting (as)](https://saqut.com/type-casting/): Convert between types with the as operator, safely and explicitly.
 - [Variables](https://saqut.com/variables/): How to create, name, and use variables in saQut.
+- [What is Programming](https://saqut.com/what-is-programming/): A gentle introduction to programming for absolute beginners.
+- [What is saQut](https://saqut.com/what-is-saqut/): Learn what saQut is, who it is for, and which path to start with.
 - [do-while Loop](https://saqut.com/loops/do-while-loop/): Repeat code at least once, then check the condition.
 - [for Loop](https://saqut.com/loops/for-loop/): Repeat code a specific number of times.
 - [while Loop](https://saqut.com/loops/while-loop/): Repeat code as long as a condition is true.
@@ -30,23 +47,40 @@
 ## Turkish Pages
 
 - [Diziler](https://saqut.com/tr/arrays/): Aynı tipteki değerleri sıralı olarak saklayın.
-- [Yerleşik Fonksiyonlar](https://saqut.com/tr/builtin-functions/): saQut'un string, dizi ve struct tipleri için sunduğu yerleşik metotların tam referansı; her biri sıfırdan, çalıştırılabilir örneklerle anlatılıyor.
+- [Yerleşik Fonksiyonlar (UFCS)](https://saqut.com/tr/builtin-functions/): saQut'un string, dizi ve struct tipleri için sunduğu yerleşik metotların tam referansı; her biri sıfırdan, çalıştırılabilir örneklerle anlatılıyor.
+- [Capability & İzinler](https://saqut.com/tr/capabilities/): --allow bayrakları nasıl çalışır, üç capability kategorisi ve A+B denetim modeli.
+- [CLI Referansı](https://saqut.com/tr/cli-reference/): saQut komut satırı arayüzünün tam referansı: çalıştırma, derleme, hata ayıklama ve teşhis bayrakları.
 - [Derleyici Hataları ve Uyarıları](https://saqut.com/tr/compiler-errors/): saQut'un üretebileceği her tanı; neyin tetiklediği, anlamı ve nasıl düzeltileceği. "Tanımsız değişken"den döngüsel modüllere kadar.
 - [Derleyici Araçları, Token'lar, AST, Semboller ve IR](https://saqut.com/tr/compiler-tools/): Bunlar nedir, neden varlar ve ne zaman kullanırsınız?
 - [Veri Türleri](https://saqut.com/tr/data-types/): saQut'taki her değerin bir türü vardır. İşte tam liste.
+- [Editör Kurulumu](https://saqut.com/tr/editor-setup/): VS Code'u saQut için söz dizimi vurgulama, LSP ve DAP hata ayıklama ile kur.
+- [Enum](https://saqut.com/tr/enums/): Enum ile bir dizi isimlendirilmiş sabit tanımla; switch ve fonksiyon parametrelerinde kullan.
 - [Hata Yönetimi (try / catch / throw)](https://saqut.com/tr/error-handling/): Kodunuzdaki çalışma zamanı hatalarını yakalayın ve yönetin.
+- [FFI (Yabancı Fonksiyon Arayüzü)](https://saqut.com/tr/ffi/): saQut'un FFI arayüzü ile C/C++ host fonksiyonlarını nasıl çağırdığı.
 - [Fonksiyonlar](https://saqut.com/tr/functions/): Fonksiyon tanımlama, çağırma ve değer döndürme.
-- [Çöp Toplama](https://saqut.com/tr/garbage-collection/): saQut'un basit, belirleyici bir işaretle-süpür toplayıcı ile belleği nasıl geri kazandığı. Ne zaman çalışır, ne hayatta kalır, ne serbest bırakılır ve nasıl izlenir.
-- [Hızlı Başlangıç](https://saqut.com/tr/getting-started/): saQut'u kurun ve ilk programınızı çalıştırın.
+- [Bellek Yönetimi (Çöp Toplama)](https://saqut.com/tr/garbage-collection/): saQut'un basit, belirleyici bir işaretle-süpür toplayıcı ile belleği nasıl geri kazandığı. Ne zaman çalışır, ne hayatta kalır, ne silinir ve nasıl izlenir.
+- [Hızlı Başlangıç](https://saqut.com/tr/getting-started/): saQut'u kurun, desteklenen platformları öğrenin ve proje yapısını kavrayın.
+- [Merhaba Dünya](https://saqut.com/tr/hello-world/): İlk saQut programınızı yazın ve çalıştırın.
 - [if / else](https://saqut.com/tr/if-else/): Koşullu dallanma ile kodunuzda kararlar verin.
 - [saQut](https://saqut.com/tr/): Derleyicisinin her aşaması (token, AST, sembol tablosu, IR) ayrı ayrı incelenebilen, dışa aktarılabilen ve başka araçlara bağlanabilen prosedürel bir programlama dili.
-- [Modüller (import / export)](https://saqut.com/tr/modules/): Programınızı import ve export ile birden çok dosyaya bölün; iki dosyalı ilk programınızdan baklava bağımlılıklarına ve döngü tespitine kadar her şey.
+- [Modüller (import / export)](https://saqut.com/tr/modules/): Programınızı import ve export ile birden çok dosyaya bölün; iki dosyalı bir programdan baklava bağımlılıklarına ve döngü tespitine kadar.
+- [Nullable Tipler](https://saqut.com/tr/nullable-types/): Değeri null olabilecek durumlar için T? kullanımı, derleme zamanı güvenliğiyle.
 - [İşleçler](https://saqut.com/tr/operators/): saQut'taki aritmetik, karşılaştırma, mantıksal, bitsel ve atama işleçleri.
-- [Optimizasyon](https://saqut.com/tr/optimization/): saQut'un optimize edicisinin yaptıkları ve en az onlar kadar önemli olan, bilinçli olarak yapmadıkları. Sabit katlama, ölü kod temizliği ve her ikisini de nasıl inceleyeceğiniz.
+- [Optimizasyon](https://saqut.com/tr/optimization/): saQut'un optimize edicisinin yaptıkları ve bilinçli olarak yapmadıkları. Sabit katlama, ölü kod temizliği ve her ikisini de nasıl inceleyeceğiniz.
+- [date (Tarih)](https://saqut.com/tr/stdlib-date/): saQut'un date modülü ile tarih tipi, now(), ayrıştırma, biçimlendirme ve tarih aritmetiği.
+- [fs (Dosya Sistemi)](https://saqut.com/tr/stdlib-fs/): saQut'un fs modülü ile dosya okuma, yazma ve listeleme.
+- [math (Matematik)](https://saqut.com/tr/stdlib-math/): saQut'un math modülünde sabitler, trigonometrik fonksiyonlar ve sayı araçları.
+- [net (Ağ)](https://saqut.com/tr/stdlib-net/): HTTP istekleri ve soket iletişimi (0.9 için planlandı).
+- [Standart Kütüphane](https://saqut.com/tr/stdlib-overview/): saQut standart kütüphane modüllerine genel bakış, import modeli ve capability sistemi.
+- [sys (Sistem)](https://saqut.com/tr/stdlib-sys/): Rastgele sayı, ortam değişkenleri, komut satırı argümanları ve bekleme; saQut'un sys modülü.
 - [String'ler (Metinler)](https://saqut.com/tr/strings/): Değişmez UTF-8 string'ler ile saQut'ta metinlerle çalışma.
 - [Struct'lar (Yapılar)](https://saqut.com/tr/structs/): Birden fazla değeri tek bir isimli tipte gruplandırın.
 - [switch / case](https://saqut.com/tr/switch/): Bir değeri çok sayıda durumla karşılaştırın; otomatik break, fall-through yok; int, float, bool, string ve enum desteklenir.
+- [Görev Takip Programı](https://saqut.com/tr/tutorial-task-tracker/): Adım adım takip ederek sıfırdan küçük ama gerçek bir program yaz. Struct, dizi, döngü, fonksiyon ve if/else konularını tek bir örnekte birleştir.
+- [Tip Dönüşümü (as)](https://saqut.com/tr/type-casting/): as operatörü ile tipler arasında güvenli ve açık dönüşüm.
 - [Değişkenler](https://saqut.com/tr/variables/): saQut'ta değişkenleri nasıl oluşturacağınızı, adlandıracağınızı ve kullanacağınızı öğrenin.
+- [Programlama Nedir](https://saqut.com/tr/what-is-programming/): Hiç kod yazmamış kişiler için programlamaya nazik bir giriş.
+- [saQut Nedir](https://saqut.com/tr/what-is-saqut/): saQut'un ne olduğunu, kimler için tasarlandığını ve seni hangi yoldan başlaman gerektiğini öğren.
 - [do-while Döngüsü](https://saqut.com/tr/loops/do-while-loop/): Kodu en az bir kez çalıştırın, sonra koşulu kontrol edin.
 - [for Döngüsü](https://saqut.com/tr/loops/for-loop/): Kodu belirli sayıda tekrarlayın.
 - [while Döngüsü](https://saqut.com/tr/loops/while-loop/): Bir koşul true olduğu sürece kodu tekrarlayın.

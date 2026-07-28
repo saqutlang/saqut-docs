@@ -8,9 +8,6 @@ alırsınız ve arada olanlar gizlidir. saQut farklıdır: o bir **cam kutudur**
 Derlemenin her aşaması, inceleyebileceğiniz ve başka araçlara
 aktarabileceğiniz ayrı bir adımdır.
 
-Bu sayfa her aşamanın ne olduğunu, neden var olduğunu ve ne zaman ihtiyaç
-duyabileceğinizi açıklar.
-
 ---
 
 ## İşlem Hattı Genel Görünümü
@@ -68,32 +65,43 @@ delimiter ";"
 
 ### Token'lar neden var?
 
-Bilgisayar metni anlamaz: yapılandırılmış parçalara ihtiyaç duyar. Token'layıcı
-(**lexer** olarak da adlandırılır) ham karakterleri etiketlenmiş parçalar
-listesine dönüştürür. Yorumlar ve boşluklar burada atılır.
+Sonraki derleyici aşamaları ham metin üzerinde değil, yapılandırılmış parçalar
+üzerinde çalışır. Token'layıcı (**lexer** olarak da adlandırılır) karakter
+akışını etiketlenmiş parçalar listesine dönüştürür. Yorumlar ve boşluklar burada
+atılır.
 
 ### `saqut tokens` komutunu ne zaman kullanırsınız?
 
-- **Öğrenme:** Derleyicinin kodunuzu tam olarak nasıl anladığını görün
 - **Hata ayıklama:** Bir şey çözümlenmiyorsa, hangi token'ların üretildiğini
   kontrol edin
 - **Araç geliştirme:** Token akışı üzerine bir sözdizimi vurgulayıcı veya kod
-  biçimlendirici inşa edin
+  biçimlendirici inşa edin, kaynak dosyaların sözcüksel olarak geçerli olup
+  olmadığını doğrulayın
+
+İşte bir insertion sort programının token akışı
+(`examples/algorithm/03_insertion_sort.sqt`):
 
 ```bash
-saqut tokens hello.sqt
+saqut tokens examples/algorithm/03_insertion_sort.sqt
 ```
 
-Örnek çıktı:
-
-```json
-[
-  {"type": "keyword", "value": "int", "line": 1, "col": 1},
-  {"type": "identifier", "value": "main", "line": 1, "col": 5},
-  {"type": "delimiter", "value": "(", "line": 1, "col": 9},
-  {"type": "delimiter", "value": ")", "line": 1, "col": 10},
-  {"type": "delimiter", "value": "{", "line": 1, "col": 12}
-]
+```
+Tokenler (134 adet):
+  [keyword] "int"
+  [identifier] "main"
+  [delimiter] "("
+  [delimiter] ")"
+  [delimiter] "{"
+  [keyword] "int"
+  [delimiter] "["
+  [delimiter] "]"
+  [identifier] "arr"
+  [operator] "="
+  [delimiter] "["
+  [number] "5"
+  [delimiter] ","
+  [number] "3"
+  ...
 ```
 
 ---
@@ -109,11 +117,11 @@ ağaç, programınızın dilbilgisel yapısını temsil eder.
 `2 + 3 * 4` için:
 
 ```
-     (+)
-    /   \
-   2     (*)
-        /   \
-       3     4
+      (+)
+     /   \
+    2     (*)
+         /   \
+        3     4
 ```
 
 Ağaçtaki her **düğüm** anlamlı bir şeydir: bir fonksiyon tanımı, bir değişken
@@ -131,15 +139,34 @@ yönetir. Bu, çözümleyiciyi daha küçük ve genişletmesi daha kolay hale ge
 
 ### `saqut ast` komutunu ne zaman kullanırsınız?
 
-- **Öğrenme:** Derleyicinin iç içe ifadeleri nasıl yorumladığını görün
 - **Hata ayıklama:** Bir program beklendiği gibi davranmıyorsa, AST'nin
   niyetinizle eşleşip eşleşmediğini kontrol edin
 - **Araç geliştirme:** Dokümantasyon üretin, karmaşıklık metrikleri hesaplayın
   veya kod analiz araçları inşa edin
 
+İşte bir insertion sort programının AST'si:
+
 ```bash
-saqut ast hello.sqt --format=json
-saqut ast hello.sqt --optimized    # optimizasyon sonrası AST
+saqut ast examples/algorithm/03_insertion_sort.sqt --format=json
+```
+
+```
+Program
+  FunctionDecl (main : int)
+    Block
+      VariableDecl (arr : int[])
+        ArrayLiteral [5 eleman]
+     Literal {5} integer
+     Literal {3} integer
+     Literal {1} integer
+     Literal {6} integer
+     Literal {4} integer
+      VariableDecl (n : int)
+    Literal {5} integer
+      ForStatement
+        VariableDecl (i : int)
+     Literal {1} integer
+  ...
 ```
 
 `--optimized` bayrağı, sabit katlama ve ölü kod temizliği **sonrası** AST'yi
@@ -168,7 +195,7 @@ Sembol tablosu şunları içerir:
 | İsim | Türü | Tip | Kapsam |
 |------|------|------|-------|
 | `x` | Değişken | `int` | Global |
-| `add` | Fonksiyon | `(int, int) → int` | Global |
+| `add` | Fonksiyon | `(int, int) -> int` | Global |
 | `a` | Parametre | `int` | `add` fonksiyonu |
 | `b` | Parametre | `int` | `add` fonksiyonu |
 
@@ -196,15 +223,32 @@ int fibonacci(int n) {
 
 ### `saqut symbols` komutunu ne zaman kullanırsınız?
 
-- **Öğrenme:** Kapsamlamayı anlayın; her değişken nerede yaşar?
 - **Hata ayıklama:** "Bildirilmemiş tanımlayıcı" hataları, tabloda ne olduğunu
   gördüğünüzde netleşir
 - **Araç geliştirme:** Sembol tablosu, bir "Tanıma git" özelliği inşa etmek,
   tüm fonksiyonları listelemek veya bağımlılık grafikleri hesaplamak için
   yeterlidir
 
+İşte bir insertion sort programının sembol tablosu:
+
 ```bash
-saqut symbols hello.sqt
+saqut symbols examples/algorithm/03_insertion_sort.sqt
+```
+
+```
+examples/algorithm/03_insertion_sort.sqt:2:1  fn()->int  main (function)
+examples/algorithm/03_insertion_sort.sqt:3:5  int[]  arr
+        refs  ...:7:19  ...:9:26  ...:10:13  ...:10:26  ...:13:9  ...:17:15
+examples/algorithm/03_insertion_sort.sqt:4:5  int  n
+        refs  ...:6:25  ...:16:25
+examples/algorithm/03_insertion_sort.sqt:6:10  int  i
+        refs  ...:6:21  ...:6:28  ...:6:32  ...:7:23  ...:8:17
+examples/algorithm/03_insertion_sort.sqt:7:9  int  key
+        refs  ...:9:35  ...:13:22
+examples/algorithm/03_insertion_sort.sqt:8:9  int  j
+        refs  ...:9:16  ...:9:30  ...:10:17  ...:10:30  ...:11:13 ...
+examples/algorithm/03_insertion_sort.sqt:16:10  int  k
+        refs  ...:16:21  ...:16:28  ...:16:32  ...:17:19
 ```
 
 Kaynak kodunuza erişimi olmayan biri, yalnızca `saqut symbols` çıktısından
@@ -290,20 +334,18 @@ gibi) çağırır.
 
 ### IR neden var?
 
-AST analiz için harikadır ama yürütme için değildir. IR, yüksek seviyeli ağaç
-ile düşük seviyeli bayt kodu VM arasında köprü kurar:
+AST analize uygundur ama doğrudan yürütmeye uygun değildir. IR, yüksek seviyeli
+ağaç ile düşük seviyeli bayt kodu VM arasında köprü kurar:
 
-- **AST** = "kodun anlamı ne" (ağaç)
-- **IR** = "nasıl yapılır" (doğrusal komutlar)
-- **Bayt Kodu VM** = "yap" (yorumlayıcı döngüsü)
+- **AST** = kodun anlamı ne (ağaç)
+- **IR** = nasıl yapılır (doğrusal komutlar)
+- **Bayt Kodu VM** = yap (yorumlayıcı döngüsü)
 
 IR'yi VM'den ayırmak, ön yüzü değiştirmeden yeni arka yüzler (MIR JIT
 derleyicisi veya AOT paketleyici gibi) eklemeyi mümkün kılar.
 
 ### `saqut ir` komutunu ne zaman kullanırsınız?
 
-- **Öğrenme:** Yüksek seviyeli kodun düşük seviyeli komutlara nasıl
-  eşlendiğini anlayın
 - **Hata ayıklama:** Bir program çalışma zamanında çökerse, IR tam olarak
   VM'nin neyi yürüttüğünü gösterir
 - **Performans:** Komutları sayın, gereksiz işlemleri tespit edin, bir
@@ -320,8 +362,41 @@ saqut ir hello.sqt
 **VM (Sanal Makine)** son aşamadır. IR'yi alır, fonksiyon giriş noktalarını
 çözümler, çerçeveler ve yuvalar tahsis eder ve komutları bir döngüde yürütür.
 
+İşte bir insertion sort algoritması ve çıktısı:
+
+```c
+// examples/algorithm/03_insertion_sort.sqt
+int main() {
+    int[] arr = [5, 3, 1, 6, 4];
+    int n = 5;
+
+    for (int i = 1; i < n; i = i + 1) {
+        int key = arr[i];
+        int j = i - 1;
+        while (j >= 0 && arr[j] > key) {
+            arr[j + 1] = arr[j];
+            j = j - 1;
+        }
+        arr[j + 1] = key;
+    }
+
+    for (int k = 0; k < n; k = k + 1) {
+        print(arr[k]);
+    }
+    return 0;
+}
+```
+
 ```bash
-saqut run hello.sqt
+saqut run examples/algorithm/03_insertion_sort.sqt
+```
+
+```
+1
+3
+4
+5
+6
 ```
 
 VM **referans arka yüzdür**: her zaman doğru çıktıyı üretmelidir. Gelecekteki

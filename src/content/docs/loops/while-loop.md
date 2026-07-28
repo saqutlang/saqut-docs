@@ -152,8 +152,8 @@ print(steps);                        // Collatz steps to reach 1
 ```
 
 This keeps the loop going until *some* event happens, rather than forcing every
-exit reason into a single top-of-loop condition. Just make sure at least one
-`break` (or `return`) is reachable, or the loop never ends.
+exit reason into a single top-of-loop condition. At least one `break` (or
+`return`) must be reachable, or the loop never ends.
 
 ## When to Use `while` vs `for`
 

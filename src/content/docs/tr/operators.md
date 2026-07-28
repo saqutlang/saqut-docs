@@ -3,10 +3,10 @@ title: İşleçler
 description: saQut'taki aritmetik, karşılaştırma, mantıksal, bitsel ve atama işleçleri.
 ---
 
-saQut geniş bir işleç yelpazesi sunar. Ayrıştırıcı **Pratt ayrıştırması
-(Pratt parsing)** kullanır; her işlecin bir öncelik seviyesi ve birleşme
-yönü vardır. Böylece `-2 + -5` gibi ifadeler belirsizliğe yer kalmadan doğru
-biçimde ayrıştırılır.
+saQut aşağıda listelenen işleçleri sağlar. Ayrıştırıcı **Pratt ayrıştırması
+(Pratt parsing)** kullanır: her işlecin bir öncelik seviyesi ve bir birleşme
+yönü vardır; böylece `-2 + -5` gibi bir ifade tek ve belirsizliksiz bir ağaca
+ayrıştırılır.
 
 ## İşleç Öncelik Tablosu
 

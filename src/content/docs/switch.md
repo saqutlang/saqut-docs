@@ -24,8 +24,8 @@ switch (x) {
 // Output: two
 ```
 
-saQut finds the **one** matching case, runs its statements, and then leaves the
-switch. Only `two` is printed.
+The switch runs the statements of the **one** matching case and then exits.
+Only `two` is printed.
 
 ## No fall-through (cases break automatically)
 
@@ -47,8 +47,8 @@ switch (x) {
 ```
 
 In a C-style language this would print `one two other`. In saQut it prints only
-`one`. Each case is self-contained, no accidental fall-through, no forgotten
-`break` bugs.
+`one`. Each case is self-contained. The tradeoff is that sharing a body across
+values is explicit rather than implicit; the next section shows how.
 
 ## Multiple statements per case (no braces needed)
 
@@ -86,8 +86,8 @@ explicit replacement for C's "stack the cases and fall through" trick.
 
 ## `default`
 
-`default` runs when no other case matches. It is **optional**, if you omit it
-and nothing matches, the switch simply does nothing:
+`default` runs when no other case matches. It is **optional**: if you omit it
+and nothing matches, the switch does nothing:
 
 ```c
 switch (color) {
@@ -204,7 +204,8 @@ switch (value) {
 }
 ```
 
-This is a clean way to branch on "missing vs present" alongside the real cases.
+This lets you branch on the missing case alongside the value cases in one
+statement.
 
 ## `switch` vs `if / else if`
 

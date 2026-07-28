@@ -178,8 +178,8 @@ fonksiyon parametresine yazmaktan kaçınmalıdır.
 
 ## Bileşik Tipleri Döndürmek
 
-Bir **struct** döndürmek tam olarak beklediğiniz gibi çalışır: çağıran,
-dönen değere bir referans alır:
+Bir fonksiyon bir **struct** döndürdüğünde, çağıran dönen değere bir referans
+alır:
 
 ```c
 struct Point { int x; int y; }
