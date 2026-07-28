@@ -1400,27 +1400,38 @@ makes the parser smaller and easier to extend.
 Here is the AST from an insertion sort program:
 
 ```bash
-saqut ast examples/algorithm/03_insertion_sort.sqt --format=json
+saqut ast examples/algorithm/03_insertion_sort.sqt --json
 ```
 
-```
-Program
-  FunctionDecl (main : int)
-    Block
-      VariableDecl (arr : int[])
-        ArrayLiteral [5 eleman]
-     Literal {5} integer
-     Literal {3} integer
-     Literal {1} integer
-     Literal {6} integer
-     Literal {4} integer
-      VariableDecl (n : int)
-    Literal {5} integer
-      ForStatement
-        VariableDecl (i : int)
-     Literal {1} integer
+```json
+{
+  "ast":
+    {
+      "kind": "Program",
+      "children": [
+        {
+          "kind": "FunctionDecl",
+          "name": "main",
+          "returnType": "int",
+          "params": [
+          ],
+          "children": [
+            {
+              "kind": "Block",
+              "children": [
+                {
+                  "kind": "VariableDecl",
+                  "name": "arr",
+                  "varType": "int[]",
+                  "isReachable": true,
+                  "isExported": false,
+                  "init": {
   ...
 ```
+
+Without `--json`, `saqut ast` prints the same tree as an indented,
+human-readable text dump instead — useful at a terminal, not meant for
+parsing.
 
 The `--optimized` flag shows the AST **after** constant folding and dead code
 elimination; you can compare both to see what changed.
@@ -1675,7 +1686,7 @@ for the same input.
 
 Every stage is **machine-readable** (JSON), **pipeable** (Unix-friendly), and
 **stable** (designed as a public interface). You are not locked into the CLI;
-you can write scripts that consume `saqut ast --format=json` and build your
+you can write scripts that consume `saqut ast --json` and build your
 own tools on top of saQut's pipeline.
 
 ## /data-types/
@@ -1700,18 +1711,57 @@ int d = 0b1010;    // binary, 10
 int e = 0777;      // octal, 511
 ```
 
-Range: `-2,147,483,648` to `2,147,483,647`
+Range: `-2,147,483,648` to `2,147,483,647`. Overflow wraps with defined
+two's-complement behavior (it does not throw). If you need a wider integer,
+use `longint`.
 
-### `float` (Floating-Point)
+### `longint` (64-bit Integer)
 
-A 64-bit floating-point number (IEEE 754 double precision). Use scientific notation with `e` or `E`.
+A 64-bit signed whole number, for values that do not fit in `int` (file
+sizes, offsets, hashes, timestamps).
+
+```c
+longint big = 9223372036854775807;   // int64 max
+longint scaled = big + 1;            // wraps to -9223372036854775808
+int small = 42;
+longint widened = small;             // int to longint is lossless, allowed
+```
+
+Range: `-9,223,372,036,854,775,808` to `9,223,372,036,854,775,807`.
+
+`longint` stays out of the numeric conversion tower on purpose. Widening an
+`int` to `longint` is lossless and implicit. The reverse (`longint` to `int`)
+and mixing `longint` with `float`, `double`, or `decimal` require an explicit
+`as` cast, because those conversions can lose data and saQut does not perform
+them silently.
+
+### `float` (32-bit Floating-Point)
+
+A 32-bit IEEE 754 single-precision number. It carries about 7 significant
+decimal digits, so results show single-precision rounding.
 
 ```c
 float x = 3.14;
 float y = 0.5;
-float z = 1e5;        // 100,000.0
-float w = 2.5e-3;     // 0.0025
+float f = 0.1;
+print(f + 0.2);       // 0.300000012 (single precision)
 ```
+
+### `double` (64-bit Floating-Point)
+
+A 64-bit IEEE 754 double-precision number, about 15 to 16 significant digits.
+A bare decimal literal like `0.2` is a `double` by default; it becomes a
+`float` only in a `float` context. Use scientific notation with `e` or `E`.
+
+```c
+double d = 0.1;
+print(d + 0.2);       // 0.3
+double z = 1e5;       // 100000.0
+double w = 2.5e-3;    // 0.0025
+```
+
+`float` and `double` are stored at their real widths, so a `double` to `float`
+cast loses precision. That conversion needs an explicit `as float`.
 
 ### `bool` (Boolean)
 
@@ -1775,6 +1825,10 @@ So:
 - `int + float` → `float`
 - `float + double` → `double`
 - `byte + byte` → `int` (byte is promoted to int first)
+
+`longint` is not in this table. It has its own rule: `longint + int` promotes
+the `int` and gives `longint`, but `longint` never mixes with `float`,
+`double`, or `decimal` without an explicit cast.
 
 #### Worked examples
 
@@ -3265,7 +3319,7 @@ inspectable pipeline something to compile.
 3. **Look inside** at any stage you're curious about:
 
    ```bash
-   saqut ast hello.sqt --format=json
+   saqut ast hello.sqt --json
    ```
 
 </Steps>
@@ -7963,27 +8017,38 @@ yönetir. Bu, çözümleyiciyi daha küçük ve genişletmesi daha kolay hale ge
 İşte bir insertion sort programının AST'si:
 
 ```bash
-saqut ast examples/algorithm/03_insertion_sort.sqt --format=json
+saqut ast examples/algorithm/03_insertion_sort.sqt --json
 ```
 
-```
-Program
-  FunctionDecl (main : int)
-    Block
-      VariableDecl (arr : int[])
-        ArrayLiteral [5 eleman]
-     Literal {5} integer
-     Literal {3} integer
-     Literal {1} integer
-     Literal {6} integer
-     Literal {4} integer
-      VariableDecl (n : int)
-    Literal {5} integer
-      ForStatement
-        VariableDecl (i : int)
-     Literal {1} integer
+```json
+{
+  "ast":
+    {
+      "kind": "Program",
+      "children": [
+        {
+          "kind": "FunctionDecl",
+          "name": "main",
+          "returnType": "int",
+          "params": [
+          ],
+          "children": [
+            {
+              "kind": "Block",
+              "children": [
+                {
+                  "kind": "VariableDecl",
+                  "name": "arr",
+                  "varType": "int[]",
+                  "isReachable": true,
+                  "isExported": false,
+                  "init": {
   ...
 ```
+
+`--json` olmadan `saqut ast` aynı ağacı girintili, insan-okunur bir metin
+dökümü olarak basar — terminalde okumak için kullanışlıdır, ayrıştırmak için
+değil.
 
 `--optimized` bayrağı, sabit katlama ve ölü kod temizliği **sonrası** AST'yi
 gösterir; ikisini karşılaştırarak neyin değiştiğini görebilirsiniz.
@@ -8239,7 +8304,7 @@ doğrulanacaktır: aynı girdi için her iki arka yüz de aynı sonucu üretmeli
 
 Her aşama **makine tarafından okunabilir** (JSON), **borulanabilir**
 (Unix dostu) ve **kararlıdır** (bir kamu arayüzü olarak tasarlanmıştır).
-CLI'ye kilitli değilsiniz; `saqut ast --format=json` çıktısını tüketen
+CLI'ye kilitli değilsiniz; `saqut ast --json` çıktısını tüketen
 betikler yazabilir ve saQut'un işlem hattı üzerine kendi araçlarınızı inşa
 edebilirsiniz.
 
@@ -8266,18 +8331,58 @@ int d = 0b1010;    // ikilik, 10
 int e = 0777;      // sekizlik, 511
 ```
 
-Aralık: `-2.147.483.648` ile `2.147.483.647`
+Aralık: `-2.147.483.648` ile `2.147.483.647`. Taşma, tanımlı iki'nin tümleyeni
+(two's-complement) davranışıyla sarar (hata fırlatmaz). Daha geniş bir tam sayıya
+ihtiyacınız varsa `longint` kullanın.
 
-### `float` (Ondalıklı Sayı)
+### `longint` (64-bit Tam Sayı)
 
-64 bitlik kayan noktalı sayı (IEEE 754 çift hassasiyet). `e` veya `E` ile bilimsel gösterim kullanabilirsiniz.
+64 bitlik işaretli tam sayı. `int` sınırına sığmayan değerler için (dosya
+boyutları, offset'ler, hash'ler, zaman damgaları).
+
+```c
+longint big = 9223372036854775807;   // int64 azami
+longint scaled = big + 1;            // -9223372036854775808'e sarar
+int small = 42;
+longint widened = small;             // int'ten longint'e kayıpsız, serbest
+```
+
+Aralık: `-9.223.372.036.854.775.808` ile `9.223.372.036.854.775.807`.
+
+`longint`, sayısal dönüşüm kulesinin dışında durur (bilinçli tercih). `int`
+değerini `longint`'e genişletmek kayıpsızdır ve örtük yapılır. Tersi (`longint`'ten
+`int`'e) ve `longint`'i `float`, `double` veya `decimal` ile karıştırmak açık bir
+`as` dönüşümü ister; çünkü bu dönüşümler veri kaybına yol açabilir ve saQut bunları
+sessizce yapmaz.
+
+### `float` (32-bit Ondalıklı Sayı)
+
+32 bitlik IEEE 754 tek hassasiyetli (single precision) sayı. Yaklaşık 7 anlamlı
+ondalık hane taşır, bu yüzden sonuçlar tek hassasiyet yuvarlamasını gösterir.
 
 ```c
 float x = 3.14;
 float y = 0.5;
-float z = 1e5;        // 100.000,0
-float w = 2.5e-3;     // 0,0025
+float f = 0.1;
+print(f + 0.2);       // 0.300000012 (tek hassasiyet)
 ```
+
+### `double` (64-bit Ondalıklı Sayı)
+
+64 bitlik IEEE 754 çift hassasiyetli (double precision) sayı, yaklaşık 15 ila 16
+anlamlı hane. `0.2` gibi çıplak bir ondalık literal varsayılan olarak `double`'dır;
+yalnızca bir `float` bağlamında `float` olur. `e` veya `E` ile bilimsel gösterim
+kullanabilirsiniz.
+
+```c
+double d = 0.1;
+print(d + 0.2);       // 0.3
+double z = 1e5;       // 100000.0
+double w = 2.5e-3;    // 0.0025
+```
+
+`float` ve `double` gerçek genişliklerinde saklanır, bu yüzden `double`'dan
+`float`'a dönüşüm hassasiyet kaybeder. Bu dönüşüm açık bir `as float` gerektirir.
 
 ### `bool` (Mantıksal)
 
@@ -8341,6 +8446,10 @@ Buna göre:
 - `int + float` → `float`
 - `float + double` → `double`
 - `byte + byte` → `int` (byte önce int'e yükseltilir)
+
+`longint` bu tabloda yer almaz. Kendi kuralı vardır: `longint + int`, `int`'i
+yükseltir ve `longint` verir; ama `longint`, açık bir dönüşüm olmadan `float`,
+`double` veya `decimal` ile karışmaz.
 
 #### Örneklerle Açıklama
 
@@ -9849,7 +9958,7 @@ zincirine derlenecek bir kaynak sağlamaktır.
 3. Merak ettiğiniz herhangi bir aşamanın **içine bakın**:
 
    ```bash
-   saqut ast hello.sqt --format=json
+   saqut ast hello.sqt --json
    ```
 
 </Steps>

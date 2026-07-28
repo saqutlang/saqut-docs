@@ -144,27 +144,38 @@ makes the parser smaller and easier to extend.
 Here is the AST from an insertion sort program:
 
 ```bash
-saqut ast examples/algorithm/03_insertion_sort.sqt --format=json
+saqut ast examples/algorithm/03_insertion_sort.sqt --json
 ```
 
-```
-Program
-  FunctionDecl (main : int)
-    Block
-      VariableDecl (arr : int[])
-        ArrayLiteral [5 eleman]
-     Literal {5} integer
-     Literal {3} integer
-     Literal {1} integer
-     Literal {6} integer
-     Literal {4} integer
-      VariableDecl (n : int)
-    Literal {5} integer
-      ForStatement
-        VariableDecl (i : int)
-     Literal {1} integer
+```json
+{
+  "ast":
+    {
+      "kind": "Program",
+      "children": [
+        {
+          "kind": "FunctionDecl",
+          "name": "main",
+          "returnType": "int",
+          "params": [
+          ],
+          "children": [
+            {
+              "kind": "Block",
+              "children": [
+                {
+                  "kind": "VariableDecl",
+                  "name": "arr",
+                  "varType": "int[]",
+                  "isReachable": true,
+                  "isExported": false,
+                  "init": {
   ...
 ```
+
+Without `--json`, `saqut ast` prints the same tree as an indented,
+human-readable text dump instead — useful at a terminal, not meant for
+parsing.
 
 The `--optimized` flag shows the AST **after** constant folding and dead code
 elimination; you can compare both to see what changed.
@@ -419,5 +430,5 @@ for the same input.
 
 Every stage is **machine-readable** (JSON), **pipeable** (Unix-friendly), and
 **stable** (designed as a public interface). You are not locked into the CLI;
-you can write scripts that consume `saqut ast --format=json` and build your
+you can write scripts that consume `saqut ast --json` and build your
 own tools on top of saQut's pipeline.

@@ -147,27 +147,38 @@ yönetir. Bu, çözümleyiciyi daha küçük ve genişletmesi daha kolay hale ge
 İşte bir insertion sort programının AST'si:
 
 ```bash
-saqut ast examples/algorithm/03_insertion_sort.sqt --format=json
+saqut ast examples/algorithm/03_insertion_sort.sqt --json
 ```
 
-```
-Program
-  FunctionDecl (main : int)
-    Block
-      VariableDecl (arr : int[])
-        ArrayLiteral [5 eleman]
-     Literal {5} integer
-     Literal {3} integer
-     Literal {1} integer
-     Literal {6} integer
-     Literal {4} integer
-      VariableDecl (n : int)
-    Literal {5} integer
-      ForStatement
-        VariableDecl (i : int)
-     Literal {1} integer
+```json
+{
+  "ast":
+    {
+      "kind": "Program",
+      "children": [
+        {
+          "kind": "FunctionDecl",
+          "name": "main",
+          "returnType": "int",
+          "params": [
+          ],
+          "children": [
+            {
+              "kind": "Block",
+              "children": [
+                {
+                  "kind": "VariableDecl",
+                  "name": "arr",
+                  "varType": "int[]",
+                  "isReachable": true,
+                  "isExported": false,
+                  "init": {
   ...
 ```
+
+`--json` olmadan `saqut ast` aynı ağacı girintili, insan-okunur bir metin
+dökümü olarak basar — terminalde okumak için kullanışlıdır, ayrıştırmak için
+değil.
 
 `--optimized` bayrağı, sabit katlama ve ölü kod temizliği **sonrası** AST'yi
 gösterir; ikisini karşılaştırarak neyin değiştiğini görebilirsiniz.
@@ -423,6 +434,6 @@ doğrulanacaktır: aynı girdi için her iki arka yüz de aynı sonucu üretmeli
 
 Her aşama **makine tarafından okunabilir** (JSON), **borulanabilir**
 (Unix dostu) ve **kararlıdır** (bir kamu arayüzü olarak tasarlanmıştır).
-CLI'ye kilitli değilsiniz; `saqut ast --format=json` çıktısını tüketen
+CLI'ye kilitli değilsiniz; `saqut ast --json` çıktısını tüketen
 betikler yazabilir ve saQut'un işlem hattı üzerine kendi araçlarınızı inşa
 edebilirsiniz.
