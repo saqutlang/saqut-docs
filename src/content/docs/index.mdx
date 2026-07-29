@@ -152,3 +152,168 @@ Source -> Tokenizer -> Parser -> AST -> Symbol Collector -> Type Checker
 ```
 
 Each arrow corresponds to a CLI command you can run and inspect.
+
+---
+
+## Changelog
+
+### July 29, 2026 — 0.9.0 — Say What You Mean
+
+- `2cb8c99` | The parser now reports a clear error for a missing closing
+  `)`, `]`, or `}` in 25 different situations.
+- `87d1f46` | `run`, `check`, and `ir` now all return the same exit code
+  for the same kind of error, no matter which one you use.
+- `28d9439` | `exec` now reports parser errors instead of silently
+  continuing.
+- `301eaf6` | `ast` and `symbols` now report parser errors the same way
+  `exec` and `run` do.
+- `443d590` | `saqut ir` now shows every instruction kind in its output.
+- `5490018` | When a function ends without an explicit `return`, `saqut
+  ir` now shows that implicit return too.
+- `ebf9538` | `saqut ir` now only prints color codes when the output goes
+  to a real terminal, keeping piped or redirected output clean.
+- `c015519` | The compiler now correctly recognizes when every branch of
+  a `switch` returns a value.
+- `793622d` | Indexing a non-array value with `[index]` is now rejected
+  at compile time.
+- `7f871b7` | Adds a differential test harness that automatically checks
+  the VM and JIT agree on every result.
+- `2f31cb2` | Makes `int32`, `longint64`, `float32`, and `double64` behave
+  identically on the VM and the JIT.
+
+### July 16, 2026 — 0.8.0 🏆 — The Experimental JIT's First Breath
+
+> 🏆 saQut's first official build happened here.
+
+- `2b53460` | Ships the first version of the experimental MIR JIT
+  backend, enabled with the `--jit` flag.
+- `dcc8a04` | Full programs can now run end-to-end on the JIT backend.
+- `62651cf` | The JIT can now compile and run `float` values.
+- `24acdc7` | The JIT can now compile and run `string` values.
+- `748f992` | 32-bit `int` overflow now behaves identically on the VM and
+  the JIT (defined, two's-complement wraparound).
+- `574ce3f` | Adds the `saqut --version` flag and a static release build.
+- `879a85e` | `saqut run --profile` can now measure VM and JIT warmup and
+  run time separately.
+
+### July 15, 2026 — 0.7.0 — The Language Opens Up To The Outside World
+
+- `a785d2a` | Adds FFI (foreign function interface) support — the `ffi`
+  keyword lets the language declare and call functions provided by the
+  host.
+- `2259bfb` | Adds the `fs` module — read, write, check for, and remove
+  files.
+- `c3451f7` | Adds the `sys` module — generate random numbers, read
+  environment variables, sleep, and read command-line arguments.
+- `76c9bc6` | Adds the `date` type, which stores a UTC timestamp in
+  milliseconds.
+- `35790a2` | Adds the `math::PI` and `math::E` constants.
+- `5433cb3` | Adds a capability (permission) system — file and network
+  access is now rejected unless explicitly allowed with `--allow-fs`,
+  `--allow-net`, or `--allow-sys`.
+- `1e0fbd3` | Adds `caps::drop` and `caps::has` — a running program can
+  voluntarily give up permissions or check which ones it currently has.
+- `04d90b5` | When a variable inside a block shadows one with the same
+  name from an outer scope, the compiler now resolves it to the correct
+  one.
+
+### July 14, 2026 — 0.6.0 — Small, Sharp, And Deliberate
+
+- `7c5d90a` | The garbage collector (GC) now runs automatically once
+  memory use crosses a set threshold.
+- `587bb57` | Reworks how built-in functions are called — they can now be
+  called with dot syntax (`value.method()`) and are grouped into
+  namespaces.
+- `845588d` | Adds the `byte` type — an 8-bit unsigned value, 0-255.
+
+### July 13, 2026 — 0.5.0 — Debugging, Step By Step
+
+- `025a667` | Rewrites the debugging protocol (DAP) correctly — editors
+  can now step through a saQut program, pause it, and inspect variables.
+- `e4abc6f` | You can now actually pause a program while debugging it —
+  it waits without freezing (non-blocking).
+- `75e3dd1` | Stepping through code one line at a time now covers every
+  instruction and pauses on exactly the right line.
+- `d26575b` | Makes autocomplete in the editor more reliable.
+- `11af652` | You can now safely rename variables and functions from the
+  editor, and see parameter hints while calling a function.
+- `b9ca166` | When two modules import each other in a cycle, the compiler
+  now reports it as an `E_MODULE_CYCLE` error.
+
+### July 11, 2026 — 0.4.0 — The Editor Gets A Window In
+
+- `ad45bd5` | Lays the groundwork for editor support — syntax
+  highlighting (a TextMate grammar), a language server (LSP), and a
+  debugging protocol (DAP) scaffold.
+- `b66226b` | The language server (LSP) can now compile the version of a
+  file currently open in the editor, without needing it saved to disk.
+- `f3a7853` | The language server now computes file positions
+  (line/column) far more reliably, including across multi-file projects.
+- `934a903` | Adds pastel coloring to the AST, symbol table, and IR
+  output.
+- `6651a91` | When a struct contains another struct as a field, all of
+  its nested fields are now set up automatically as soon as the variable
+  is declared.
+- `d6dd530` | Adds the `saqut bench` command.
+- `585b8eb` | Commits to a second execution backend: a MIR-based JIT and
+  an embedded-runtime AOT compiler.
+
+### June 24, 2026 — 0.3.0 — The Language Learns To Split Itself
+
+- `8136773` | Adds enum type support.
+- `2af0bce` | Adds the `decimal` type, fully supported by both the
+  compiler and the VM.
+- `878faa3` | Adds struct arrays (`Point[]`) and multi-dimensional
+  arrays.
+- `b9a6176` | Adds a built-in method system: `E::method(args)` syntax.
+- `4a84e59` | Adds a module system — import/export, multi-file builds —
+  and the `exec` command that goes with it.
+- `4a64812` | Tests the compiler against 37 real algorithms (sorting,
+  searching, and more).
+
+### June 21, 2026 — 0.2.0 — Closing The Cracks
+
+- `060b4a0` | Adds a hint to every error message showing how to fix the
+  problem.
+- `53823f1` | Rebuilds the garbage collector (GC) — memory is now cleaned
+  up the same way, every time, right when a function returns.
+- `50c2615` | Struct fields declared as nullable (`T?`) are now parsed
+  and typed correctly.
+- `d7872f7` | Translates every user-facing message from Turkish to
+  English.
+- `b8c2d95` | Constant folding now runs without crashing the compiler.
+- `3baa5e3` | A function that returns a struct now has its return type
+  recognized correctly.
+- `8545ce4` | Bitwise operators (`&`, `|`, `^`, `<<`, `>>`) are now fully
+  compiled to IR, with expanded test coverage.
+
+### June 20, 2026 — 0.1.0 — A Language, Built From Zero
+
+- `2bf52f5` | Finishes the lexer/tokenizer, which turns source code into
+  tokens — the compiler's first stage.
+- `4839f37` | Completes the parser — expressions now build the correct
+  tree based on operator precedence.
+- `e488f29` | Runs `fibonacci.sqt` for the first time, through our own IR
+  generator and bytecode VM.
+- `d5a1b2c` | Adds the type system and the engine that produces error and
+  diagnostic messages.
+- `c8ee926` | Adds the symbol table — resolves variable and function
+  names, and tracks scopes and references.
+- `36ad5d0` | Adds the optimizer — computes constant expressions at
+  compile time (constant folding) and removes code that can never run
+  (dead-code elimination).
+- `b02a7da` | Adds string concatenation, try/catch/throw, and nullable
+  flow analysis.
+- `7b2258e` | Adds array support, backed by an object model the garbage
+  collector (GC) can manage.
+- `fab82ee` | Adds bitwise operators and IR generation for global
+  variables shared across a file.
+
+[0.1.0 → 0.2.0](https://github.com/saqutlang/saqut/compare/0.1.0...0.2.0) ·
+[0.2.0 → 0.3.0](https://github.com/saqutlang/saqut/compare/0.2.0...0.3.0) ·
+[0.3.0 → 0.4.0](https://github.com/saqutlang/saqut/compare/0.3.0...0.4.0) ·
+[0.4.0 → 0.5.0](https://github.com/saqutlang/saqut/compare/0.4.0...0.5.0) ·
+[0.5.0 → 0.6.0](https://github.com/saqutlang/saqut/compare/0.5.0...0.6.0) ·
+[0.6.0 → 0.7.0](https://github.com/saqutlang/saqut/compare/0.6.0...0.7.0) ·
+[0.7.0 → 0.8.0](https://github.com/saqutlang/saqut/compare/0.7.0...0.8.0) ·
+[0.8.0 → 0.9.0](https://github.com/saqutlang/saqut/compare/0.8.0...v0.9.0)
