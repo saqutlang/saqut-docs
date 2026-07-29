@@ -6,15 +6,15 @@ hero:
   tagline: "Küçük, prosedürel bir dil. Ama asıl olay derleyicisinde: <em>her aşama şeffaf</em>. Token, AST, sembol tablosu, IR; hepsi isimlendirilmiş, okunabilir, makineye aktarılabilir."
   actions:
     - text: saQut Nedir?
-      link: tr/what-is-saqut/
+      link: /tr/what-is-saqut/
       icon: right-arrow
       variant: primary
     - text: Başlayın
-      link: tr/getting-started/
+      link: /tr/getting-started/
       icon: right-arrow
       variant: minimal
     - text: Yerleşik Fonksiyonlar
-      link: tr/builtin-functions/
+      link: /tr/builtin-functions/
       icon: open-book
       variant: minimal
     - text: GitHub'da Görüntüle
@@ -137,12 +137,12 @@ Fonksiyonlar, kontrol akışı ve `print()`. Zorunlu tören kodu yok.
 ## Öğrenmeye başlayın
 
 <CardGrid>
-  <LinkCard title="Veri Tipleri" href="tr/data-types/" description="int, float, bool, byte, string, struct, array, nullable ve tip yükseltme kuralları." />
-  <LinkCard title="Operatörler" href="tr/operators/" description="Aritmetik, mantıksal, bitsel, atama, üçlü ve as dönüşümü; tam öncelik tablosuyla birlikte." />
-  <LinkCard title="Yerleşik Fonksiyonlar" href="tr/builtin-functions/" description="Her string, array ve struct metodu örneklerle sıfırdan anlatılıyor." />
-  <LinkCard title="Modüller" href="tr/modules/" description="Kodu import/export ile dosyalara bölün; iki dosyalı programdan bağımlılık çizgelerine kadar." />
-  <LinkCard title="Hata Yönetimi" href="tr/error-handling/" description="try / catch / throw ile çalışma zamanı hatalarını yakalayın ve fırlatın." />
-  <LinkCard title="Derleyici Araçları" href="tr/compiler-tools/" description="Token, AST, sembol ve IR nedir, her birine ne zaman başvurmalısınız." />
+  <LinkCard title="Veri Tipleri" href="/tr/data-types/" description="int, float, bool, byte, string, struct, array, nullable ve tip yükseltme kuralları." />
+  <LinkCard title="Operatörler" href="/tr/operators/" description="Aritmetik, mantıksal, bitsel, atama, üçlü ve as dönüşümü; tam öncelik tablosuyla birlikte." />
+  <LinkCard title="Yerleşik Fonksiyonlar" href="/tr/builtin-functions/" description="Her string, array ve struct metodu örneklerle sıfırdan anlatılıyor." />
+  <LinkCard title="Modüller" href="/tr/modules/" description="Kodu import/export ile dosyalara bölün; iki dosyalı programdan bağımlılık çizgelerine kadar." />
+  <LinkCard title="Hata Yönetimi" href="/tr/error-handling/" description="try / catch / throw ile çalışma zamanı hatalarını yakalayın ve fırlatın." />
+  <LinkCard title="Derleyici Araçları" href="/tr/compiler-tools/" description="Token, AST, sembol ve IR nedir, her birine ne zaman başvurmalısınız." />
 </CardGrid>
 
 ---
@@ -160,7 +160,7 @@ Her ok, çalıştırıp inceleyebileceğiniz bir CLI komutuna karşılık gelir.
 
 ## Sürüm günlüğü
 
-### 29 Temmuz 2026 — 0.9.0 — Sözünde Durur
+### 29 Temmuz 2026 · 0.9.0 · Sözünde Durur
 
 - `2cb8c99` | Parser artık eksik kapanış parantezi, köşeli parantez ya da
   süslü parantez gibi 25 farklı sözdizimi hatasını açık ve net bir hata
@@ -187,11 +187,11 @@ Her ok, çalıştırıp inceleyebileceğiniz bir CLI komutuna karşılık gelir.
 - `2f31cb2` | `int32`, `longint64`, `float32` ve `double64` artık VM'de ve
   JIT'te birebir aynı sonucu veriyor.
 
-### 16 Temmuz 2026 — 0.8.0 🏆 — Deneysel JIT'in İlk Nefesi
+### 16 Temmuz 2026 · 0.8.0 🏆 · Deneysel JIT'in İlk Nefesi
 
 > 🏆 saQut'un ilk resmi build'ini burada aldık.
 
-- `2b53460` | Deneysel MIR JIT arka ucu geldi — `--jit` bayrağıyla
+- `2b53460` | Deneysel MIR JIT arka ucu geldi: `--jit` bayrağıyla
   denenebiliyor.
 - `dcc8a04` | Artık tüm programlar `--jit` ile uçtan uca çalışabiliyor.
 - `62651cf` | JIT artık `float` değerlerini de derleyip çalıştırabiliyor.
@@ -202,45 +202,45 @@ Her ok, çalıştırıp inceleyebileceğiniz bir CLI komutuna karşılık gelir.
 - `879a85e` | `saqut run --profile` ile VM ve JIT'in ısınma ve çalışma
   süreleri artık ayrı ayrı ölçülebiliyor.
 
-### 15 Temmuz 2026 — 0.7.0 — Dil Dış Dünyaya Açılıyor
+### 15 Temmuz 2026 · 0.7.0 · Dil Dış Dünyaya Açılıyor
 
-- `a785d2a` | FFI (yabancı fonksiyon arayüzü) desteği geldi — `ffi`
-  anahtar kelimesiyle dilin dışındaki (host) fonksiyonlar tanıtılıp
-  doğrudan çağrılabiliyor.
-- `2259bfb` | `fs` modülü geldi — dosya okuma, yazma, varlık kontrolü ve
+- `a785d2a` | FFI (yabancı fonksiyon arayüzü) desteği geldi: `ffi` anahtar
+  kelimesiyle dilin dışındaki (host) fonksiyonlar tanıtılıp doğrudan
+  çağrılabiliyor.
+- `2259bfb` | `fs` modülü geldi: dosya okuma, yazma, varlık kontrolü ve
   silme.
-- `c3451f7` | `sys` modülü geldi — rastgele sayı üretme, ortam
+- `c3451f7` | `sys` modülü geldi: rastgele sayı üretme, ortam
   değişkenlerini okuma, bekleme (sleep) ve komut satırı argümanlarına
   erişim.
-- `76c9bc6` | `date` tipi geldi — UTC zaman damgasını milisaniye
-  cinsinden tutuyor.
+- `76c9bc6` | `date` tipi geldi: UTC zaman damgasını milisaniye cinsinden
+  tutuyor.
 - `35790a2` | `math::PI` ve `math::E` sabitleri geldi.
-- `5433cb3` | İzin (capability) sistemi geldi — dosya ve ağ erişimi,
+- `5433cb3` | İzin (capability) sistemi geldi: dosya ve ağ erişimi,
   `--allow-fs` / `--allow-net` / `--allow-sys` bayrakları açıkça
   verilmeden artık reddediliyor.
-- `1e0fbd3` | `caps::drop` ve `caps::has` geldi — çalışan bir program
-  kendi izinlerinden bilerek vazgeçebiliyor ya da hangi izinlere sahip
-  olduğunu sorgulayabiliyor.
+- `1e0fbd3` | `caps::drop` ve `caps::has` geldi: çalışan bir program kendi
+  izinlerinden bilerek vazgeçebiliyor ya da hangi izinlere sahip olduğunu
+  sorgulayabiliyor.
 - `04d90b5` | Bir blok içinde, dıştaki bir değişkeni aynı isimle
   gölgeleyen yeni bir değişken tanımlandığında, derleyici artık doğru
   değişkene erişiyor.
 
-### 14 Temmuz 2026 — 0.6.0 — Küçük Ama Keskin
+### 14 Temmuz 2026 · 0.6.0 · Küçük Ama Keskin
 
 - `7c5d90a` | Çöp toplayıcı (GC) artık bellek kullanımı belirli bir eşiği
   aştığında kendiliğinden çalışıyor.
-- `587bb57` | Yerleşik (builtin) fonksiyonların çağrılma şekli yenilendi —
+- `587bb57` | Yerleşik (builtin) fonksiyonların çağrılma şekli yenilendi:
   artık `deger.metod()` gibi nokta ile çağrılabiliyor ve ad alanlarına
   (namespace) ayrılıyor.
-- `845588d` | `byte` tipi geldi — 8-bit işaretsiz değer, 0-255.
+- `845588d` | `byte` tipi geldi: 8-bit işaretsiz değer, 0-255.
 
-### 13 Temmuz 2026 — 0.5.0 — Adım Adım Hata Ayıklama
+### 13 Temmuz 2026 · 0.5.0 · Adım Adım Hata Ayıklama
 
-- `025a667` | Hata ayıklama protokolü (DAP) baştan doğru şekilde yazıldı —
+- `025a667` | Hata ayıklama protokolü (DAP) baştan doğru şekilde yazıldı:
   editörler artık bir saQut programını adım adım çalıştırıp
   durdurabiliyor, değişkenleri inceleyebiliyor.
 - `e4abc6f` | Bir programı hata ayıklarken artık gerçekten
-  duraklatabiliyorsun — program dondurulmadan (non-blocking) bekletiliyor.
+  duraklatabiliyorsun; program dondurulmadan (non-blocking) bekletiliyor.
 - `75e3dd1` | Adım adım çalıştırma (step) artık her komutu kapsıyor ve
   duraklama tam olarak doğru satırda gerçekleşiyor.
 - `d26575b` | Editördeki otomatik tamamlama (code completion) daha
@@ -252,9 +252,9 @@ Her ok, çalıştırıp inceleyebileceğiniz bir CLI komutuna karşılık gelir.
   bağımlılık), derleyici bunu artık `E_MODULE_CYCLE` hatasıyla
   bildiriyor.
 
-### 11 Temmuz 2026 — 0.4.0 — Editör Artık İçeri Bakabiliyor
+### 11 Temmuz 2026 · 0.4.0 · Editör Artık İçeri Bakabiliyor
 
-- `ad45bd5` | Editör desteğinin temelleri atıldı — sözdizimi vurgulama
+- `ad45bd5` | Editör desteğinin temelleri atıldı: sözdizimi vurgulama
   (TextMate grameri), bir dil sunucusu (LSP) ve hata ayıklama protokolü
   (DAP) iskeleti geldi.
 - `b66226b` | Dil sunucusu (LSP) artık bir dosyayı diske kaydetmeden,
@@ -271,24 +271,24 @@ Her ok, çalıştırıp inceleyebileceğiniz bir CLI komutuna karşılık gelir.
 - `585b8eb` | İkinci bir çalıştırma arka ucu olarak MIR tabanlı bir JIT ve
   gömülü çalışma zamanlı bir AOT derleyicisine karar verildi.
 
-### 24 Haziran 2026 — 0.3.0 — Dil Parçalara Ayrılabiliyor
+### 24 Haziran 2026 · 0.3.0 · Dil Parçalara Ayrılabiliyor
 
 - `8136773` | enum tip desteği geldi.
-- `2af0bce` | `decimal` tipi geldi — derleyici ve sanal makine (VM)
-  baştan sona destekliyor.
+- `2af0bce` | `decimal` tipi geldi: derleyici ve sanal makine (VM) baştan
+  sona destekliyor.
 - `878faa3` | struct dizileri (`Point[]`) ve çok boyutlu diziler desteği
   geldi.
 - `b9a6176` | built-in method sistemi geldi: `E::method(args)` sözdizimi.
-- `4a84e59` | Modül sistemi geldi — import/export, çok dosyalı derleme —
-  ve onunla birlikte `exec` komutu.
+- `4a84e59` | Modül sistemi geldi (import/export, çok dosyalı derleme);
+  beraberinde `exec` komutu da geldi.
 - `4a64812` | Derleyici artık 37 gerçek algoritmaya (sıralama, arama ve
   daha fazlası) karşı test ediliyor.
 
-### 21 Haziran 2026 — 0.2.0 — Çatlaklar Kapanıyor
+### 21 Haziran 2026 · 0.2.0 · Çatlaklar Kapanıyor
 
 - `060b4a0` | Her hata mesajına, sorunu nasıl çözebileceğini gösteren bir
   ipucu eklendi.
-- `53823f1` | Çöp toplayıcı (GC) yenilendi — bellek artık bir fonksiyondan
+- `53823f1` | Çöp toplayıcı (GC) yenilendi: bellek artık bir fonksiyondan
   çıkıldığı anda, her çalıştırmada aynı şekilde temizleniyor.
 - `50c2615` | Nullable (`T?`) olarak tanımlanan struct alanları artık
   doğru ayrıştırılıyor ve tipleniyor.
@@ -301,24 +301,24 @@ Her ok, çalıştırıp inceleyebileceğiniz bir CLI komutuna karşılık gelir.
 - `8545ce4` | Bitsel operatörler (`&`, `|`, `^`, `<<`, `>>`) artık IR'a
   tam olarak dönüştürülüyor, test kapsamı genişletildi.
 
-### 20 Haziran 2026 — 0.1.0 — Sıfırdan Bir Dil Doğuyor
+### 20 Haziran 2026 · 0.1.0 · Sıfırdan Bir Dil Doğuyor
 
-- `2bf52f5` | Kaynak kodu token'lara ayıran lexer/tokenizer tamamlandı —
-  derleyicinin ilk aşaması hazır.
-- `4839f37` | Sözdizimi çözümleyici (parser) tamamlandı — ifadeler artık
+- `2bf52f5` | Kaynak kodu token'lara ayıran lexer/tokenizer tamamlandı.
+  Derleyicinin ilk aşaması hazır.
+- `4839f37` | Sözdizimi çözümleyici (parser) tamamlandı: ifadeler artık
   operatör önceliğine göre doğru bir ağaca (AST) dönüşüyor.
-- `e488f29` | `fibonacci.sqt` ilk kez çalıştı — kendi IR üreticimiz ve
-  bytecode VM'imiz üzerinden.
+- `e488f29` | `fibonacci.sqt`, kendi IR üreticimiz ve bytecode VM'imiz
+  üzerinden ilk kez çalıştı.
 - `d5a1b2c` | Tip sistemi ve hata/tanı mesajları üreten tanılama motoru
   geldi.
-- `c8ee926` | Sembol tablosu geldi — değişken/fonksiyon isimlerini
+- `c8ee926` | Sembol tablosu geldi: değişken/fonksiyon isimlerini
   çözümlüyor, kapsamları (scope) ve referansları takip ediyor.
-- `36ad5d0` | Optimize edici geldi — sabit ifadeleri derleme zamanında
+- `36ad5d0` | Optimize edici geldi: sabit ifadeleri derleme zamanında
   hesaplıyor (sabit katlama) ve hiç çalışmayacak kodu siliyor (ölü kod
   eleme).
 - `b02a7da` | string birleştirme, try/catch/throw ve nullable akış
   analizi eklendi.
-- `7b2258e` | array desteği geldi — çöp toplayıcının (GC) yönetebileceği
+- `7b2258e` | array desteği geldi: çöp toplayıcının (GC) yönetebileceği
   bir nesne modeliyle.
 - `fab82ee` | Bitsel operatörler ve dosya genelinde paylaşılan (global)
   değişkenler için IR üretimi eklendi.
