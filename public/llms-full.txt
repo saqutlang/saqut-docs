@@ -3406,6 +3406,171 @@ Source -> Tokenizer -> Parser -> AST -> Symbol Collector -> Type Checker
 
 Each arrow corresponds to a CLI command you can run and inspect.
 
+---
+
+## Changelog
+
+### July 29, 2026 · 0.9.0 · Say What You Mean
+
+- `2cb8c99` | The parser now reports a clear error for a missing closing
+  `)`, `]`, or `}` in 25 different situations.
+- `87d1f46` | `run`, `check`, and `ir` now all return the same exit code
+  for the same kind of error, no matter which one you use.
+- `28d9439` | `exec` now reports parser errors instead of silently
+  continuing.
+- `301eaf6` | `ast` and `symbols` now report parser errors the same way
+  `exec` and `run` do.
+- `443d590` | `saqut ir` now shows every instruction kind in its output.
+- `5490018` | When a function ends without an explicit `return`, `saqut
+  ir` now shows that implicit return too.
+- `ebf9538` | `saqut ir` now only prints color codes when the output goes
+  to a real terminal, keeping piped or redirected output clean.
+- `c015519` | The compiler now correctly recognizes when every branch of
+  a `switch` returns a value.
+- `793622d` | Indexing a non-array value with `[index]` is now rejected
+  at compile time.
+- `7f871b7` | Adds a differential test harness that automatically checks
+  the VM and JIT agree on every result.
+- `2f31cb2` | Makes `int32`, `longint64`, `float32`, and `double64` behave
+  identically on the VM and the JIT.
+
+### July 16, 2026 · 0.8.0 🏆 · The Experimental JIT's First Breath
+
+> 🏆 saQut's first official build happened here.
+
+- `2b53460` | Ships the first version of the experimental MIR JIT
+  backend, enabled with the `--jit` flag.
+- `dcc8a04` | Full programs can now run end-to-end on the JIT backend.
+- `62651cf` | The JIT can now compile and run `float` values.
+- `24acdc7` | The JIT can now compile and run `string` values.
+- `748f992` | 32-bit `int` overflow now behaves identically on the VM and
+  the JIT (defined, two's-complement wraparound).
+- `574ce3f` | Adds the `saqut --version` flag and a static release build.
+- `879a85e` | `saqut run --profile` can now measure VM and JIT warmup and
+  run time separately.
+
+### July 15, 2026 · 0.7.0 · The Language Opens Up To The Outside World
+
+- `a785d2a` | Adds FFI (foreign function interface) support: the `ffi`
+  keyword lets the language declare and call functions provided by the
+  host.
+- `2259bfb` | Adds the `fs` module: read, write, check for, and remove
+  files.
+- `c3451f7` | Adds the `sys` module: generate random numbers, read
+  environment variables, sleep, and read command-line arguments.
+- `76c9bc6` | Adds the `date` type, which stores a UTC timestamp in
+  milliseconds.
+- `35790a2` | Adds the `math::PI` and `math::E` constants.
+- `5433cb3` | Adds a capability (permission) system: file and network
+  access is now rejected unless explicitly allowed with `--allow-fs`,
+  `--allow-net`, or `--allow-sys`.
+- `1e0fbd3` | Adds `caps::drop` and `caps::has`: a running program can
+  voluntarily give up permissions or check which ones it currently has.
+- `04d90b5` | When a variable inside a block shadows one with the same
+  name from an outer scope, the compiler now resolves it to the correct
+  one.
+
+### July 14, 2026 · 0.6.0 · Small, Sharp, And Deliberate
+
+- `7c5d90a` | The garbage collector (GC) now runs automatically once
+  memory use crosses a set threshold.
+- `587bb57` | Reworks how built-in functions are called: they can now be
+  called with dot syntax (`value.method()`) and are grouped into
+  namespaces.
+- `845588d` | Adds the `byte` type: an 8-bit unsigned value, 0-255.
+
+### July 13, 2026 · 0.5.0 · Debugging, Step By Step
+
+- `025a667` | Rewrites the debugging protocol (DAP) correctly: editors
+  can now step through a saQut program, pause it, and inspect variables.
+- `e4abc6f` | You can now actually pause a program while debugging it; it
+  waits without freezing (non-blocking).
+- `75e3dd1` | Stepping through code one line at a time now covers every
+  instruction and pauses on exactly the right line.
+- `d26575b` | Makes autocomplete in the editor more reliable.
+- `11af652` | You can now safely rename variables and functions from the
+  editor, and see parameter hints while calling a function.
+- `b9ca166` | When two modules import each other in a cycle, the compiler
+  now reports it as an `E_MODULE_CYCLE` error.
+
+### July 11, 2026 · 0.4.0 · The Editor Gets A Window In
+
+- `ad45bd5` | Lays the groundwork for editor support: syntax highlighting
+  (a TextMate grammar), a language server (LSP), and a debugging protocol
+  (DAP) scaffold.
+- `b66226b` | The language server (LSP) can now compile the version of a
+  file currently open in the editor, without needing it saved to disk.
+- `f3a7853` | The language server now computes file positions
+  (line/column) far more reliably, including across multi-file projects.
+- `934a903` | Adds pastel coloring to the AST, symbol table, and IR
+  output.
+- `6651a91` | When a struct contains another struct as a field, all of
+  its nested fields are now set up automatically as soon as the variable
+  is declared.
+- `d6dd530` | Adds the `saqut bench` command.
+- `585b8eb` | Commits to a second execution backend: a MIR-based JIT and
+  an embedded-runtime AOT compiler.
+
+### June 24, 2026 · 0.3.0 · The Language Learns To Split Itself
+
+- `8136773` | Adds enum type support.
+- `2af0bce` | Adds the `decimal` type, fully supported by both the
+  compiler and the VM.
+- `878faa3` | Adds struct arrays (`Point[]`) and multi-dimensional
+  arrays.
+- `b9a6176` | Adds a built-in method system: `E::method(args)` syntax.
+- `4a84e59` | Adds a module system (import/export, multi-file builds) and
+  the `exec` command that goes with it.
+- `4a64812` | Tests the compiler against 37 real algorithms (sorting,
+  searching, and more).
+
+### June 21, 2026 · 0.2.0 · Closing The Cracks
+
+- `060b4a0` | Adds a hint to every error message showing how to fix the
+  problem.
+- `53823f1` | Rebuilds the garbage collector (GC): memory is now cleaned
+  up the same way, every time, right when a function returns.
+- `50c2615` | Struct fields declared as nullable (`T?`) are now parsed
+  and typed correctly.
+- `d7872f7` | Translates every user-facing message from Turkish to
+  English.
+- `b8c2d95` | Constant folding now runs without crashing the compiler.
+- `3baa5e3` | A function that returns a struct now has its return type
+  recognized correctly.
+- `8545ce4` | Bitwise operators (`&`, `|`, `^`, `<<`, `>>`) are now fully
+  compiled to IR, with expanded test coverage.
+
+### June 20, 2026 · 0.1.0 · A Language, Built From Zero
+
+- `2bf52f5` | Finishes the lexer/tokenizer, which turns source code into
+  tokens. This is the compiler's first stage.
+- `4839f37` | Completes the parser: expressions now build the correct
+  tree based on operator precedence.
+- `e488f29` | Runs `fibonacci.sqt` for the first time, through our own IR
+  generator and bytecode VM.
+- `d5a1b2c` | Adds the type system and the engine that produces error and
+  diagnostic messages.
+- `c8ee926` | Adds the symbol table: resolves variable and function
+  names, and tracks scopes and references.
+- `36ad5d0` | Adds the optimizer: computes constant expressions at
+  compile time (constant folding) and removes code that can never run
+  (dead-code elimination).
+- `b02a7da` | Adds string concatenation, try/catch/throw, and nullable
+  flow analysis.
+- `7b2258e` | Adds array support, backed by an object model the garbage
+  collector (GC) can manage.
+- `fab82ee` | Adds bitwise operators and IR generation for global
+  variables shared across a file.
+
+[0.1.0 → 0.2.0](https://github.com/saqutlang/saqut/compare/0.1.0...0.2.0) ·
+[0.2.0 → 0.3.0](https://github.com/saqutlang/saqut/compare/0.2.0...0.3.0) ·
+[0.3.0 → 0.4.0](https://github.com/saqutlang/saqut/compare/0.3.0...0.4.0) ·
+[0.4.0 → 0.5.0](https://github.com/saqutlang/saqut/compare/0.4.0...0.5.0) ·
+[0.5.0 → 0.6.0](https://github.com/saqutlang/saqut/compare/0.5.0...0.6.0) ·
+[0.6.0 → 0.7.0](https://github.com/saqutlang/saqut/compare/0.6.0...0.7.0) ·
+[0.7.0 → 0.8.0](https://github.com/saqutlang/saqut/compare/0.7.0...0.8.0) ·
+[0.8.0 → 0.9.0](https://github.com/saqutlang/saqut/compare/0.8.0...v0.9.0)
+
 ## /modules/
 
 As a program grows, splitting it across several files keeps each file focused.
@@ -10029,12 +10194,12 @@ Fonksiyonlar, kontrol akışı ve `print()`. Zorunlu tören kodu yok.
 ## Öğrenmeye başlayın
 
 <CardGrid>
-  <LinkCard title="Veri Tipleri" href="tr/data-types/" description="int, float, bool, byte, string, struct, array, nullable ve tip yükseltme kuralları." />
-  <LinkCard title="Operatörler" href="tr/operators/" description="Aritmetik, mantıksal, bitsel, atama, üçlü ve as dönüşümü; tam öncelik tablosuyla birlikte." />
-  <LinkCard title="Yerleşik Fonksiyonlar" href="tr/builtin-functions/" description="Her string, array ve struct metodu örneklerle sıfırdan anlatılıyor." />
-  <LinkCard title="Modüller" href="tr/modules/" description="Kodu import/export ile dosyalara bölün; iki dosyalı programdan bağımlılık çizgelerine kadar." />
-  <LinkCard title="Hata Yönetimi" href="tr/error-handling/" description="try / catch / throw ile çalışma zamanı hatalarını yakalayın ve fırlatın." />
-  <LinkCard title="Derleyici Araçları" href="tr/compiler-tools/" description="Token, AST, sembol ve IR nedir, her birine ne zaman başvurmalısınız." />
+  <LinkCard title="Veri Tipleri" href="/tr/data-types/" description="int, float, bool, byte, string, struct, array, nullable ve tip yükseltme kuralları." />
+  <LinkCard title="Operatörler" href="/tr/operators/" description="Aritmetik, mantıksal, bitsel, atama, üçlü ve as dönüşümü; tam öncelik tablosuyla birlikte." />
+  <LinkCard title="Yerleşik Fonksiyonlar" href="/tr/builtin-functions/" description="Her string, array ve struct metodu örneklerle sıfırdan anlatılıyor." />
+  <LinkCard title="Modüller" href="/tr/modules/" description="Kodu import/export ile dosyalara bölün; iki dosyalı programdan bağımlılık çizgelerine kadar." />
+  <LinkCard title="Hata Yönetimi" href="/tr/error-handling/" description="try / catch / throw ile çalışma zamanı hatalarını yakalayın ve fırlatın." />
+  <LinkCard title="Derleyici Araçları" href="/tr/compiler-tools/" description="Token, AST, sembol ve IR nedir, her birine ne zaman başvurmalısınız." />
 </CardGrid>
 
 ---
@@ -10047,6 +10212,182 @@ Kaynak -> Sözcük Analizi -> Sözdizimi Analizi -> AST -> Sembol Toplama -> Tip
 ```
 
 Her ok, çalıştırıp inceleyebileceğiniz bir CLI komutuna karşılık gelir.
+
+---
+
+## Sürüm günlüğü
+
+### 29 Temmuz 2026 · 0.9.0 · Sözünde Durur
+
+- `2cb8c99` | Parser artık eksik kapanış parantezi, köşeli parantez ya da
+  süslü parantez gibi 25 farklı sözdizimi hatasını açık ve net bir hata
+  mesajıyla bildiriyor.
+- `87d1f46` | `run`, `check` ve `ir` komutlarının hepsi artık aynı türden
+  bir hata için aynı çıkış kodunu (exit code) veriyor; hangi komutu
+  kullandığın sonucu değiştirmiyor.
+- `28d9439` | `exec` komutu artık parser hatalarını gösteriyor.
+- `301eaf6` | `ast` ve `symbols` komutları da parser hatalarını artık
+  `exec` ve `run` ile aynı şekilde raporluyor.
+- `443d590` | `saqut ir` komutu artık her IR talimat türünü çıktıda
+  gösteriyor.
+- `5490018` | Bir fonksiyon açık bir `return` olmadan sona eriyorsa, `saqut
+  ir` bu örtük dönüşü de artık gösteriyor.
+- `ebf9538` | `saqut ir` çıktısındaki renkler artık yalnızca gerçek bir
+  terminalde basılıyor; çıktı bir dosyaya veya başka bir programa
+  yönlendirildiğinde renk kodları karışmıyor.
+- `c015519` | Bir `switch` ifadesinin tüm dalları `return` ediyorsa,
+  derleyici bunu artık doğru tespit ediyor.
+- `793622d` | Dizi olmayan bir değere `[index]` ile erişmek artık derleme
+  zamanında hata veriyor.
+- `7f871b7` | VM ile JIT'in her sonuçta aynı şeyi ürettiğini otomatik
+  olarak doğrulayan bir test altyapısı kuruldu.
+- `2f31cb2` | `int32`, `longint64`, `float32` ve `double64` artık VM'de ve
+  JIT'te birebir aynı sonucu veriyor.
+
+### 16 Temmuz 2026 · 0.8.0 🏆 · Deneysel JIT'in İlk Nefesi
+
+> 🏆 saQut'un ilk resmi build'ini burada aldık.
+
+- `2b53460` | Deneysel MIR JIT arka ucu geldi: `--jit` bayrağıyla
+  denenebiliyor.
+- `dcc8a04` | Artık tüm programlar `--jit` ile uçtan uca çalışabiliyor.
+- `62651cf` | JIT artık `float` değerlerini de derleyip çalıştırabiliyor.
+- `24acdc7` | JIT artık `string` değerlerini de derleyip çalıştırabiliyor.
+- `748f992` | 32-bit `int` taşması artık VM'de ve JIT'te birebir aynı
+  sonucu veriyor (tanımlı taşma davranışı: 2'nin tümleyeni).
+- `574ce3f` | `saqut --version` bayrağı ve statik release build geldi.
+- `879a85e` | `saqut run --profile` ile VM ve JIT'in ısınma ve çalışma
+  süreleri artık ayrı ayrı ölçülebiliyor.
+
+### 15 Temmuz 2026 · 0.7.0 · Dil Dış Dünyaya Açılıyor
+
+- `a785d2a` | FFI (yabancı fonksiyon arayüzü) desteği geldi: `ffi` anahtar
+  kelimesiyle dilin dışındaki (host) fonksiyonlar tanıtılıp doğrudan
+  çağrılabiliyor.
+- `2259bfb` | `fs` modülü geldi: dosya okuma, yazma, varlık kontrolü ve
+  silme.
+- `c3451f7` | `sys` modülü geldi: rastgele sayı üretme, ortam
+  değişkenlerini okuma, bekleme (sleep) ve komut satırı argümanlarına
+  erişim.
+- `76c9bc6` | `date` tipi geldi: UTC zaman damgasını milisaniye cinsinden
+  tutuyor.
+- `35790a2` | `math::PI` ve `math::E` sabitleri geldi.
+- `5433cb3` | İzin (capability) sistemi geldi: dosya ve ağ erişimi,
+  `--allow-fs` / `--allow-net` / `--allow-sys` bayrakları açıkça
+  verilmeden artık reddediliyor.
+- `1e0fbd3` | `caps::drop` ve `caps::has` geldi: çalışan bir program kendi
+  izinlerinden bilerek vazgeçebiliyor ya da hangi izinlere sahip olduğunu
+  sorgulayabiliyor.
+- `04d90b5` | Bir blok içinde, dıştaki bir değişkeni aynı isimle
+  gölgeleyen yeni bir değişken tanımlandığında, derleyici artık doğru
+  değişkene erişiyor.
+
+### 14 Temmuz 2026 · 0.6.0 · Küçük Ama Keskin
+
+- `7c5d90a` | Çöp toplayıcı (GC) artık bellek kullanımı belirli bir eşiği
+  aştığında kendiliğinden çalışıyor.
+- `587bb57` | Yerleşik (builtin) fonksiyonların çağrılma şekli yenilendi:
+  artık `deger.metod()` gibi nokta ile çağrılabiliyor ve ad alanlarına
+  (namespace) ayrılıyor.
+- `845588d` | `byte` tipi geldi: 8-bit işaretsiz değer, 0-255.
+
+### 13 Temmuz 2026 · 0.5.0 · Adım Adım Hata Ayıklama
+
+- `025a667` | Hata ayıklama protokolü (DAP) baştan doğru şekilde yazıldı:
+  editörler artık bir saQut programını adım adım çalıştırıp
+  durdurabiliyor, değişkenleri inceleyebiliyor.
+- `e4abc6f` | Bir programı hata ayıklarken artık gerçekten
+  duraklatabiliyorsun; program dondurulmadan (non-blocking) bekletiliyor.
+- `75e3dd1` | Adım adım çalıştırma (step) artık her komutu kapsıyor ve
+  duraklama tam olarak doğru satırda gerçekleşiyor.
+- `d26575b` | Editördeki otomatik tamamlama (code completion) daha
+  güvenilir hale getirildi.
+- `11af652` | Editörden artık değişken/fonksiyon isimlerini güvenle
+  değiştirebiliyorsun (rename) ve bir fonksiyonu çağırırken parametre
+  ipuçlarını görebiliyorsun.
+- `b9ca166` | İki modül birbirini dolaylı olarak import ederse (döngüsel
+  bağımlılık), derleyici bunu artık `E_MODULE_CYCLE` hatasıyla
+  bildiriyor.
+
+### 11 Temmuz 2026 · 0.4.0 · Editör Artık İçeri Bakabiliyor
+
+- `ad45bd5` | Editör desteğinin temelleri atıldı: sözdizimi vurgulama
+  (TextMate grameri), bir dil sunucusu (LSP) ve hata ayıklama protokolü
+  (DAP) iskeleti geldi.
+- `b66226b` | Dil sunucusu (LSP) artık bir dosyayı diske kaydetmeden,
+  editördeki anlık haliyle derleyebiliyor.
+- `f3a7853` | Dil sunucusu artık dosya içindeki konumları (satır/sütun)
+  çok daha güvenilir hesaplıyor, çok dosyalı projelerde de doğru
+  çalışıyor.
+- `934a903` | AST, sembol tablosu ve IR çıktılarına pastel renklendirme
+  eklendi.
+- `6651a91` | Bir struct başka bir struct'ı alan olarak içeriyorsa,
+  değişken tanımlanır tanımlanmaz iç içe geçmiş tüm alanlar da otomatik
+  olarak hazırlanıyor.
+- `d6dd530` | `saqut bench` komutu geldi.
+- `585b8eb` | İkinci bir çalıştırma arka ucu olarak MIR tabanlı bir JIT ve
+  gömülü çalışma zamanlı bir AOT derleyicisine karar verildi.
+
+### 24 Haziran 2026 · 0.3.0 · Dil Parçalara Ayrılabiliyor
+
+- `8136773` | enum tip desteği geldi.
+- `2af0bce` | `decimal` tipi geldi: derleyici ve sanal makine (VM) baştan
+  sona destekliyor.
+- `878faa3` | struct dizileri (`Point[]`) ve çok boyutlu diziler desteği
+  geldi.
+- `b9a6176` | built-in method sistemi geldi: `E::method(args)` sözdizimi.
+- `4a84e59` | Modül sistemi geldi (import/export, çok dosyalı derleme);
+  beraberinde `exec` komutu da geldi.
+- `4a64812` | Derleyici artık 37 gerçek algoritmaya (sıralama, arama ve
+  daha fazlası) karşı test ediliyor.
+
+### 21 Haziran 2026 · 0.2.0 · Çatlaklar Kapanıyor
+
+- `060b4a0` | Her hata mesajına, sorunu nasıl çözebileceğini gösteren bir
+  ipucu eklendi.
+- `53823f1` | Çöp toplayıcı (GC) yenilendi: bellek artık bir fonksiyondan
+  çıkıldığı anda, her çalıştırmada aynı şekilde temizleniyor.
+- `50c2615` | Nullable (`T?`) olarak tanımlanan struct alanları artık
+  doğru ayrıştırılıyor ve tipleniyor.
+- `d7872f7` | Kullanıcıya görünen tüm mesajlar Türkçeden İngilizceye
+  çevrildi.
+- `b8c2d95` | Sabit katlama (constant folding) artık bellek çökmesine
+  (segfault) yol açmadan çalışıyor.
+- `3baa5e3` | Bir fonksiyon struct döndürüyorsa, dönüş tipi artık doğru
+  şekilde tanınıyor.
+- `8545ce4` | Bitsel operatörler (`&`, `|`, `^`, `<<`, `>>`) artık IR'a
+  tam olarak dönüştürülüyor, test kapsamı genişletildi.
+
+### 20 Haziran 2026 · 0.1.0 · Sıfırdan Bir Dil Doğuyor
+
+- `2bf52f5` | Kaynak kodu token'lara ayıran lexer/tokenizer tamamlandı.
+  Derleyicinin ilk aşaması hazır.
+- `4839f37` | Sözdizimi çözümleyici (parser) tamamlandı: ifadeler artık
+  operatör önceliğine göre doğru bir ağaca (AST) dönüşüyor.
+- `e488f29` | `fibonacci.sqt`, kendi IR üreticimiz ve bytecode VM'imiz
+  üzerinden ilk kez çalıştı.
+- `d5a1b2c` | Tip sistemi ve hata/tanı mesajları üreten tanılama motoru
+  geldi.
+- `c8ee926` | Sembol tablosu geldi: değişken/fonksiyon isimlerini
+  çözümlüyor, kapsamları (scope) ve referansları takip ediyor.
+- `36ad5d0` | Optimize edici geldi: sabit ifadeleri derleme zamanında
+  hesaplıyor (sabit katlama) ve hiç çalışmayacak kodu siliyor (ölü kod
+  eleme).
+- `b02a7da` | string birleştirme, try/catch/throw ve nullable akış
+  analizi eklendi.
+- `7b2258e` | array desteği geldi: çöp toplayıcının (GC) yönetebileceği
+  bir nesne modeliyle.
+- `fab82ee` | Bitsel operatörler ve dosya genelinde paylaşılan (global)
+  değişkenler için IR üretimi eklendi.
+
+[0.1.0 → 0.2.0](https://github.com/saqutlang/saqut/compare/0.1.0...0.2.0) ·
+[0.2.0 → 0.3.0](https://github.com/saqutlang/saqut/compare/0.2.0...0.3.0) ·
+[0.3.0 → 0.4.0](https://github.com/saqutlang/saqut/compare/0.3.0...0.4.0) ·
+[0.4.0 → 0.5.0](https://github.com/saqutlang/saqut/compare/0.4.0...0.5.0) ·
+[0.5.0 → 0.6.0](https://github.com/saqutlang/saqut/compare/0.5.0...0.6.0) ·
+[0.6.0 → 0.7.0](https://github.com/saqutlang/saqut/compare/0.6.0...0.7.0) ·
+[0.7.0 → 0.8.0](https://github.com/saqutlang/saqut/compare/0.7.0...0.8.0) ·
+[0.8.0 → 0.9.0](https://github.com/saqutlang/saqut/compare/0.8.0...v0.9.0)
 
 ## /tr/modules/
 

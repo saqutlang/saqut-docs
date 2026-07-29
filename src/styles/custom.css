@@ -1,4 +1,31 @@
-f/* Sidebar collapsed group labels — lighter weight, normal case */
+/* Hero image slot: unlayered so it outranks Starlight's
+   `@layer starlight.core` hero rules; `order` pushes the image after the
+   text/button stack on mobile (Starlight's default puts it first) while
+   desktop keeps it beside the stack via the existing two-column grid. */
+.hero > img,
+.hero > .hero-html {
+	order: 1;
+}
+
+@media (min-width: 50rem) {
+	/* Give the image column real room and pull it toward the text column;
+	   a slight overlap into that column's unused whitespace is fine. */
+	.hero {
+		grid-template-columns: 1fr 1fr;
+		gap: 1%;
+	}
+
+	/* The artwork already has its own breathing room baked in, so let it
+	   fill its grid column instead of Starlight's default 25rem cap. */
+	.hero > img,
+	.hero > .hero-html {
+		width: min(100%, 40rem);
+		object-fit: contain;
+		margin-inline-start: -3rem;
+	}
+}
+
+/* Sidebar collapsed group labels — lighter weight, normal case */
 .sl-flex ul > li > details > summary {
 	font-weight: 500;
 }

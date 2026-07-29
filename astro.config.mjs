@@ -30,6 +30,16 @@ export default defineConfig({
 					tag: 'link',
 					attrs: { rel: 'apple-touch-icon', href: '/favicon-32.png' },
 				},
+				// Default social share preview image, used by every page unless
+				// overridden in that page's own frontmatter `head`.
+				{
+					tag: 'meta',
+					attrs: { property: 'og:image', content: 'https://saqut.com/og-image.png' },
+				},
+				{
+					tag: 'meta',
+					attrs: { name: 'twitter:image', content: 'https://saqut.com/og-image.png' },
+				},
 			],
 			customCss: ['./src/styles/custom.css'],
 			defaultLocale: 'root',
