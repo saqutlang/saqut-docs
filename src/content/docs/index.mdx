@@ -168,22 +168,22 @@ Each arrow corresponds to a CLI command you can run and inspect.
 
 ### July 29, 2026 · 0.9.0 · Say What You Mean
 
-- `2cb8c99` | The parser now reports a clear error for a missing closing
+- `77e9276` | The parser now reports a clear error for a missing closing
   `)`, `]`, or `}` in 25 different situations.
-- `87d1f46` | `run`, `check`, and `ir` now all return the same exit code
+- `a01f46e` | `run`, `check`, and `ir` now all return the same exit code
   for the same kind of error, no matter which one you use.
-- `28d9439` | `exec` now reports parser errors instead of silently
+- `c7d1d94` | `exec` now reports parser errors instead of silently
   continuing.
-- `301eaf6` | `ast` and `symbols` now report parser errors the same way
+- `fe90c0c` | `ast` and `symbols` now report parser errors the same way
   `exec` and `run` do.
-- `443d590` | `saqut ir` now shows every instruction kind in its output.
-- `5490018` | When a function ends without an explicit `return`, `saqut
+- `74e01a5` | `saqut ir` now shows every instruction kind in its output.
+- `c43e830` | When a function ends without an explicit `return`, `saqut
   ir` now shows that implicit return too.
-- `ebf9538` | `saqut ir` now only prints color codes when the output goes
+- `b48e0cf` | `saqut ir` now only prints color codes when the output goes
   to a real terminal, keeping piped or redirected output clean.
-- `c015519` | The compiler now correctly recognizes when every branch of
+- `f7a32f9` | The compiler now correctly recognizes when every branch of
   a `switch` returns a value.
-- `793622d` | Indexing a non-array value with `[index]` is now rejected
+- `54881c8` | Indexing a non-array value with `[index]` is now rejected
   at compile time.
 - `7f871b7` | Adds a differential test harness that automatically checks
   the VM and JIT agree on every result.

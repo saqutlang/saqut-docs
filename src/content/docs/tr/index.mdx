@@ -171,25 +171,25 @@ Her ok, çalıştırıp inceleyebileceğiniz bir CLI komutuna karşılık gelir.
 
 ### 29 Temmuz 2026 · 0.9.0 · Sözünde Durur
 
-- `2cb8c99` | Parser artık eksik kapanış parantezi, köşeli parantez ya da
+- `77e9276` | Parser artık eksik kapanış parantezi, köşeli parantez ya da
   süslü parantez gibi 25 farklı sözdizimi hatasını açık ve net bir hata
   mesajıyla bildiriyor.
-- `87d1f46` | `run`, `check` ve `ir` komutlarının hepsi artık aynı türden
+- `a01f46e` | `run`, `check` ve `ir` komutlarının hepsi artık aynı türden
   bir hata için aynı çıkış kodunu (exit code) veriyor; hangi komutu
   kullandığın sonucu değiştirmiyor.
-- `28d9439` | `exec` komutu artık parser hatalarını gösteriyor.
-- `301eaf6` | `ast` ve `symbols` komutları da parser hatalarını artık
+- `c7d1d94` | `exec` komutu artık parser hatalarını gösteriyor.
+- `fe90c0c` | `ast` ve `symbols` komutları da parser hatalarını artık
   `exec` ve `run` ile aynı şekilde raporluyor.
-- `443d590` | `saqut ir` komutu artık her IR talimat türünü çıktıda
+- `74e01a5` | `saqut ir` komutu artık her IR talimat türünü çıktıda
   gösteriyor.
-- `5490018` | Bir fonksiyon açık bir `return` olmadan sona eriyorsa, `saqut
+- `c43e830` | Bir fonksiyon açık bir `return` olmadan sona eriyorsa, `saqut
   ir` bu örtük dönüşü de artık gösteriyor.
-- `ebf9538` | `saqut ir` çıktısındaki renkler artık yalnızca gerçek bir
+- `b48e0cf` | `saqut ir` çıktısındaki renkler artık yalnızca gerçek bir
   terminalde basılıyor; çıktı bir dosyaya veya başka bir programa
   yönlendirildiğinde renk kodları karışmıyor.
-- `c015519` | Bir `switch` ifadesinin tüm dalları `return` ediyorsa,
+- `f7a32f9` | Bir `switch` ifadesinin tüm dalları `return` ediyorsa,
   derleyici bunu artık doğru tespit ediyor.
-- `793622d` | Dizi olmayan bir değere `[index]` ile erişmek artık derleme
+- `54881c8` | Dizi olmayan bir değere `[index]` ile erişmek artık derleme
   zamanında hata veriyor.
 - `7f871b7` | VM ile JIT'in her sonuçta aynı şeyi ürettiğini otomatik
   olarak doğrulayan bir test altyapısı kuruldu.
