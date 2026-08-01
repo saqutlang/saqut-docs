@@ -21,7 +21,7 @@
 - [Getting Started](https://saqut.com/getting-started/): Install saQut, understand the supported platforms, and learn the structure of a saQut project.
 - [Hello World](https://saqut.com/hello-world/): Write and run your first saQut program.
 - [if / else](https://saqut.com/if-else/): Make decisions in your code with conditional branching.
-- [saQut](https://saqut.com/): A procedural language whose compiler is a glass box where every phase (tokens, AST, symbols, IR) is inspectable, pipeable, and machine-readable.
+- [saQut: A Procedural Language with a Glass-Box Compiler](https://saqut.com/): A procedural language whose compiler is a glass box where every phase (tokens, AST, symbols, IR) is inspectable, pipeable, and machine-readable.
 - [Modules (import / export)](https://saqut.com/modules/): Split a program across multiple files with import and export, from a two-file program to diamond dependencies and cycle detection.
 - [Nullable Types](https://saqut.com/nullable-types/): How to use T? for values that might be null, with compile-time safety.
 - [Operators](https://saqut.com/operators/): Arithmetic, comparison, logical, bitwise, and assignment operators in saQut.
@@ -62,7 +62,7 @@
 - [Hızlı Başlangıç](https://saqut.com/tr/getting-started/): saQut'u kurun, desteklenen platformları öğrenin ve proje yapısını kavrayın.
 - [Merhaba Dünya](https://saqut.com/tr/hello-world/): İlk saQut programınızı yazın ve çalıştırın.
 - [if / else](https://saqut.com/tr/if-else/): Koşullu dallanma ile kodunuzda kararlar verin.
-- [saQut](https://saqut.com/tr/): Derleyicisinin her aşaması (token, AST, sembol tablosu, IR) ayrı ayrı incelenebilen, dışa aktarılabilen ve başka araçlara bağlanabilen prosedürel bir programlama dili.
+- [saQut: Cam Kutu Derleyicili Prosedürel Bir Dil](https://saqut.com/tr/): Derleyicisinin her aşaması (token, AST, sembol tablosu, IR) ayrı ayrı incelenebilen, dışa aktarılabilen ve başka araçlara bağlanabilen prosedürel bir programlama dili.
 - [Modüller (import / export)](https://saqut.com/tr/modules/): Programınızı import ve export ile birden çok dosyaya bölün; iki dosyalı bir programdan baklava bağımlılıklarına ve döngü tespitine kadar.
 - [Nullable Tipler](https://saqut.com/tr/nullable-types/): Değeri null olabilecek durumlar için T? kullanımı, derleme zamanı güvenliğiyle.
 - [İşleçler](https://saqut.com/tr/operators/): saQut'taki aritmetik, karşılaştırma, mantıksal, bitsel ve atama işleçleri.

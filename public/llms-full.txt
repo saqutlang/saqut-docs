@@ -3410,24 +3410,45 @@ Each arrow corresponds to a CLI command you can run and inspect.
 
 ## Changelog
 
+### August 1, 2026 · 0.9.2 · Learning to Measure Itself
+
+- `c2266ad` | An `int` or `longint` literal that does not fit the type is
+  now caught at compile time instead of silently wrapping to a different
+  value.
+- `d85c7ee` | `decimal` comparisons now agree with `decimal` arithmetic,
+  so money math finally adds up.
+- `fd7d082` | Self-referential structs like `Node { Node? next; }` now
+  compile, and `T?` fields start out as `null`.
+- `7c8f678` | The JIT and the VM now give the same answer for `decimal`
+  values and the same message for runtime errors.
+- `3261321` | The VM stopped doing debugger bookkeeping on every single
+  instruction — programs run about 1.9x faster.
+- `f4a60c8` | The parser reads each token once instead of six times.
+- `1a096ee` | Source positions got three times smaller, so long file
+  paths no longer cost memory.
+- `76d2340` | `bench` now perturbs the program it measures by 1.4%
+  instead of 13%, and type checking shows up as its own stage.
+- `b576595` | Adds a harness that runs the same program through the AST,
+  IR, VM, and JIT and reports where they disagree.
+
 ### July 29, 2026 · 0.9.0 · Say What You Mean
 
-- `2cb8c99` | The parser now reports a clear error for a missing closing
+- `77e9276` | The parser now reports a clear error for a missing closing
   `)`, `]`, or `}` in 25 different situations.
-- `87d1f46` | `run`, `check`, and `ir` now all return the same exit code
+- `a01f46e` | `run`, `check`, and `ir` now all return the same exit code
   for the same kind of error, no matter which one you use.
-- `28d9439` | `exec` now reports parser errors instead of silently
+- `c7d1d94` | `exec` now reports parser errors instead of silently
   continuing.
-- `301eaf6` | `ast` and `symbols` now report parser errors the same way
+- `fe90c0c` | `ast` and `symbols` now report parser errors the same way
   `exec` and `run` do.
-- `443d590` | `saqut ir` now shows every instruction kind in its output.
-- `5490018` | When a function ends without an explicit `return`, `saqut
+- `74e01a5` | `saqut ir` now shows every instruction kind in its output.
+- `c43e830` | When a function ends without an explicit `return`, `saqut
   ir` now shows that implicit return too.
-- `ebf9538` | `saqut ir` now only prints color codes when the output goes
+- `b48e0cf` | `saqut ir` now only prints color codes when the output goes
   to a real terminal, keeping piped or redirected output clean.
-- `c015519` | The compiler now correctly recognizes when every branch of
+- `f7a32f9` | The compiler now correctly recognizes when every branch of
   a `switch` returns a value.
-- `793622d` | Indexing a non-array value with `[index]` is now rejected
+- `54881c8` | Indexing a non-array value with `[index]` is now rejected
   at compile time.
 - `7f871b7` | Adds a differential test harness that automatically checks
   the VM and JIT agree on every result.
@@ -10217,27 +10238,47 @@ Her ok, çalıştırıp inceleyebileceğiniz bir CLI komutuna karşılık gelir.
 
 ## Sürüm günlüğü
 
+### 1 Ağustos 2026 · 0.9.2 · Kendini Ölçmeyi Öğreniyor
+
+- `c2266ad` | Tipine sığmayan bir `int` ya da `longint` sabiti artık
+  sessizce başka bir değere dönüşmek yerine derleme zamanında yakalanıyor.
+- `d85c7ee` | `decimal` karşılaştırmaları artık `decimal` aritmetiğiyle
+  aynı fikirde — para hesabı nihayet tutuyor.
+- `fd7d082` | `Node { Node? next; }` gibi kendine referans veren
+  struct'lar artık derleniyor ve `T?` alanlar `null` başlıyor.
+- `7c8f678` | JIT ve VM artık `decimal` değerlerde aynı cevabı, çalışma
+  zamanı hatalarında aynı mesajı veriyor.
+- `3261321` | VM her talimatta debugger defteri tutmayı bıraktı —
+  programlar yaklaşık 1.9 kat daha hızlı çalışıyor.
+- `f4a60c8` | Parser her token'ı altı kez yerine bir kez okuyor.
+- `1a096ee` | Kaynak konumları üçte bir boyutuna indi; uzun dosya yolları
+  artık bellekte yer kaplamıyor.
+- `76d2340` | `bench` ölçtüğü programı %13 yerine %1.4 oranında etkiliyor
+  ve tip denetimi kendi aşaması olarak görünüyor.
+- `b576595` | Aynı programı AST, IR, VM ve JIT üzerinden çalıştırıp nerede
+  anlaşamadıklarını raporlayan bir harness eklendi.
+
 ### 29 Temmuz 2026 · 0.9.0 · Sözünde Durur
 
-- `2cb8c99` | Parser artık eksik kapanış parantezi, köşeli parantez ya da
+- `77e9276` | Parser artık eksik kapanış parantezi, köşeli parantez ya da
   süslü parantez gibi 25 farklı sözdizimi hatasını açık ve net bir hata
   mesajıyla bildiriyor.
-- `87d1f46` | `run`, `check` ve `ir` komutlarının hepsi artık aynı türden
+- `a01f46e` | `run`, `check` ve `ir` komutlarının hepsi artık aynı türden
   bir hata için aynı çıkış kodunu (exit code) veriyor; hangi komutu
   kullandığın sonucu değiştirmiyor.
-- `28d9439` | `exec` komutu artık parser hatalarını gösteriyor.
-- `301eaf6` | `ast` ve `symbols` komutları da parser hatalarını artık
+- `c7d1d94` | `exec` komutu artık parser hatalarını gösteriyor.
+- `fe90c0c` | `ast` ve `symbols` komutları da parser hatalarını artık
   `exec` ve `run` ile aynı şekilde raporluyor.
-- `443d590` | `saqut ir` komutu artık her IR talimat türünü çıktıda
+- `74e01a5` | `saqut ir` komutu artık her IR talimat türünü çıktıda
   gösteriyor.
-- `5490018` | Bir fonksiyon açık bir `return` olmadan sona eriyorsa, `saqut
+- `c43e830` | Bir fonksiyon açık bir `return` olmadan sona eriyorsa, `saqut
   ir` bu örtük dönüşü de artık gösteriyor.
-- `ebf9538` | `saqut ir` çıktısındaki renkler artık yalnızca gerçek bir
+- `b48e0cf` | `saqut ir` çıktısındaki renkler artık yalnızca gerçek bir
   terminalde basılıyor; çıktı bir dosyaya veya başka bir programa
   yönlendirildiğinde renk kodları karışmıyor.
-- `c015519` | Bir `switch` ifadesinin tüm dalları `return` ediyorsa,
+- `f7a32f9` | Bir `switch` ifadesinin tüm dalları `return` ediyorsa,
   derleyici bunu artık doğru tespit ediyor.
-- `793622d` | Dizi olmayan bir değere `[index]` ile erişmek artık derleme
+- `54881c8` | Dizi olmayan bir değere `[index]` ile erişmek artık derleme
   zamanında hata veriyor.
 - `7f871b7` | VM ile JIT'in her sonuçta aynı şeyi ürettiğini otomatik
   olarak doğrulayan bir test altyapısı kuruldu.
