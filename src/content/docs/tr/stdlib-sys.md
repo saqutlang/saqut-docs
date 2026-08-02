@@ -14,9 +14,10 @@ import { random, randomRange, env, args, sleep } from sys;
 
 ## Fonksiyonlar
 
-### random
+### `float random()`
 
-Rastgele pozitif bir tamsayı döndürür.
+`[0.0, 1.0)` aralığında rastgele bir `float` döndürür. `0.0` dönebilir,
+ancak `1.0` dönmez. Bu fonksiyon parametre almaz.
 
 ```c
 import { random } from sys;
@@ -31,9 +32,10 @@ int main() {
 Sonuç genel amaçlı bir CSPRNG'den gelir. Kriptografik rastgelelik için
 planlanan `crypto` modülünü kullan.
 
-### randomRange
+### `int randomInt(int min, int max)`
 
-`min` (dahil) ile `max` (hariç) arasında rastgele bir tamsayı döndürür.
+`min` dahil ve `max` hariç olacak şekilde `[min, max)` aralığında rastgele bir
+32-bit `int` döndürür. `min`, `max` değerinden küçük olmalıdır.
 
 ```c
 import { randomRange } from sys;
@@ -45,9 +47,10 @@ int main() {
 }
 ```
 
-### env
+### `string? env(string name)`
 
-Bir ortam değişkeninin değerini döndürür; tanımlı değilse boş string.
+`name` ile belirtilen ortam değişkeninin değerini döndürür. Değişken yoksa
+boş string yerine `null` döndürür.
 
 ```c
 import { env } from sys;
@@ -59,9 +62,10 @@ int main() {
 }
 ```
 
-### args
+### `string[] args()`
 
-Programa geçirilen komut satırı argümanlarını string dizisi olarak döndürür.
+Programa geçirilen komut satırı argümanlarını `string[]` olarak döndürür. Bu
+fonksiyon parametre almaz.
 
 ```c
 import { args } from sys;
@@ -84,9 +88,10 @@ saqut run --allow sys prog.sqt merhaba dunya
 # a[2] = "dunya"
 ```
 
-### sleep
+### `void sleep(int millis)`
 
-Programı verilen saniye kadar bekletir (ondalıklı değer desteklenir).
+Programı `millis` milisaniye boyunca duraklatır. Parametre `int` türündedir;
+ondalıklı saniye değeri kabul edilmez.
 
 ```c
 import { sleep } from sys;

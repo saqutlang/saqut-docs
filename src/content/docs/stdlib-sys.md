@@ -14,9 +14,10 @@ import { random, randomRange, env, args, sleep } from sys;
 
 ## Functions
 
-### random
+### `float random()`
 
-Returns a random positive integer.
+Returns a pseudo-random `float` in the interval `[0.0, 1.0)`: zero can be
+returned, but `1.0` cannot. This function does not accept parameters.
 
 ```c
 import { random } from sys;
@@ -31,9 +32,10 @@ int main() {
 The result comes from a general-purpose CSPRNG. For cryptographic randomness
 use the planned `crypto` module.
 
-### randomRange
+### `int randomInt(int min, int max)`
 
-Returns a random integer between `min` (inclusive) and `max` (exclusive).
+Returns a random 32-bit `int` in the half-open interval `[min, max)`. `min` is
+included and `max` is excluded; `min` must be smaller than `max`.
 
 ```c
 import { randomRange } from sys;
@@ -45,9 +47,10 @@ int main() {
 }
 ```
 
-### env
+### `string? env(string name)`
 
-Returns the value of an environment variable, or an empty string if not set.
+Returns the value of the environment variable named by `name`. Returns `null`
+when the variable does not exist.
 
 ```c
 import { env } from sys;
@@ -59,9 +62,10 @@ int main() {
 }
 ```
 
-### args
+### `string[] args()`
 
-Returns the command-line arguments passed to the program as a string array.
+Returns the command-line arguments passed to the program as a `string[]`. This
+function has no parameters.
 
 ```c
 import { args } from sys;
@@ -85,9 +89,10 @@ saqut run --allow sys prog.sqt hello world
 # a[2] = "world"
 ```
 
-### sleep
+### `void sleep(int millis)`
 
-Pauses the program for the given number of seconds (supports fractional).
+Pauses the program for `millis` milliseconds. The parameter is an `int` and
+fractional seconds are not accepted.
 
 ```c
 import { sleep } from sys;

@@ -4367,7 +4367,7 @@ integer containing epoch milliseconds. Calendar components use `int`.
 
 ## Import
 
-```sqt
+```c
 import { now, fromEpochMillis, toEpochMillis, addDays, year } from date;
 ```
 
@@ -4397,7 +4397,7 @@ Use `fromEpochMillis(...)` or `parse(...)` instead. The year/month/day values
 in an ISO string are parsed by `parse`; they are not separate integer
 arguments to a `date` constructor.
 
-```sqt
+```c
 import { fromEpochMillis, parse, format } from date;
 
 int main() {
@@ -4538,7 +4538,7 @@ resolution: integer and floating-point variants have different names.
 as `absf` and `minf` is historical; those functions still use `double`.
 `PI` and `E` are zero-argument functions, not importable constants.
 
-```sqt
+```c
 import { abs, absf, max, maxf, PI } from math;
 
 int main() {
@@ -4640,9 +4640,10 @@ import { random, randomRange, env, args, sleep } from sys;
 
 ## Functions
 
-### random
+### `float random()`
 
-Returns a random positive integer.
+Returns a pseudo-random `float` in the interval `[0.0, 1.0)`: zero can be
+returned, but `1.0` cannot. This function does not accept parameters.
 
 ```c
 import { random } from sys;
@@ -4657,9 +4658,10 @@ int main() {
 The result comes from a general-purpose CSPRNG. For cryptographic randomness
 use the planned `crypto` module.
 
-### randomRange
+### `int randomInt(int min, int max)`
 
-Returns a random integer between `min` (inclusive) and `max` (exclusive).
+Returns a random 32-bit `int` in the half-open interval `[min, max)`. `min` is
+included and `max` is excluded; `min` must be smaller than `max`.
 
 ```c
 import { randomRange } from sys;
@@ -4671,9 +4673,10 @@ int main() {
 }
 ```
 
-### env
+### `string? env(string name)`
 
-Returns the value of an environment variable, or an empty string if not set.
+Returns the value of the environment variable named by `name`. Returns `null`
+when the variable does not exist.
 
 ```c
 import { env } from sys;
@@ -4685,9 +4688,10 @@ int main() {
 }
 ```
 
-### args
+### `string[] args()`
 
-Returns the command-line arguments passed to the program as a string array.
+Returns the command-line arguments passed to the program as a `string[]`. This
+function has no parameters.
 
 ```c
 import { args } from sys;
@@ -4711,9 +4715,10 @@ saqut run --allow sys prog.sqt hello world
 # a[2] = "world"
 ```
 
-### sleep
+### `void sleep(int millis)`
 
-Pauses the program for the given number of seconds (supports fractional).
+Pauses the program for `millis` milliseconds. The parameter is an `int` and
+fractional seconds are not accepted.
 
 ```c
 import { sleep } from sys;
@@ -11037,7 +11042,7 @@ değiştirilmez; hesaplama fonksiyonları yeni bir `date` döndürür.
 `date(2026, 5, 1)` mevcut standart kütüphanede bir constructor değildir. Tarih
 oluşturmak için `parse` veya epoch değeri için `fromEpochMillis` kullanılır.
 
-```sqt
+```c
 import { fromEpochMillis, parse, format, year, addDays } from date;
 
 int main() {
@@ -11211,7 +11216,7 @@ döndürür. `round(3.5)` sonucu `4.0`dır.
 Sırasıyla pi ve Euler sabitlerini `double` olarak döndürür. Bunlar sabit değişken
 değil, parametresiz fonksiyonlardır; `PI` değil `PI()` yazılır.
 
-```sqt
+```c
 import { sqrt, abs, absf, max, PI } from math;
 
 int main() {
@@ -11315,9 +11320,10 @@ import { random, randomRange, env, args, sleep } from sys;
 
 ## Fonksiyonlar
 
-### random
+### `float random()`
 
-Rastgele pozitif bir tamsayı döndürür.
+`[0.0, 1.0)` aralığında rastgele bir `float` döndürür. `0.0` dönebilir,
+ancak `1.0` dönmez. Bu fonksiyon parametre almaz.
 
 ```c
 import { random } from sys;
@@ -11332,9 +11338,10 @@ int main() {
 Sonuç genel amaçlı bir CSPRNG'den gelir. Kriptografik rastgelelik için
 planlanan `crypto` modülünü kullan.
 
-### randomRange
+### `int randomInt(int min, int max)`
 
-`min` (dahil) ile `max` (hariç) arasında rastgele bir tamsayı döndürür.
+`min` dahil ve `max` hariç olacak şekilde `[min, max)` aralığında rastgele bir
+32-bit `int` döndürür. `min`, `max` değerinden küçük olmalıdır.
 
 ```c
 import { randomRange } from sys;
@@ -11346,9 +11353,10 @@ int main() {
 }
 ```
 
-### env
+### `string? env(string name)`
 
-Bir ortam değişkeninin değerini döndürür; tanımlı değilse boş string.
+`name` ile belirtilen ortam değişkeninin değerini döndürür. Değişken yoksa
+boş string yerine `null` döndürür.
 
 ```c
 import { env } from sys;
@@ -11360,9 +11368,10 @@ int main() {
 }
 ```
 
-### args
+### `string[] args()`
 
-Programa geçirilen komut satırı argümanlarını string dizisi olarak döndürür.
+Programa geçirilen komut satırı argümanlarını `string[]` olarak döndürür. Bu
+fonksiyon parametre almaz.
 
 ```c
 import { args } from sys;
@@ -11385,9 +11394,10 @@ saqut run --allow sys prog.sqt merhaba dunya
 # a[2] = "dunya"
 ```
 
-### sleep
+### `void sleep(int millis)`
 
-Programı verilen saniye kadar bekletir (ondalıklı değer desteklenir).
+Programı `millis` milisaniye boyunca duraklatır. Parametre `int` türündedir;
+ondalıklı saniye değeri kabul edilmez.
 
 ```c
 import { sleep } from sys;
