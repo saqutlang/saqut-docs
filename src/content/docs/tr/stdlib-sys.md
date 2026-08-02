@@ -23,7 +23,7 @@ ancak `1.0` dönmez. Bu fonksiyon parametre almaz.
 import { random } from sys;
 
 int main() {
-    int r = random();
+    float r = random();
     print(r);     // örn. 1634872934
     return 0;
 }

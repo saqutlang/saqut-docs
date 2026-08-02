@@ -931,6 +931,21 @@ saqut bench program.sqt [--jit] --runs=<iterations>
 The JIT is warmed up once before timing iterations. The timing table reports
 the measured execution phase separately from compilation/warmup.
 
+## Comparing performance fairly
+
+Use the same algorithm, input, output behavior, compiler optimization level,
+and number of repetitions in every language. Report at least two numbers:
+
+- **compile/warmup time**: time before the first measured execution;
+- **steady-state execution time**: the repeated program body after setup.
+
+For saQut, use `vm-execute` and `jit-execute` from the timing table. Do not
+compare saQut's JIT warmup against another language's already-built binary.
+For C++, Rust, Go, or Java, record the compiler and flags, runtime version,
+machine, operating-system version, input size, and whether garbage collection
+or bounds checks are active. A single VM/JIT ratio is a useful local result,
+not a universal language ranking.
+
 ### lsp / dap
 
 Start the Language Server or Debug Adapter. These are used by the VS Code
@@ -4649,7 +4664,7 @@ returned, but `1.0` cannot. This function does not accept parameters.
 import { random } from sys;
 
 int main() {
-    int r = random();
+    float r = random();
     print(r);     // e.g. 1634872934
     return 0;
 }
@@ -7534,6 +7549,21 @@ saqut bench program.sqt [--jit] --runs=<iterations>
 
 JIT, zamanlama iterasyonlarından önce bir kez ısıtılır. Zamanlama tablosu
 çalıştırma süresini derleme/ısıtma süresinden ayrı gösterir.
+
+## Performansı adil karşılaştırma
+
+Her dilde aynı algoritmayı, aynı girdiyi, aynı çıktı davranışını, aynı
+optimizasyon seviyesini ve aynı tekrar sayısını kullan. En az iki sayı bildir:
+
+- **derleme/ısınma süresi**: ilk ölçülen çalışmadan önce geçen süre;
+- **kararlı çalışma süresi**: kurulumdan sonra tekrar edilen program gövdesinin süresi.
+
+saQut için zamanlama tablosundaki `vm-execute` ve `jit-execute` değerlerini
+kullan. saQut JIT ısınmasını, başka bir dilin önceden derlenmiş binary süresiyle
+karşılaştırma. C++, Rust, Go veya Java karşılaştırmasında compiler ve bayrakları,
+runtime sürümünü, makineyi, işletim sistemi sürümünü, girdi boyutunu ve GC veya
+sınır kontrollerinin açık olup olmadığını yaz. Tek bir VM/JIT oranı yerel bir
+ölçümdür; evrensel dil sıralaması değildir.
 
 ### lsp / dap
 
@@ -11329,7 +11359,7 @@ ancak `1.0` dönmez. Bu fonksiyon parametre almaz.
 import { random } from sys;
 
 int main() {
-    int r = random();
+    float r = random();
     print(r);     // örn. 1634872934
     return 0;
 }

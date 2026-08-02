@@ -110,6 +110,21 @@ saqut bench program.sqt [--jit] --runs=<iterations>
 JIT, zamanlama iterasyonlarından önce bir kez ısıtılır. Zamanlama tablosu
 çalıştırma süresini derleme/ısıtma süresinden ayrı gösterir.
 
+## Performansı adil karşılaştırma
+
+Her dilde aynı algoritmayı, aynı girdiyi, aynı çıktı davranışını, aynı
+optimizasyon seviyesini ve aynı tekrar sayısını kullan. En az iki sayı bildir:
+
+- **derleme/ısınma süresi**: ilk ölçülen çalışmadan önce geçen süre;
+- **kararlı çalışma süresi**: kurulumdan sonra tekrar edilen program gövdesinin süresi.
+
+saQut için zamanlama tablosundaki `vm-execute` ve `jit-execute` değerlerini
+kullan. saQut JIT ısınmasını, başka bir dilin önceden derlenmiş binary süresiyle
+karşılaştırma. C++, Rust, Go veya Java karşılaştırmasında compiler ve bayrakları,
+runtime sürümünü, makineyi, işletim sistemi sürümünü, girdi boyutunu ve GC veya
+sınır kontrollerinin açık olup olmadığını yaz. Tek bir VM/JIT oranı yerel bir
+ölçümdür; evrensel dil sıralaması değildir.
+
 ### lsp / dap
 
 Dil Sunucusunu veya Hata Ayıklama Adaptörünü başlatır. Bunlar VS Code eklentisi

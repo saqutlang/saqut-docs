@@ -110,6 +110,21 @@ saqut bench program.sqt [--jit] --runs=<iterations>
 The JIT is warmed up once before timing iterations. The timing table reports
 the measured execution phase separately from compilation/warmup.
 
+## Comparing performance fairly
+
+Use the same algorithm, input, output behavior, compiler optimization level,
+and number of repetitions in every language. Report at least two numbers:
+
+- **compile/warmup time**: time before the first measured execution;
+- **steady-state execution time**: the repeated program body after setup.
+
+For saQut, use `vm-execute` and `jit-execute` from the timing table. Do not
+compare saQut's JIT warmup against another language's already-built binary.
+For C++, Rust, Go, or Java, record the compiler and flags, runtime version,
+machine, operating-system version, input size, and whether garbage collection
+or bounds checks are active. A single VM/JIT ratio is a useful local result,
+not a universal language ranking.
+
 ### lsp / dap
 
 Start the Language Server or Debug Adapter. These are used by the VS Code

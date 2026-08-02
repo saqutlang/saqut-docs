@@ -23,7 +23,7 @@ returned, but `1.0` cannot. This function does not accept parameters.
 import { random } from sys;
 
 int main() {
-    int r = random();
+    float r = random();
     print(r);     // e.g. 1634872934
     return 0;
 }
