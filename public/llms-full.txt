@@ -4362,125 +4362,57 @@ you can no longer recognize.
 
 ## /stdlib-date/
 
-The `date` module provides a `date` type for working with calendar dates and
-timestamps. Only `now()` requires `--allow sys`; all other functions are pure
-computation and need no capability.
+`date` is an immutable UTC timestamp represented internally as a signed 64-bit
+integer containing epoch milliseconds. Calendar components use `int`.
 
 ## Import
 
-```c
-import { now, date, dateEpoch, parse, addDays, diffDays } from date;
+```sqt
+import { now, fromEpochMillis, toEpochMillis, addDays, year } from date;
 ```
 
-## Functions
+## Exact signatures
 
-### now
+| Function | Signature | Capability |
+|---|---|---|
+| `now` | `date now()` | `sys` |
+| `fromEpochMillis` | `date fromEpochMillis(int ms)` | none |
+| `toEpochMillis` | `int toEpochMillis(date d)` | none |
+| `addDays` | `date addDays(date d, int n)` | none |
+| `addHours` | `date addHours(date d, int n)` | none |
+| `addMinutes` | `date addMinutes(date d, int n)` | none |
+| `addSeconds` | `date addSeconds(date d, int n)` | none |
+| `year` | `int year(date d)` | none |
+| `month` | `int month(date d)` | none |
+| `day` | `int day(date d)` | none |
+| `hour` | `int hour(date d)` | none |
+| `minute` | `int minute(date d)` | none |
+| `second` | `int second(date d)` | none |
+| `diffMillis` | `int diffMillis(date a, date b)` | none |
+| `parse` | `date? parse(string iso8601)` | none |
+| `format` | `string format(date d, string pattern)` | none |
 
-Returns the current date and time. Requires `--allow sys`.
+`date(2026, 5, 1)` is not a constructor in the current standard library.
+Use `fromEpochMillis(...)` or `parse(...)` instead. The year/month/day values
+in an ISO string are parsed by `parse`; they are not separate integer
+arguments to a `date` constructor.
 
-```c
-import { now } from date;
-
-int main() {
-    date d = now();
-    print(d);                // 2026-07-15T14:30:00Z
-    return 0;
-}
-```
-
-### Constructing a date
-
-Create a date from year, month, and day. Months are 1-based.
-
-```c
-import { date } from date;
-
-int main() {
-    date d = date(2026, 7, 15);
-    print(d);                // 2026-07-15T00:00:00Z
-    return 0;
-}
-```
-
-### dateEpoch
-
-Create a date from epoch milliseconds.
-
-```c
-import { dateEpoch } from date;
+```sqt
+import { fromEpochMillis, parse, format } from date;
 
 int main() {
-    date d = dateEpoch(1752580800000);
-    print(d);
-    return 0;
-}
-```
-
-### parse
-
-Parse a date string in ISO 8601 format.
-
-```c
-import { parse } from date;
-
-int main() {
-    date? d = parse("2026-07-15");
-    if (d != null) {
-        print(d);            // 2026-07-15T00:00:00Z
+    date epoch = fromEpochMillis(0);
+    date? parsed = parse("2026-05-01");
+    if (parsed != null) {
+        print(format(parsed, "%Y-%m-%d"));
     }
+    print(epoch);
     return 0;
 }
 ```
 
-Returns `date?` (nullable): `null` if the string is not a valid date.
-
-### addDays / addMonths / addYears
-
-Add time to a date and return a new one. The original is unchanged.
-
-```c
-import { date, addDays } from date;
-
-int main() {
-    date today = date(2026, 7, 15);
-    date tomorrow = addDays(today, 1);
-    print(tomorrow);         // 2026-07-16T00:00:00Z
-    return 0;
-}
-```
-
-### diffDays
-
-Returns the number of days between two dates.
-
-```c
-import { date, diffDays } from date;
-
-int main() {
-    date start = date(2026, 7, 1);
-    date end   = date(2026, 7, 15);
-    print(diffDays(start, end));   // 14
-    return 0;
-}
-```
-
-Negative if the second date is earlier than the first.
-
-### Accessors
-
-Extract individual components from a date.
-
-```c
-import { date } from date;
-
-int main() {
-    date d = date(2026, 7, 15);
-    print(d.year);           // 2026
-    print(d.month);          // 7
-    print(d.day);            // 15
-    return 0;
-}
-```
+Only `now()` reads the system clock and therefore requires `--allow sys`.
+Invalid input to `parse` returns `null` rather than throwing an error.
 
 ## /stdlib-fs/
 
@@ -4581,175 +4513,45 @@ saqut run --allow fs program.sqt
 
 ## /stdlib-math/
 
-The `math` module provides mathematical constants and functions. It does not
-require any capability; pure computation only.
+The `math` module is pure and requires no capability. There is no overload
+resolution: integer and floating-point variants have different names.
 
-## Import
+## Exact signatures
 
-```c
-import { E, PI, sqrt, abs, min, max, floor, ceil, round, pow, sin, cos } from math;
-```
+| Function | Signature | Result |
+|---|---|---|
+| `abs` | `int abs(int x)` | `int` |
+| `absf` | `double absf(double x)` | `double` |
+| `min` | `int min(int a, int b)` | `int` |
+| `max` | `int max(int a, int b)` | `int` |
+| `minf` | `double minf(double a, double b)` | `double` |
+| `maxf` | `double maxf(double a, double b)` | `double` |
+| `sqrt` | `double sqrt(double x)` | `double` |
+| `pow` | `double pow(double base, double exponent)` | `double` |
+| `floor` | `double floor(double x)` | `double` |
+| `ceil` | `double ceil(double x)` | `double` |
+| `round` | `double round(double x)` | `double` |
+| `PI` | `double PI()` | `double` |
+| `E` | `double E()` | `double` |
 
-## Constants
+`double` is saQut's 64-bit floating-point type. The `f` suffix in names such
+as `absf` and `minf` is historical; those functions still use `double`.
+`PI` and `E` are zero-argument functions, not importable constants.
 
-| Constant | Value |
-|---|---|
-| `E` | 2.7182818284 |
-| `PI` | 3.1415926535 |
-
-```c
-import { PI } from math;
+```sqt
+import { abs, absf, max, maxf, PI } from math;
 
 int main() {
-    print(PI);                    // 3.141593
-    float area = PI * 5 * 5;     // circle area, radius 5
-    print(area);
+    int largest = max(10, 20);
+    double precise = maxf(3.5, 2.1);
+    print(abs(-42));
+    print(absf(-3.14));
+    print(PI());
+    print(largest);
+    print(precise);
     return 0;
 }
 ```
-
-## Functions
-
-### sqrt
-
-Square root.
-
-```c
-import { sqrt } from math;
-
-int main() {
-    print(sqrt(25));    // 5.0
-    return 0;
-}
-```
-
-### abs
-
-Absolute value. Works for `int` and `float`.
-
-```c
-import { abs } from math;
-
-int main() {
-    print(abs(-42));       // 42
-    print(abs(-3.14));     // 3.14
-    return 0;
-}
-```
-
-### min / max
-
-Returns the smaller or larger of two numbers.
-
-```c
-import { min, max } from math;
-
-int main() {
-    print(min(10, 20));    // 10
-    print(max(3.5, 2.1));  // 3.5
-    return 0;
-}
-```
-
-### floor / ceil / round
-
-Round a float to the nearest integer.
-
-```c
-import { floor, ceil, round } from math;
-
-int main() {
-    print(floor(3.9));    // 3
-    print(ceil(3.1));     // 4
-    print(round(3.5));    // 4
-    return 0;
-}
-```
-
-### pow
-
-Returns `base` raised to the power of `exponent`. Both arguments are `float`.
-
-```c
-import { pow } from math;
-
-int main() {
-    print(pow(3, 4));     // 81.0
-    return 0;
-}
-```
-
-### sin / cos
-
-Sine and cosine. Input is in radians.
-
-```c
-import { sin, cos, PI } from math;
-
-int main() {
-    print(sin(PI / 2));   // ~1.0
-    print(cos(PI));        // ~-1.0
-    return 0;
-}
-```
-
-## /stdlib-net/
-
-> **Status: Planned for 0.9.** The `net` module is not yet available in the
-> current release. This page describes the planned API.
-
-The `net` module will provide HTTP client functionality and basic socket
-communication. It will require `--allow net` at runtime.
-
-## Planned functions
-
-### httpGet
-
-Sends an HTTP GET request and returns the response body as a string.
-
-```c
-import { httpGet } from net;
-
-int main() {
-    string body = httpGet("https://example.com");
-    print(body);
-    return 0;
-}
-```
-
-### httpPost
-
-Sends an HTTP POST request with a body and returns the response.
-
-```c
-import { httpPost } from net;
-
-int main() {
-    string resp = httpPost("https://example.com/api", "{\"key\":\"value\"}");
-    print(resp);
-    return 0;
-}
-```
-
-## Capability
-
-All `net` functions require `--allow net`:
-
-```bash
-saqut run --allow net program.sqt
-```
-
-The `net` capability is separate from `fs` and `sys`. A program that only
-reads files and makes HTTP requests would run with:
-
-```bash
-saqut run --allow fs,net program.sqt
-```
-
-## When will it be available
-
-The `net` module is planned for version 0.9. Track progress on
-[GitHub Issues](https://github.com/saqutlang/saqut/issues).
 
 ## /stdlib-overview/
 
@@ -11207,125 +11009,52 @@ dönüştüren bir ön yüze değil.
 
 ## /tr/stdlib-date/
 
-`date` modülü takvim tarihleri ve zaman damgalarıyla çalışmak için bir `date`
-tipi sunar. Yalnızca `now()` `--allow sys` gerektirir; diğer tüm fonksiyonlar
-saf hesaplamadır ve capability istemez.
-
-## Import
-
-```c
-import { now, date, dateEpoch, parse, addDays, diffDays } from date;
-```
+`date`, UTC zamanını epoch milisaniyesi olarak taşıyan bir değerdir. Takvim
+parçaları (`year`, `month`, `day`) `int` türündedir. `date` değeri doğrudan
+değiştirilmez; hesaplama fonksiyonları yeni bir `date` döndürür.
 
 ## Fonksiyonlar
 
-### now
+| Fonksiyon | İmza | Açıklama |
+|---|---|---|
+| `now` | `date now()` | Sistem saatindeki güncel zamanı döndürür; `sys` ister. |
+| `fromEpochMillis` | `date fromEpochMillis(int milliseconds)` | Epoch milisaniyesinden `date` üretir. |
+| `toEpochMillis` | `int toEpochMillis(date value)` | `date` değerini epoch milisaniyesine çevirir. |
+| `addDays` | `date addDays(date value, int amount)` | Tarihe gün ekleyip yeni tarih döndürür. |
+| `addHours` | `date addHours(date value, int amount)` | Tarihe saat ekler. |
+| `addMinutes` | `date addMinutes(date value, int amount)` | Tarihe dakika ekler. |
+| `addSeconds` | `date addSeconds(date value, int amount)` | Tarihe saniye ekler. |
+| `year` | `int year(date value)` | Yıl bölümünü döndürür. |
+| `month` | `int month(date value)` | Ay bölümünü 1–12 aralığında döndürür. |
+| `day` | `int day(date value)` | Ayın gününü döndürür. |
+| `hour` | `int hour(date value)` | Saat bölümünü döndürür. |
+| `minute` | `int minute(date value)` | Dakika bölümünü döndürür. |
+| `second` | `int second(date value)` | Saniye bölümünü döndürür. |
+| `diffMillis` | `int diffMillis(date left, date right)` | İki tarih arasındaki milisaniye farkını döndürür. |
+| `parse` | `date? parse(string iso8601)` | ISO tarih metnini ayrıştırır; geçersizse `null` döndürür. |
+| `format` | `string format(date value, string pattern)` | Tarihi verilen biçim metnine göre yazıya çevirir. |
 
-Güncel tarih ve saati döndürür. `--allow sys` gerektirir.
+`date(2026, 5, 1)` mevcut standart kütüphanede bir constructor değildir. Tarih
+oluşturmak için `parse` veya epoch değeri için `fromEpochMillis` kullanılır.
 
-```c
-import { now } from date;
-
-int main() {
-    date d = now();
-    print(d);                // 2026-07-15T14:30:00Z
-    return 0;
-}
-```
-
-### Tarih oluşturma
-
-Yıl, ay ve günden bir tarih oluşturur. Aylar 1 tabanlıdır.
-
-```c
-import { date } from date;
-
-int main() {
-    date d = date(2026, 7, 15);
-    print(d);                // 2026-07-15T00:00:00Z
-    return 0;
-}
-```
-
-### dateEpoch
-
-Epoch milisaniyesinden bir tarih oluşturur.
-
-```c
-import { dateEpoch } from date;
+```sqt
+import { fromEpochMillis, parse, format, year, addDays } from date;
 
 int main() {
-    date d = dateEpoch(1752580800000);
-    print(d);
-    return 0;
-}
-```
-
-### parse
-
-ISO 8601 formatındaki bir tarih dizgisini ayrıştırır.
-
-```c
-import { parse } from date;
-
-int main() {
-    date? d = parse("2026-07-15");
-    if (d != null) {
-        print(d);            // 2026-07-15T00:00:00Z
+    date epoch = fromEpochMillis(0);
+    date? parsed = parse("2026-05-01");
+    if (parsed != null) {
+        print(year(parsed));
+        print(format(parsed, "%Y-%m-%d"));
+        print(addDays(parsed, 1));
     }
+    print(epoch);
     return 0;
 }
 ```
 
-`date?` (nullable) döndürür: geçerli bir tarih değilse `null`.
-
-### addDays / addMonths / addYears
-
-Bir tarihe zaman ekler ve yeni bir tarih döndürür. Orijinal değişmez.
-
-```c
-import { date, addDays } from date;
-
-int main() {
-    date bugun = date(2026, 7, 15);
-    date yarin = addDays(bugun, 1);
-    print(yarin);            // 2026-07-16T00:00:00Z
-    return 0;
-}
-```
-
-### diffDays
-
-İki tarih arasındaki gün farkını döndürür.
-
-```c
-import { date, diffDays } from date;
-
-int main() {
-    date baslangic = date(2026, 7, 1);
-    date bitis     = date(2026, 7, 15);
-    print(diffDays(baslangic, bitis));   // 14
-    return 0;
-}
-```
-
-İkinci tarih birinciden önceyse negatif değer döner.
-
-### Erişimciler
-
-Bir tarihten bileşenleri ayrı ayrı al.
-
-```c
-import { date } from date;
-
-int main() {
-    date d = date(2026, 7, 15);
-    print(d.year);           // 2026
-    print(d.month);          // 7
-    print(d.day);            // 15
-    return 0;
-}
-```
+`now()` sistem saatini okuduğu için `--allow sys` gerektirir. Diğer date
+fonksiyonları saf hesap yapar ve capability istemez.
 
 ## /tr/stdlib-fs/
 
@@ -11425,176 +11154,78 @@ saqut run --allow fs program.sqt
 
 ## /tr/stdlib-math/
 
-`math` modülü matematiksel sabitler ve fonksiyonlar sağlar. Hiçbir capability
-gerektirmez; tamamen saf hesaplamadir.
-
-## Import
-
-```c
-import { E, PI, sqrt, abs, min, max, floor, ceil, round, pow, sin, cos } from math;
-```
-
-## Sabitler
-
-| Sabit | Değer |
-|---|---|
-| `E` | 2.7182818284 |
-| `PI` | 3.1415926535 |
-
-```c
-import { PI } from math;
-
-int main() {
-    print(PI);                    // 3.141593
-    float alan = PI * 5 * 5;     // daire alanı, yarıçap 5
-    print(alan);
-    return 0;
-}
-```
+`math` modülü capability gerektirmeyen saf matematik hesapları sağlar.
+Fonksiyonlarda overload yoktur; tam sayı ve kayan nokta sürümleri farklı isimler
+kullanır. İmzalardaki parametre adları, kod içinde bu değerin neyi temsil
+ettiğini gösterir.
 
 ## Fonksiyonlar
 
-### sqrt
+### `int abs(int value)`
 
-Karekök.
+Verilen 32-bit tam sayının mutlak değerini döndürür. Negatif bir değeri pozitif
+karşılığına çevirir; pozitif değerleri ve sıfırı değiştirmez.
 
-```c
-import { sqrt } from math;
+### `double absf(double value)`
+
+Verilen 64-bit reel sayının mutlak değerini döndürür. `abs` fonksiyonundan farkı,
+sonucun `double` olmasıdır.
+
+### `int min(int left, int right)` / `int max(int left, int right)`
+
+İki `int` değeri karşılaştırır. `min` küçük olanı, `max` büyük olanı döndürür.
+
+### `double minf(double left, double right)` / `double maxf(double left, double right)`
+
+İki `double` değeri karşılaştırır. `minf` küçük olanı, `maxf` büyük olanı
+döndürür. İsimdeki `f` tarihsel bir addır; parametre ve dönüş türü `double`dır.
+
+### `double sqrt(double value)`
+
+Verilen negatif olmayan reel sayının karekökünü hesaplayıp `double` olarak
+döndürür. Örneğin `sqrt(25.0)` sonucu `5.0`dır. Negatif değerlerde hata
+fırlatmak yerine kayan nokta kurallarına uygun `NaN` sonucu oluşabilir.
+
+### `double pow(double base, double exponent)`
+
+`base` değerinin `exponent` kuvvetini hesaplar. Örneğin `pow(3.0, 4.0)` sonucu
+`81.0`dır. Her iki parametre de `double`, sonuç da `double`dır.
+
+### `double floor(double value)`
+
+Reel sayıyı kendisinden büyük olmayan en yakın tam sayı değerine yuvarlar.
+`floor(3.9)` sonucu `3.0`dır.
+
+### `double ceil(double value)`
+
+Reel sayıyı kendisinden küçük olmayan en yakın tam sayı değerine yuvarlar.
+`ceil(3.1)` sonucu `4.0`dır.
+
+### `double round(double value)`
+
+Reel sayıyı en yakın tam sayı değerine yuvarlar ve sonucu `double` olarak
+döndürür. `round(3.5)` sonucu `4.0`dır.
+
+### `double PI()` / `double E()`
+
+Sırasıyla pi ve Euler sabitlerini `double` olarak döndürür. Bunlar sabit değişken
+değil, parametresiz fonksiyonlardır; `PI` değil `PI()` yazılır.
+
+```sqt
+import { sqrt, abs, absf, max, PI } from math;
 
 int main() {
-    print(sqrt(25));    // 5.0
+    int bigger = max(10, 20);
+    double radius = 5.0;
+    double area = PI() * radius * radius;
+    print(sqrt(25.0));
+    print(abs(-42));
+    print(absf(-3.14));
+    print(bigger);
+    print(area);
     return 0;
 }
 ```
-
-### abs
-
-Mutlak değer. `int` ve `float` ile çalışır.
-
-```c
-import { abs } from math;
-
-int main() {
-    print(abs(-42));       // 42
-    print(abs(-3.14));     // 3.14
-    return 0;
-}
-```
-
-### min / max
-
-İki sayıdan küçük veya büyük olanı döndürür.
-
-```c
-import { min, max } from math;
-
-int main() {
-    print(min(10, 20));    // 10
-    print(max(3.5, 2.1));  // 3.5
-    return 0;
-}
-```
-
-### floor / ceil / round
-
-Float değeri en yakın tam sayıya yuvarlar.
-
-```c
-import { floor, ceil, round } from math;
-
-int main() {
-    print(floor(3.9));    // 3
-    print(ceil(3.1));     // 4
-    print(round(3.5));    // 4
-    return 0;
-}
-```
-
-### pow
-
-`taban` üzeri `us` hesaplar. İki argüman da `float`'tır.
-
-```c
-import { pow } from math;
-
-int main() {
-    print(pow(3, 4));     // 81.0
-    return 0;
-}
-```
-
-### sin / cos
-
-Sinüs ve kosinüs. Girdi radyan cinsindendir.
-
-```c
-import { sin, cos, PI } from math;
-
-int main() {
-    print(sin(PI / 2));   // ~1.0
-    print(cos(PI));        // ~-1.0
-    return 0;
-}
-```
-
-## /tr/stdlib-net/
-
-> **Durum: 0.9 için planlandı.** `net` modülü henüz mevcut sürümde
-> kullanılamaz. Bu sayfa planlanan API'yi açıklar.
-
-`net` modülü HTTP istemci işlevselliği ve temel soket iletişimi sağlayacak.
-Çalışma zamanında `--allow net` gerektirecek.
-
-## Planlanan fonksiyonlar
-
-### httpGet
-
-Bir HTTP GET isteği gönderir ve yanıt gövdesini string olarak döndürür.
-
-```c
-import { httpGet } from net;
-
-int main() {
-    string govde = httpGet("https://example.com");
-    print(govde);
-    return 0;
-}
-```
-
-### httpPost
-
-Gövdeli bir HTTP POST isteği gönderir ve yanıtı döndürür.
-
-```c
-import { httpPost } from net;
-
-int main() {
-    string yanit = httpPost("https://example.com/api", "{\"anahtar\":\"deger\"}");
-    print(yanit);
-    return 0;
-}
-```
-
-## Capability
-
-Tüm `net` fonksiyonları `--allow net` gerektirir:
-
-```bash
-saqut run --allow net program.sqt
-```
-
-`net` capability'si `fs` ve `sys`'ten ayrıdır. Yalnızca dosya okuyan ve HTTP
-isteği yapan bir program şöyle çalışır:
-
-```bash
-saqut run --allow fs,net program.sqt
-```
-
-## Ne zaman kullanılabilir olacak
-
-`net` modülü 0.9 sürümü için planlanmıştır. Gelişmeleri
-[GitHub Issues](https://github.com/saqutlang/saqut/issues) üzerinden takip
-edebilirsin.
 
 ## /tr/stdlib-overview/
 

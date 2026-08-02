@@ -26,10 +26,9 @@
 - [Nullable Types](https://saqut.com/nullable-types/): How to use T? for values that might be null, with compile-time safety.
 - [Operators](https://saqut.com/operators/): Arithmetic, comparison, logical, bitwise, and assignment operators in saQut.
 - [Optimization](https://saqut.com/optimization/): What saQut's optimizer does and what it deliberately does not do. Constant folding, dead-code elimination, and how to inspect both.
-- [date](https://saqut.com/stdlib-date/): Date type, now(), parsing, formatting, and arithmetic with saQut's date module.
+- [date](https://saqut.com/stdlib-date/): Date values and the exact signatures of saQut's date functions.
 - [fs (File System)](https://saqut.com/stdlib-fs/): Read, write, and list files with saQut's fs module.
-- [math (Mathematical Functions)](https://saqut.com/stdlib-math/): Constants, trigonometric functions, and number utilities in saQut's math module.
-- [net (Network)](https://saqut.com/stdlib-net/): HTTP requests and socket communication (planned for 0.9).
+- [math](https://saqut.com/stdlib-math/): Exact signatures for saQut's capability-free math functions.
 - [Standard Library](https://saqut.com/stdlib-overview/): An overview of saQut's standard library modules, import model, and capability system.
 - [sys (System)](https://saqut.com/stdlib-sys/): Random numbers, environment variables, command-line arguments, and sleep with saQut's sys module.
 - [Strings](https://saqut.com/strings/): Working with text in saQut using immutable UTF-8 strings.
@@ -67,10 +66,9 @@
 - [Nullable Tipler](https://saqut.com/tr/nullable-types/): Değeri null olabilecek durumlar için T? kullanımı, derleme zamanı güvenliğiyle.
 - [İşleçler](https://saqut.com/tr/operators/): saQut'taki aritmetik, karşılaştırma, mantıksal, bitsel ve atama işleçleri.
 - [Optimizasyon](https://saqut.com/tr/optimization/): saQut'un optimize edicisinin yaptıkları ve bilinçli olarak yapmadıkları. Sabit katlama, ölü kod temizliği ve her ikisini de nasıl inceleyeceğiniz.
-- [date (Tarih)](https://saqut.com/tr/stdlib-date/): saQut'un date modülü ile tarih tipi, now(), ayrıştırma, biçimlendirme ve tarih aritmetiği.
+- [date (Tarih)](https://saqut.com/tr/stdlib-date/): saQut date fonksiyonlarının türleri, parametreleri ve tarih hesapları.
 - [fs (Dosya Sistemi)](https://saqut.com/tr/stdlib-fs/): saQut'un fs modülü ile dosya okuma, yazma ve listeleme.
-- [math (Matematik)](https://saqut.com/tr/stdlib-math/): saQut'un math modülünde sabitler, trigonometrik fonksiyonlar ve sayı araçları.
-- [net (Ağ)](https://saqut.com/tr/stdlib-net/): HTTP istekleri ve soket iletişimi (0.9 için planlandı).
+- [math (Matematik)](https://saqut.com/tr/stdlib-math/): saQut math fonksiyonlarının türleri, parametreleri ve hesaplama davranışları.
 - [Standart Kütüphane](https://saqut.com/tr/stdlib-overview/): saQut standart kütüphane modüllerine genel bakış, import modeli ve capability sistemi.
 - [sys (Sistem)](https://saqut.com/tr/stdlib-sys/): Rastgele sayı, ortam değişkenleri, komut satırı argümanları ve bekleme; saQut'un sys modülü.
 - [String'ler (Metinler)](https://saqut.com/tr/strings/): Değişmez UTF-8 string'ler ile saQut'ta metinlerle çalışma.

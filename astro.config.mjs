@@ -122,7 +122,6 @@ export default defineConfig({
 						{ label: 'sys (System)', translations: { tr: 'sys (Sistem)' }, slug: 'stdlib-sys' },
 						{ label: 'math', translations: { tr: 'math (Matematik)' }, slug: 'stdlib-math' },
 						{ label: 'date', translations: { tr: 'date (Tarih)' }, slug: 'stdlib-date' },
-						{ label: 'net (Network)', translations: { tr: 'net (Ağ)' }, slug: 'stdlib-net' },
 						{ label: 'Capabilities & Permissions', translations: { tr: 'Capability & İzinler' }, slug: 'capabilities' },
 						{ label: 'FFI', translations: { tr: 'FFI' }, slug: 'ffi' },
 						{ label: 'Editor Setup', translations: { tr: 'Editör Kurulumu' }, slug: 'editor-setup' },

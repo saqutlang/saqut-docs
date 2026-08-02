@@ -1,124 +1,51 @@
 ---
 title: date (Tarih)
-description: saQut'un date modülü ile tarih tipi, now(), ayrıştırma, biçimlendirme ve tarih aritmetiği.
+description: saQut date fonksiyonlarının türleri, parametreleri ve tarih hesapları.
 ---
 
-`date` modülü takvim tarihleri ve zaman damgalarıyla çalışmak için bir `date`
-tipi sunar. Yalnızca `now()` `--allow sys` gerektirir; diğer tüm fonksiyonlar
-saf hesaplamadır ve capability istemez.
-
-## Import
-
-```c
-import { now, date, dateEpoch, parse, addDays, diffDays } from date;
-```
+`date`, UTC zamanını epoch milisaniyesi olarak taşıyan bir değerdir. Takvim
+parçaları (`year`, `month`, `day`) `int` türündedir. `date` değeri doğrudan
+değiştirilmez; hesaplama fonksiyonları yeni bir `date` döndürür.
 
 ## Fonksiyonlar
 
-### now
+| Fonksiyon | İmza | Açıklama |
+|---|---|---|
+| `now` | `date now()` | Sistem saatindeki güncel zamanı döndürür; `sys` ister. |
+| `fromEpochMillis` | `date fromEpochMillis(int milliseconds)` | Epoch milisaniyesinden `date` üretir. |
+| `toEpochMillis` | `int toEpochMillis(date value)` | `date` değerini epoch milisaniyesine çevirir. |
+| `addDays` | `date addDays(date value, int amount)` | Tarihe gün ekleyip yeni tarih döndürür. |
+| `addHours` | `date addHours(date value, int amount)` | Tarihe saat ekler. |
+| `addMinutes` | `date addMinutes(date value, int amount)` | Tarihe dakika ekler. |
+| `addSeconds` | `date addSeconds(date value, int amount)` | Tarihe saniye ekler. |
+| `year` | `int year(date value)` | Yıl bölümünü döndürür. |
+| `month` | `int month(date value)` | Ay bölümünü 1–12 aralığında döndürür. |
+| `day` | `int day(date value)` | Ayın gününü döndürür. |
+| `hour` | `int hour(date value)` | Saat bölümünü döndürür. |
+| `minute` | `int minute(date value)` | Dakika bölümünü döndürür. |
+| `second` | `int second(date value)` | Saniye bölümünü döndürür. |
+| `diffMillis` | `int diffMillis(date left, date right)` | İki tarih arasındaki milisaniye farkını döndürür. |
+| `parse` | `date? parse(string iso8601)` | ISO tarih metnini ayrıştırır; geçersizse `null` döndürür. |
+| `format` | `string format(date value, string pattern)` | Tarihi verilen biçim metnine göre yazıya çevirir. |
 
-Güncel tarih ve saati döndürür. `--allow sys` gerektirir.
-
-```c
-import { now } from date;
-
-int main() {
-    date d = now();
-    print(d);                // 2026-07-15T14:30:00Z
-    return 0;
-}
-```
-
-### Tarih oluşturma
-
-Yıl, ay ve günden bir tarih oluşturur. Aylar 1 tabanlıdır.
-
-```c
-import { date } from date;
-
-int main() {
-    date d = date(2026, 7, 15);
-    print(d);                // 2026-07-15T00:00:00Z
-    return 0;
-}
-```
-
-### dateEpoch
-
-Epoch milisaniyesinden bir tarih oluşturur.
+`date(2026, 5, 1)` mevcut standart kütüphanede bir constructor değildir. Tarih
+oluşturmak için `parse` veya epoch değeri için `fromEpochMillis` kullanılır.
 
 ```c
-import { dateEpoch } from date;
+import { fromEpochMillis, parse, format, year, addDays } from date;
 
 int main() {
-    date d = dateEpoch(1752580800000);
-    print(d);
-    return 0;
-}
-```
-
-### parse
-
-ISO 8601 formatındaki bir tarih dizgisini ayrıştırır.
-
-```c
-import { parse } from date;
-
-int main() {
-    date? d = parse("2026-07-15");
-    if (d != null) {
-        print(d);            // 2026-07-15T00:00:00Z
+    date epoch = fromEpochMillis(0);
+    date? parsed = parse("2026-05-01");
+    if (parsed != null) {
+        print(year(parsed));
+        print(format(parsed, "%Y-%m-%d"));
+        print(addDays(parsed, 1));
     }
+    print(epoch);
     return 0;
 }
 ```
 
-`date?` (nullable) döndürür: geçerli bir tarih değilse `null`.
-
-### addDays / addMonths / addYears
-
-Bir tarihe zaman ekler ve yeni bir tarih döndürür. Orijinal değişmez.
-
-```c
-import { date, addDays } from date;
-
-int main() {
-    date bugun = date(2026, 7, 15);
-    date yarin = addDays(bugun, 1);
-    print(yarin);            // 2026-07-16T00:00:00Z
-    return 0;
-}
-```
-
-### diffDays
-
-İki tarih arasındaki gün farkını döndürür.
-
-```c
-import { date, diffDays } from date;
-
-int main() {
-    date baslangic = date(2026, 7, 1);
-    date bitis     = date(2026, 7, 15);
-    print(diffDays(baslangic, bitis));   // 14
-    return 0;
-}
-```
-
-İkinci tarih birinciden önceyse negatif değer döner.
-
-### Erişimciler
-
-Bir tarihten bileşenleri ayrı ayrı al.
-
-```c
-import { date } from date;
-
-int main() {
-    date d = date(2026, 7, 15);
-    print(d.year);           // 2026
-    print(d.month);          // 7
-    print(d.day);            // 15
-    return 0;
-}
-```
+`now()` sistem saatini okuduğu için `--allow sys` gerektirir. Diğer date
+fonksiyonları saf hesap yapar ve capability istemez.

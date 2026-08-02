@@ -1,116 +1,77 @@
 ---
 title: math (Matematik)
-description: saQut'un math modülünde sabitler, trigonometrik fonksiyonlar ve sayı araçları.
+description: saQut math fonksiyonlarının türleri, parametreleri ve hesaplama davranışları.
 ---
 
-`math` modülü matematiksel sabitler ve fonksiyonlar sağlar. Hiçbir capability
-gerektirmez; tamamen saf hesaplamadir.
-
-## Import
-
-```c
-import { E, PI, sqrt, abs, min, max, floor, ceil, round, pow, sin, cos } from math;
-```
-
-## Sabitler
-
-| Sabit | Değer |
-|---|---|
-| `E` | 2.7182818284 |
-| `PI` | 3.1415926535 |
-
-```c
-import { PI } from math;
-
-int main() {
-    print(PI);                    // 3.141593
-    float alan = PI * 5 * 5;     // daire alanı, yarıçap 5
-    print(alan);
-    return 0;
-}
-```
+`math` modülü capability gerektirmeyen saf matematik hesapları sağlar.
+Fonksiyonlarda overload yoktur; tam sayı ve kayan nokta sürümleri farklı isimler
+kullanır. İmzalardaki parametre adları, kod içinde bu değerin neyi temsil
+ettiğini gösterir.
 
 ## Fonksiyonlar
 
-### sqrt
+### `int abs(int value)`
 
-Karekök.
+Verilen 32-bit tam sayının mutlak değerini döndürür. Negatif bir değeri pozitif
+karşılığına çevirir; pozitif değerleri ve sıfırı değiştirmez.
 
-```c
-import { sqrt } from math;
+### `double absf(double value)`
 
-int main() {
-    print(sqrt(25));    // 5.0
-    return 0;
-}
-```
+Verilen 64-bit reel sayının mutlak değerini döndürür. `abs` fonksiyonundan farkı,
+sonucun `double` olmasıdır.
 
-### abs
+### `int min(int left, int right)` / `int max(int left, int right)`
 
-Mutlak değer. `int` ve `float` ile çalışır.
+İki `int` değeri karşılaştırır. `min` küçük olanı, `max` büyük olanı döndürür.
 
-```c
-import { abs } from math;
+### `double minf(double left, double right)` / `double maxf(double left, double right)`
 
-int main() {
-    print(abs(-42));       // 42
-    print(abs(-3.14));     // 3.14
-    return 0;
-}
-```
+İki `double` değeri karşılaştırır. `minf` küçük olanı, `maxf` büyük olanı
+döndürür. İsimdeki `f` tarihsel bir addır; parametre ve dönüş türü `double`dır.
 
-### min / max
+### `double sqrt(double value)`
 
-İki sayıdan küçük veya büyük olanı döndürür.
+Verilen negatif olmayan reel sayının karekökünü hesaplayıp `double` olarak
+döndürür. Örneğin `sqrt(25.0)` sonucu `5.0`dır. Negatif değerlerde hata
+fırlatmak yerine kayan nokta kurallarına uygun `NaN` sonucu oluşabilir.
 
-```c
-import { min, max } from math;
+### `double pow(double base, double exponent)`
 
-int main() {
-    print(min(10, 20));    // 10
-    print(max(3.5, 2.1));  // 3.5
-    return 0;
-}
-```
+`base` değerinin `exponent` kuvvetini hesaplar. Örneğin `pow(3.0, 4.0)` sonucu
+`81.0`dır. Her iki parametre de `double`, sonuç da `double`dır.
 
-### floor / ceil / round
+### `double floor(double value)`
 
-Float değeri en yakın tam sayıya yuvarlar.
+Reel sayıyı kendisinden büyük olmayan en yakın tam sayı değerine yuvarlar.
+`floor(3.9)` sonucu `3.0`dır.
 
-```c
-import { floor, ceil, round } from math;
+### `double ceil(double value)`
 
-int main() {
-    print(floor(3.9));    // 3
-    print(ceil(3.1));     // 4
-    print(round(3.5));    // 4
-    return 0;
-}
-```
+Reel sayıyı kendisinden küçük olmayan en yakın tam sayı değerine yuvarlar.
+`ceil(3.1)` sonucu `4.0`dır.
 
-### pow
+### `double round(double value)`
 
-`taban` üzeri `us` hesaplar. İki argüman da `float`'tır.
+Reel sayıyı en yakın tam sayı değerine yuvarlar ve sonucu `double` olarak
+döndürür. `round(3.5)` sonucu `4.0`dır.
+
+### `double PI()` / `double E()`
+
+Sırasıyla pi ve Euler sabitlerini `double` olarak döndürür. Bunlar sabit değişken
+değil, parametresiz fonksiyonlardır; `PI` değil `PI()` yazılır.
 
 ```c
-import { pow } from math;
+import { sqrt, abs, absf, max, PI } from math;
 
 int main() {
-    print(pow(3, 4));     // 81.0
-    return 0;
-}
-```
-
-### sin / cos
-
-Sinüs ve kosinüs. Girdi radyan cinsindendir.
-
-```c
-import { sin, cos, PI } from math;
-
-int main() {
-    print(sin(PI / 2));   // ~1.0
-    print(cos(PI));        // ~-1.0
+    int bigger = max(10, 20);
+    double radius = 5.0;
+    double area = PI() * radius * radius;
+    print(sqrt(25.0));
+    print(abs(-42));
+    print(absf(-3.14));
+    print(bigger);
+    print(area);
     return 0;
 }
 ```

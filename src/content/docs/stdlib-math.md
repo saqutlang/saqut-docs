@@ -1,116 +1,44 @@
 ---
-title: math (Mathematical Functions)
-description: Constants, trigonometric functions, and number utilities in saQut's math module.
+title: math
+description: Exact signatures for saQut's capability-free math functions.
 ---
 
-The `math` module provides mathematical constants and functions. It does not
-require any capability; pure computation only.
+The `math` module is pure and requires no capability. There is no overload
+resolution: integer and floating-point variants have different names.
 
-## Import
+## Exact signatures
+
+| Function | Signature | Result |
+|---|---|---|
+| `abs` | `int abs(int x)` | `int` |
+| `absf` | `double absf(double x)` | `double` |
+| `min` | `int min(int a, int b)` | `int` |
+| `max` | `int max(int a, int b)` | `int` |
+| `minf` | `double minf(double a, double b)` | `double` |
+| `maxf` | `double maxf(double a, double b)` | `double` |
+| `sqrt` | `double sqrt(double x)` | `double` |
+| `pow` | `double pow(double base, double exponent)` | `double` |
+| `floor` | `double floor(double x)` | `double` |
+| `ceil` | `double ceil(double x)` | `double` |
+| `round` | `double round(double x)` | `double` |
+| `PI` | `double PI()` | `double` |
+| `E` | `double E()` | `double` |
+
+`double` is saQut's 64-bit floating-point type. The `f` suffix in names such
+as `absf` and `minf` is historical; those functions still use `double`.
+`PI` and `E` are zero-argument functions, not importable constants.
 
 ```c
-import { E, PI, sqrt, abs, min, max, floor, ceil, round, pow, sin, cos } from math;
-```
-
-## Constants
-
-| Constant | Value |
-|---|---|
-| `E` | 2.7182818284 |
-| `PI` | 3.1415926535 |
-
-```c
-import { PI } from math;
+import { abs, absf, max, maxf, PI } from math;
 
 int main() {
-    print(PI);                    // 3.141593
-    float area = PI * 5 * 5;     // circle area, radius 5
-    print(area);
-    return 0;
-}
-```
-
-## Functions
-
-### sqrt
-
-Square root.
-
-```c
-import { sqrt } from math;
-
-int main() {
-    print(sqrt(25));    // 5.0
-    return 0;
-}
-```
-
-### abs
-
-Absolute value. Works for `int` and `float`.
-
-```c
-import { abs } from math;
-
-int main() {
-    print(abs(-42));       // 42
-    print(abs(-3.14));     // 3.14
-    return 0;
-}
-```
-
-### min / max
-
-Returns the smaller or larger of two numbers.
-
-```c
-import { min, max } from math;
-
-int main() {
-    print(min(10, 20));    // 10
-    print(max(3.5, 2.1));  // 3.5
-    return 0;
-}
-```
-
-### floor / ceil / round
-
-Round a float to the nearest integer.
-
-```c
-import { floor, ceil, round } from math;
-
-int main() {
-    print(floor(3.9));    // 3
-    print(ceil(3.1));     // 4
-    print(round(3.5));    // 4
-    return 0;
-}
-```
-
-### pow
-
-Returns `base` raised to the power of `exponent`. Both arguments are `float`.
-
-```c
-import { pow } from math;
-
-int main() {
-    print(pow(3, 4));     // 81.0
-    return 0;
-}
-```
-
-### sin / cos
-
-Sine and cosine. Input is in radians.
-
-```c
-import { sin, cos, PI } from math;
-
-int main() {
-    print(sin(PI / 2));   // ~1.0
-    print(cos(PI));        // ~-1.0
+    int largest = max(10, 20);
+    double precise = maxf(3.5, 2.1);
+    print(abs(-42));
+    print(absf(-3.14));
+    print(PI());
+    print(largest);
+    print(precise);
     return 0;
 }
 ```
