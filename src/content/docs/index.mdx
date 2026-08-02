@@ -238,9 +238,9 @@ Each arrow corresponds to a CLI command you can run and inspect.
 - `76c9bc6` | Adds the `date` type, which stores a UTC timestamp in
   milliseconds.
 - `35790a2` | Adds the `math::PI` and `math::E` constants.
-- `5433cb3` | Adds a capability (permission) system: file and network
-  access is now rejected unless explicitly allowed with `--allow-fs`,
-  `--allow-net`, or `--allow-sys`.
+- `5433cb3` | Adds the capability (permission) system for file, network, and
+  system access. With no `--allow` option all capabilities are enabled; when
+  present, `--allow fs,net,sys` acts as an explicit whitelist.
 - `1e0fbd3` | Adds `caps::drop` and `caps::has`: a running program can
   voluntarily give up permissions or check which ones it currently has.
 - `04d90b5` | When a variable inside a block shadows one with the same

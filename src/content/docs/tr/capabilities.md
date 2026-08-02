@@ -1,12 +1,11 @@
 ---
 title: Capability & İzinler
-description: --allow bayrakları nasıl çalışır, üç capability kategorisi ve A+B denetim modeli.
+description: --allow nasıl çalışır, üç capability kategorisi ve çalışma zamanı denetimi.
 ---
 
-saQut programları **varsayılan olarak reddet** prensibiyle bir korumalı alanda
-çalıştırır. Programın dosya sistemine, ağa veya sistem çağrılarına erişimi
-yoktur; sen açıkça izin vermedikçe olmaz. Bu sayfa gerçek programlar yazan
-pratisyenler için izin modelini açıklar.
+saQut açık bir capability politikası kullanır. `--allow` verilmezse şu anda
+tanımlı üç capability'nin tamamı açıktır. `--allow` verilirse bu seçenek bir
+whitelist olur ve yalnızca listelenen capability'ler açılır.
 
 ## Üç capability
 
@@ -20,22 +19,20 @@ Birden fazla capability virgülle ayrılır:
 
 ```bash
 saqut run --allow fs,net prog.sqt
-saqut run --allow fs --allow sys prog.sqt   // tekrarlanan bayrak da çalışır
+saqut run --allow fs,net,sys prog.sqt
 ```
+
+Eski `--allow-fs`, `--allow-net` ve `--allow-sys` biçimleri geçerli değildir.
 
 ## Denetim nasıl çalışır
 
-saQut **iki katmanlı bir model** (A+B) kullanır:
+Capability denetimi, korumalı fonksiyon çağrıldığı anda yapılır:
 
-**A Katmani: derleme zamani.** Capability gerektiren bir fonksiyonu import
-ettiğinde (örn. `readFile` `fs` ister), derleyici eşleşen `--allow` bayrağının
-verilip verilmediğini kontrol eder. Verilmediyse program hiç çalışmadan
-derleme hatası alırsın.
-
-**B Katmani: calisma zamani guvencesi.** A katmanı geçse bile, VM her
-capability-kapılı çağrıdan önce tekrar kontrol eder. Bu, `caps::drop()` ile
-program ortasında capability kaldırma gibi uç durumları yakalar. Çağrı
-engellenirse program yakalanabilir bir `E_CAP_MISSING` hatası fırlatır.
+Capability isteyen bir fonksiyonu import etmek, capability o anda kapalı olsa
+bile serbesttir. VM çağrıdan hemen önce aktif capability kümesini kontrol eder.
+Capability yoksa çağrı `E_CAP_MISSING` ile başarısız olur. Böylece
+`caps::drop("fs")` gibi dinamik değişiklikler sonraki çağrılarda etkili olur;
+import işlemi tek başına reddedilmez.
 
 ## Capability sorgulama
 
@@ -84,5 +81,6 @@ ihtiyacın olduğu sürece tutarsın.
 - Ortam değişkeni ve komut satırı argümanı okuyan bir araç yalnızca
   `--allow sys` ister
 
-Her program tam olarak neye ihtiyacı olduğunu beyan eder. Derleyici ve
-çalışma zamanı bunu denetler. Gizli yetki yoktur.
+Programın aktif capability'lerini çalışma zamanında sorgulayabilirsin. CLI
+politikası ve çağrı öncesi çalışma zamanı denetimi sınırı uygular; bir modülü
+import etmek tek başına capability vermez.

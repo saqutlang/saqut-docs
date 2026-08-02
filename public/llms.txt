@@ -7,7 +7,7 @@
 
 - [Arrays](https://saqut.com/arrays/): Store a sequence of values of the same type.
 - [Built-in Functions (UFCS)](https://saqut.com/builtin-functions/): The complete reference for saQut's built-in methods on strings, arrays, and structs, each one explained from scratch with runnable examples.
-- [Capabilities & Permissions](https://saqut.com/capabilities/): How --allow flags work, the three capability categories, and the A+B enforcement model.
+- [Capabilities & Permissions](https://saqut.com/capabilities/): How --allow works, the three capability categories, and runtime capability enforcement.
 - [CLI Reference](https://saqut.com/cli-reference/): Complete reference for the saqut command-line interface: run, compile, debug, and diagnostic flags.
 - [Compiler Errors & Warnings](https://saqut.com/compiler-errors/): Every diagnostic saQut can produce, what triggers it, what it means, and how to fix it. From "undefined variable" to circular modules.
 - [Compiler Tools, Tokens, AST, Symbols & IR](https://saqut.com/compiler-tools/): What are these things, why do they exist, and when would you use them?
@@ -48,7 +48,7 @@
 
 - [Diziler](https://saqut.com/tr/arrays/): Aynı tipteki değerleri sıralı olarak saklayın.
 - [Yerleşik Fonksiyonlar (UFCS)](https://saqut.com/tr/builtin-functions/): saQut'un string, dizi ve struct tipleri için sunduğu yerleşik metotların tam referansı; her biri sıfırdan, çalıştırılabilir örneklerle anlatılıyor.
-- [Capability & İzinler](https://saqut.com/tr/capabilities/): --allow bayrakları nasıl çalışır, üç capability kategorisi ve A+B denetim modeli.
+- [Capability & İzinler](https://saqut.com/tr/capabilities/): --allow nasıl çalışır, üç capability kategorisi ve çalışma zamanı denetimi.
 - [CLI Referansı](https://saqut.com/tr/cli-reference/): saQut komut satırı arayüzünün tam referansı: çalıştırma, derleme, hata ayıklama ve teşhis bayrakları.
 - [Derleyici Hataları ve Uyarıları](https://saqut.com/tr/compiler-errors/): saQut'un üretebileceği her tanı; neyin tetiklediği, anlamı ve nasıl düzeltileceği. "Tanımsız değişken"den döngüsel modüllere kadar.
 - [Derleyici Araçları, Token'lar, AST, Semboller ve IR](https://saqut.com/tr/compiler-tools/): Bunlar nedir, neden varlar ve ne zaman kullanırsınız?

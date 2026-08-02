@@ -18,7 +18,7 @@ saqut run program.sqt
 
 | Flag | Purpose |
 |---|---|
-| `--allow fs,net,sys` | Grant runtime capabilities |
+| `--allow fs,net,sys` | Whitelist runtime capabilities; without it, all capabilities are enabled |
 | `--jit` | Run through the experimental MIR JIT instead of the VM |
 | `--optimized` | Apply constant folding and DCE |
 | `--gc-threshold N` | Trigger GC after N allocations |
@@ -104,10 +104,11 @@ file.
 Measure execution time of a program.
 
 ```bash
-saqut bench program.sqt
+saqut bench program.sqt [--jit] --runs=<iterations>
 ```
 
-Runs the program multiple times and prints timing statistics.
+The JIT is warmed up once before timing iterations. The timing table reports
+the measured execution phase separately from compilation/warmup.
 
 ### lsp / dap
 
@@ -122,7 +123,7 @@ saqut dap
 ## Common patterns
 
 ```bash
-# Run with full introspection
+# Run with an explicit capability whitelist and full introspection
 saqut run --allow fs --gc-stats --profile program.sqt
 
 # Check before running

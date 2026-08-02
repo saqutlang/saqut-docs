@@ -244,9 +244,8 @@ Her ok, çalıştırıp inceleyebileceğiniz bir CLI komutuna karşılık gelir.
 - `76c9bc6` | `date` tipi geldi: UTC zaman damgasını milisaniye cinsinden
   tutuyor.
 - `35790a2` | `math::PI` ve `math::E` sabitleri geldi.
-- `5433cb3` | İzin (capability) sistemi geldi: dosya ve ağ erişimi,
-  `--allow-fs` / `--allow-net` / `--allow-sys` bayrakları açıkça
-  verilmeden artık reddediliyor.
+- `5433cb3` | İzin (capability) sistemi geldi: `--allow` verilmezse tüm
+  capability'ler açık; verildiğinde `--allow fs,net,sys` açık whitelist olur.
 - `1e0fbd3` | `caps::drop` ve `caps::has` geldi: çalışan bir program kendi
   izinlerinden bilerek vazgeçebiliyor ya da hangi izinlere sahip olduğunu
   sorgulayabiliyor.

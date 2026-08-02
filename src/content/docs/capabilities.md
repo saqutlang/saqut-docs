@@ -1,12 +1,11 @@
 ---
 title: Capabilities & Permissions
-description: How --allow flags work, the three capability categories, and the A+B enforcement model.
+description: How --allow works, the three capability categories, and runtime capability enforcement.
 ---
 
-saQut runs programs in a **deny-by-default** sandbox. Your program has no
-access to the file system, network, or system calls unless you explicitly
-grant it. This page explains the permission model for practitioners building
-real programs.
+saQut uses an explicit capability policy. With no `--allow` option, all three
+currently defined capabilities are enabled. If `--allow` is present, it becomes
+a whitelist and only the listed capabilities are enabled.
 
 ## The three capabilities
 
@@ -20,22 +19,20 @@ Multiple capabilities are comma-separated:
 
 ```bash
 saqut run --allow fs,net prog.sqt
-saqut run --allow fs --allow sys prog.sqt   # repeated flag also works
+saqut run --allow fs,net,sys prog.sqt
 ```
+
+The older `--allow-fs`, `--allow-net`, and `--allow-sys` forms are not valid.
 
 ## How enforcement works
 
-saQut uses a **two-layer model** (A+B):
+Capability checks happen at the point where a gated function is called:
 
-**Layer A: compile time.** When you import a function that requires a
-capability (e.g. `readFile` requires `fs`), the compiler checks whether the
-matching `--allow` flag was passed. If not, you get a compile error before the
-program ever runs.
-
-**Layer B: runtime backstop.** Even if layer A passes, the VM checks again
-before every capability-gated call. This catches edge cases like
-`caps::drop()` removing a capability mid-program. If a call is blocked, the
-program throws a catchable `E_CAP_MISSING` error.
+Importing a capability-gated function is allowed even when that capability is
+currently disabled. The VM checks the active capability set immediately before
+the call. If the capability is missing, the call fails with `E_CAP_MISSING`.
+This also makes dynamic changes such as `caps::drop("fs")` effective for later
+calls. The import itself is not rejected.
 
 ## Querying capabilities
 
@@ -82,5 +79,6 @@ for as long as you need it.
 - A utility that reads environment variables and command-line arguments
   only needs `--allow sys`
 
-Each program declares exactly what it needs. The compiler and runtime enforce
-it. There is no ambient authority.
+Each program can inspect its active capability set at runtime. The CLI policy
+and runtime call checks enforce the boundary; importing a module alone does
+not grant or consume a capability.

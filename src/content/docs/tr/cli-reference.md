@@ -19,7 +19,7 @@ saqut run program.sqt
 
 | Bayrak | Amacı |
 |---|---|
-| `--allow fs,net,sys` | Çalışma zamanı capability'lerini verir |
+| `--allow fs,net,sys` | Çalışma zamanı capability'lerini whitelist olarak verir; verilmezse tümü açıktır |
 | `--jit` | Programı VM yerine deneysel MIR JIT ile çalıştırır |
 | `--optimized` | Sabit katlama ve ölü kod eleme uygular |
 | `--gc-threshold N` | N tahsis sonrası GC'yi tetikler |
@@ -104,10 +104,11 @@ Sonucu doğrudan yazar. Dosya oluşturmadan hızlı denemeler için kullanışl�
 Bir programın çalışma süresini ölçer.
 
 ```bash
-saqut bench program.sqt
+saqut bench program.sqt [--jit] --runs=<iterations>
 ```
 
-Programı birden çok kez çalıştırır ve zamanlama istatistiklerini yazar.
+JIT, zamanlama iterasyonlarından önce bir kez ısıtılır. Zamanlama tablosu
+çalıştırma süresini derleme/ısıtma süresinden ayrı gösterir.
 
 ### lsp / dap
 

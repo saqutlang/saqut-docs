@@ -48,10 +48,9 @@ saqut run --allow fs,net,sys prog.sqt
 | `net` | Ağ erişimi (HTTP, soket) |
 | `sys` | Sistem çağrıları: güncel zaman, rastgele sayı, ortam değişkenleri, argümanlar |
 
-Capability gerektiren fonksiyonlar bunu bildirir (`requires fs`). Eşleşen
-`--allow` bayrağı olmadan kullanmaya çalışırsan derleyici derleme zamanında
-hata verir. Çalışma zamanı da her çağrıdan önce son bir güvenlik kontrolü
-yapar.
+Capability gerektiren fonksiyonlar bunu bildirir (`requires fs`). Import işlemi
+tek başına reddedilmez; fonksiyon çağrıldığında çalışma zamanı aktif capability
+kümesini kontrol eder. Capability yoksa çağrı `E_CAP_MISSING` ile başarısız olur.
 
 Bir programın hangi capability'lere ihtiyaç duyduğunu çalıştırmadan
 sorgulayabilirsin:

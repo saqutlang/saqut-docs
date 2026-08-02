@@ -742,10 +742,9 @@ host-function mechanism.
 
 ## /capabilities/
 
-saQut runs programs in a **deny-by-default** sandbox. Your program has no
-access to the file system, network, or system calls unless you explicitly
-grant it. This page explains the permission model for practitioners building
-real programs.
+saQut uses an explicit capability policy. With no `--allow` option, all three
+currently defined capabilities are enabled. If `--allow` is present, it becomes
+a whitelist and only the listed capabilities are enabled.
 
 ## The three capabilities
 
@@ -759,22 +758,20 @@ Multiple capabilities are comma-separated:
 
 ```bash
 saqut run --allow fs,net prog.sqt
-saqut run --allow fs --allow sys prog.sqt   # repeated flag also works
+saqut run --allow fs,net,sys prog.sqt
 ```
+
+The older `--allow-fs`, `--allow-net`, and `--allow-sys` forms are not valid.
 
 ## How enforcement works
 
-saQut uses a **two-layer model** (A+B):
+Capability checks happen at the point where a gated function is called:
 
-**Layer A: compile time.** When you import a function that requires a
-capability (e.g. `readFile` requires `fs`), the compiler checks whether the
-matching `--allow` flag was passed. If not, you get a compile error before the
-program ever runs.
-
-**Layer B: runtime backstop.** Even if layer A passes, the VM checks again
-before every capability-gated call. This catches edge cases like
-`caps::drop()` removing a capability mid-program. If a call is blocked, the
-program throws a catchable `E_CAP_MISSING` error.
+Importing a capability-gated function is allowed even when that capability is
+currently disabled. The VM checks the active capability set immediately before
+the call. If the capability is missing, the call fails with `E_CAP_MISSING`.
+This also makes dynamic changes such as `caps::drop("fs")` effective for later
+calls. The import itself is not rejected.
 
 ## Querying capabilities
 
@@ -821,8 +818,9 @@ for as long as you need it.
 - A utility that reads environment variables and command-line arguments
   only needs `--allow sys`
 
-Each program declares exactly what it needs. The compiler and runtime enforce
-it. There is no ambient authority.
+Each program can inspect its active capability set at runtime. The CLI policy
+and runtime call checks enforce the boundary; importing a module alone does
+not grant or consume a capability.
 
 ## /cli-reference/
 
@@ -841,7 +839,7 @@ saqut run program.sqt
 
 | Flag | Purpose |
 |---|---|
-| `--allow fs,net,sys` | Grant runtime capabilities |
+| `--allow fs,net,sys` | Whitelist runtime capabilities; without it, all capabilities are enabled |
 | `--jit` | Run through the experimental MIR JIT instead of the VM |
 | `--optimized` | Apply constant folding and DCE |
 | `--gc-threshold N` | Trigger GC after N allocations |
@@ -927,10 +925,11 @@ file.
 Measure execution time of a program.
 
 ```bash
-saqut bench program.sqt
+saqut bench program.sqt [--jit] --runs=<iterations>
 ```
 
-Runs the program multiple times and prints timing statistics.
+The JIT is warmed up once before timing iterations. The timing table reports
+the measured execution phase separately from compilation/warmup.
 
 ### lsp / dap
 
@@ -945,7 +944,7 @@ saqut dap
 ## Common patterns
 
 ```bash
-# Run with full introspection
+# Run with an explicit capability whitelist and full introspection
 saqut run --allow fs --gc-stats --profile program.sqt
 
 # Check before running
@@ -3482,9 +3481,9 @@ Each arrow corresponds to a CLI command you can run and inspect.
 - `76c9bc6` | Adds the `date` type, which stores a UTC timestamp in
   milliseconds.
 - `35790a2` | Adds the `math::PI` and `math::E` constants.
-- `5433cb3` | Adds a capability (permission) system: file and network
-  access is now rejected unless explicitly allowed with `--allow-fs`,
-  `--allow-net`, or `--allow-sys`.
+- `5433cb3` | Adds the capability (permission) system for file, network, and
+  system access. With no `--allow` option all capabilities are enabled; when
+  present, `--allow fs,net,sys` acts as an explicit whitelist.
 - `1e0fbd3` | Adds `caps::drop` and `caps::has`: a running program can
   voluntarily give up permissions or check which ones it currently has.
 - `04d90b5` | When a variable inside a block shadows one with the same
@@ -7538,10 +7537,9 @@ açılır.
 
 ## /tr/capabilities/
 
-saQut programları **varsayılan olarak reddet** prensibiyle bir korumalı alanda
-çalıştırır. Programın dosya sistemine, ağa veya sistem çağrılarına erişimi
-yoktur; sen açıkça izin vermedikçe olmaz. Bu sayfa gerçek programlar yazan
-pratisyenler için izin modelini açıklar.
+saQut açık bir capability politikası kullanır. `--allow` verilmezse şu anda
+tanımlı üç capability'nin tamamı açıktır. `--allow` verilirse bu seçenek bir
+whitelist olur ve yalnızca listelenen capability'ler açılır.
 
 ## Üç capability
 
@@ -7555,22 +7553,20 @@ Birden fazla capability virgülle ayrılır:
 
 ```bash
 saqut run --allow fs,net prog.sqt
-saqut run --allow fs --allow sys prog.sqt   // tekrarlanan bayrak da çalışır
+saqut run --allow fs,net,sys prog.sqt
 ```
+
+Eski `--allow-fs`, `--allow-net` ve `--allow-sys` biçimleri geçerli değildir.
 
 ## Denetim nasıl çalışır
 
-saQut **iki katmanlı bir model** (A+B) kullanır:
+Capability denetimi, korumalı fonksiyon çağrıldığı anda yapılır:
 
-**A Katmani: derleme zamani.** Capability gerektiren bir fonksiyonu import
-ettiğinde (örn. `readFile` `fs` ister), derleyici eşleşen `--allow` bayrağının
-verilip verilmediğini kontrol eder. Verilmediyse program hiç çalışmadan
-derleme hatası alırsın.
-
-**B Katmani: calisma zamani guvencesi.** A katmanı geçse bile, VM her
-capability-kapılı çağrıdan önce tekrar kontrol eder. Bu, `caps::drop()` ile
-program ortasında capability kaldırma gibi uç durumları yakalar. Çağrı
-engellenirse program yakalanabilir bir `E_CAP_MISSING` hatası fırlatır.
+Capability isteyen bir fonksiyonu import etmek, capability o anda kapalı olsa
+bile serbesttir. VM çağrıdan hemen önce aktif capability kümesini kontrol eder.
+Capability yoksa çağrı `E_CAP_MISSING` ile başarısız olur. Böylece
+`caps::drop("fs")` gibi dinamik değişiklikler sonraki çağrılarda etkili olur;
+import işlemi tek başına reddedilmez.
 
 ## Capability sorgulama
 
@@ -7619,8 +7615,9 @@ ihtiyacın olduğu sürece tutarsın.
 - Ortam değişkeni ve komut satırı argümanı okuyan bir araç yalnızca
   `--allow sys` ister
 
-Her program tam olarak neye ihtiyacı olduğunu beyan eder. Derleyici ve
-çalışma zamanı bunu denetler. Gizli yetki yoktur.
+Programın aktif capability'lerini çalışma zamanında sorgulayabilirsin. CLI
+politikası ve çağrı öncesi çalışma zamanı denetimi sınırı uygular; bir modülü
+import etmek tek başına capability vermez.
 
 ## /tr/cli-reference/
 
@@ -7640,7 +7637,7 @@ saqut run program.sqt
 
 | Bayrak | Amacı |
 |---|---|
-| `--allow fs,net,sys` | Çalışma zamanı capability'lerini verir |
+| `--allow fs,net,sys` | Çalışma zamanı capability'lerini whitelist olarak verir; verilmezse tümü açıktır |
 | `--jit` | Programı VM yerine deneysel MIR JIT ile çalıştırır |
 | `--optimized` | Sabit katlama ve ölü kod eleme uygular |
 | `--gc-threshold N` | N tahsis sonrası GC'yi tetikler |
@@ -7725,10 +7722,11 @@ Sonucu doğrudan yazar. Dosya oluşturmadan hızlı denemeler için kullanışl�
 Bir programın çalışma süresini ölçer.
 
 ```bash
-saqut bench program.sqt
+saqut bench program.sqt [--jit] --runs=<iterations>
 ```
 
-Programı birden çok kez çalıştırır ve zamanlama istatistiklerini yazar.
+JIT, zamanlama iterasyonlarından önce bir kez ısıtılır. Zamanlama tablosu
+çalıştırma süresini derleme/ısıtma süresinden ayrı gösterir.
 
 ### lsp / dap
 
@@ -10313,9 +10311,8 @@ Her ok, çalıştırıp inceleyebileceğiniz bir CLI komutuna karşılık gelir.
 - `76c9bc6` | `date` tipi geldi: UTC zaman damgasını milisaniye cinsinden
   tutuyor.
 - `35790a2` | `math::PI` ve `math::E` sabitleri geldi.
-- `5433cb3` | İzin (capability) sistemi geldi: dosya ve ağ erişimi,
-  `--allow-fs` / `--allow-net` / `--allow-sys` bayrakları açıkça
-  verilmeden artık reddediliyor.
+- `5433cb3` | İzin (capability) sistemi geldi: `--allow` verilmezse tüm
+  capability'ler açık; verildiğinde `--allow fs,net,sys` açık whitelist olur.
 - `1e0fbd3` | `caps::drop` ve `caps::has` geldi: çalışan bir program kendi
   izinlerinden bilerek vazgeçebiliyor ya da hangi izinlere sahip olduğunu
   sorgulayabiliyor.
@@ -11646,10 +11643,9 @@ saqut run --allow fs,net,sys prog.sqt
 | `net` | Ağ erişimi (HTTP, soket) |
 | `sys` | Sistem çağrıları: güncel zaman, rastgele sayı, ortam değişkenleri, argümanlar |
 
-Capability gerektiren fonksiyonlar bunu bildirir (`requires fs`). Eşleşen
-`--allow` bayrağı olmadan kullanmaya çalışırsan derleyici derleme zamanında
-hata verir. Çalışma zamanı da her çağrıdan önce son bir güvenlik kontrolü
-yapar.
+Capability gerektiren fonksiyonlar bunu bildirir (`requires fs`). Import işlemi
+tek başına reddedilmez; fonksiyon çağrıldığında çalışma zamanı aktif capability
+kümesini kontrol eder. Capability yoksa çağrı `E_CAP_MISSING` ile başarısız olur.
 
 Bir programın hangi capability'lere ihtiyaç duyduğunu çalıştırmadan
 sorgulayabilirsin:
