@@ -12,8 +12,8 @@ değiştirilmez; hesaplama fonksiyonları yeni bir `date` döndürür.
 | Fonksiyon | İmza | Açıklama |
 |---|---|---|
 | `now` | `date now()` | Sistem saatindeki güncel zamanı döndürür; `sys` ister. |
-| `fromEpochMillis` | `date fromEpochMillis(int milliseconds)` | Epoch milisaniyesinden `date` üretir. |
-| `toEpochMillis` | `int toEpochMillis(date value)` | `date` değerini epoch milisaniyesine çevirir. |
+| `fromEpochMillis` | `date fromEpochMillis(longint milliseconds)` | Epoch milisaniyesinden `date` üretir. |
+| `toEpochMillis` | `longint toEpochMillis(date value)` | `date` değerini epoch milisaniyesine çevirir. |
 | `addDays` | `date addDays(date value, int amount)` | Tarihe gün ekleyip yeni tarih döndürür. |
 | `addHours` | `date addHours(date value, int amount)` | Tarihe saat ekler. |
 | `addMinutes` | `date addMinutes(date value, int amount)` | Tarihe dakika ekler. |
@@ -24,7 +24,7 @@ değiştirilmez; hesaplama fonksiyonları yeni bir `date` döndürür.
 | `hour` | `int hour(date value)` | Saat bölümünü döndürür. |
 | `minute` | `int minute(date value)` | Dakika bölümünü döndürür. |
 | `second` | `int second(date value)` | Saniye bölümünü döndürür. |
-| `diffMillis` | `int diffMillis(date left, date right)` | İki tarih arasındaki milisaniye farkını döndürür. |
+| `diffMillis` | `longint diffMillis(date left, date right)` | İki tarih arasındaki milisaniye farkını döndürür. |
 | `parse` | `date? parse(string iso8601)` | ISO tarih metnini ayrıştırır; geçersizse `null` döndürür. |
 | `format` | `string format(date value, string pattern)` | Tarihi verilen biçim metnine göre yazıya çevirir. |
 

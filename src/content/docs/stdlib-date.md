@@ -17,8 +17,8 @@ import { now, fromEpochMillis, toEpochMillis, addDays, year } from date;
 | Function | Signature | Capability |
 |---|---|---|
 | `now` | `date now()` | `sys` |
-| `fromEpochMillis` | `date fromEpochMillis(int ms)` | none |
-| `toEpochMillis` | `int toEpochMillis(date d)` | none |
+| `fromEpochMillis` | `date fromEpochMillis(longint milliseconds)` | none |
+| `toEpochMillis` | `longint toEpochMillis(date value)` | none |
 | `addDays` | `date addDays(date d, int n)` | none |
 | `addHours` | `date addHours(date d, int n)` | none |
 | `addMinutes` | `date addMinutes(date d, int n)` | none |
@@ -29,7 +29,7 @@ import { now, fromEpochMillis, toEpochMillis, addDays, year } from date;
 | `hour` | `int hour(date d)` | none |
 | `minute` | `int minute(date d)` | none |
 | `second` | `int second(date d)` | none |
-| `diffMillis` | `int diffMillis(date a, date b)` | none |
+| `diffMillis` | `longint diffMillis(date left, date right)` | none |
 | `parse` | `date? parse(string iso8601)` | none |
 | `format` | `string format(date d, string pattern)` | none |
 
