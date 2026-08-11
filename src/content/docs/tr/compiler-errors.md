@@ -41,7 +41,7 @@ Kod kararlıdır: arayabilirsiniz ve gelecekteki araçlar (`saqut explain E002`)
 
 ---
 
-## Anlamsal hatalar (E001-E011)
+## Anlamsal hatalar (E001-E013)
 
 Bunlar çözümlemeden (parsing) sonra, derleyici isimleri, türleri ve yapıyı
 kontrol ederken yakalanır.
@@ -195,6 +195,31 @@ int main() {
 ```
 
 **Düzeltme:** `struct`/fonksiyon tanımını dosyanın en üstüne taşıyın.
+
+### E013 (Modül kapsamında statement)
+
+Dosyanın en üst düzeyi **modül kapsamıdır**: burada yalnızca bildirimlere
+(global değişken, fonksiyon, struct, enum) izin verilir. Modül kapsamında
+*statement* çalıştırmak — atama, artırım, metod çağrısı, `if`, döngü vb. —
+reddedilir:
+
+```c
+int counter = 5;    // OK — bildirim
+
+counter = 10;       // E013, statements are not allowed at module scope
+counter++;          // E013
+arr.push(1);        // E013
+print(counter);     // E013
+
+int main() {
+    counter = 10;   // OK — fonksiyon içinde
+    return 0;
+}
+```
+
+**Düzeltme:** statement'ı bir fonksiyonun (ör. `main`) içine taşıyın. Global
+başlatıcılar literal ve sabit-katlanabilir ifadeler kullanabilir, ancak
+çalışma zamanında koşması gereken her şey bir fonksiyonun içine aittir.
 
 ---
 

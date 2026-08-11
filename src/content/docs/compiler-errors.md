@@ -41,7 +41,7 @@ E002`) will be able to expand on it.
 
 ---
 
-## Semantic errors (E001-E011)
+## Semantic errors (E001-E013)
 
 These are caught after parsing, while the compiler is checking names, types,
 and structure.
@@ -194,6 +194,31 @@ int main() {
 ```
 
 **Fix:** move the `struct`/function definition out to the top of the file.
+
+### E013 (Statement at module scope)
+
+The top level of a file is **module scope**: only declarations (global
+variables, functions, structs, enums) are allowed there. Running a *statement*
+at module scope — an assignment, increment, method call, `if`, loop, … — is
+rejected:
+
+```c
+int counter = 5;    // OK — declaration
+
+counter = 10;       // E013, statements are not allowed at module scope
+counter++;          // E013
+arr.push(1);        // E013
+print(counter);     // E013
+
+int main() {
+    counter = 10;   // OK — inside a function
+    return 0;
+}
+```
+
+**Fix:** move the statement inside a function (e.g. `main`). Global
+initializers may use literals and constant-foldable expressions, but anything
+that must run at runtime belongs in a function.
 
 ---
 

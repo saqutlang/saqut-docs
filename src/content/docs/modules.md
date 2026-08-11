@@ -74,9 +74,10 @@ because private symbols are perfectly usable *within their own file*.
 
 | Can export | Cannot export (yet) |
 |------------|---------------------|
-| `export` functions | Global variables |
+| `export` functions | |
 | `export struct` | |
 | `export enum` | |
+| `export` global variables | |
 
 ```c
 export int add(int a, int b) { return a + b; }   // ok
@@ -85,11 +86,13 @@ export struct Vec { int x; int y; }              // ok
 
 export enum State { Idle, Running, Done }         // ok
 
-export int counter = 0;   // ERROR, globals cannot be exported
+export int counter = 0;   // ok — global variables can be exported
 ```
 
-If you need shared state, expose it through exported functions rather than an
-exported global.
+Like all globals, an exported global is initialized once, before `main`, and
+module scope is declaration-only: you cannot assign to it at the top level
+(E013), only from inside a function. If you need shared *mutable* state, you
+can still expose it through exported functions rather than an exported global.
 
 ---
 

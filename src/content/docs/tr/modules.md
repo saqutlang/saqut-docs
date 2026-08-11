@@ -76,9 +76,10 @@ semboller *kendi dosyaları içinde* tamamen kullanılabilirdir.
 
 | Aktarılabilir | Aktarılamaz (şimdilik) |
 |---------------|------------------------|
-| `export` fonksiyonlar | Global değişkenler |
+| `export` fonksiyonlar | |
 | `export struct` | |
 | `export enum` | |
+| `export` global değişkenler | |
 
 ```c
 export int add(int a, int b) { return a + b; }   // tamam
@@ -87,11 +88,14 @@ export struct Vec { int x; int y; }              // tamam
 
 export enum State { Idle, Running, Done }         // tamam
 
-export int counter = 0;   // HATA, global değişkenler dışa aktarılamaz
+export int counter = 0;   // tamam — global değişkenler dışa aktarılabilir
 ```
 
-Paylaşımlı durum gerekiyorsa, dışa aktarılan bir global yerine dışa aktarılan
-fonksiyonlar üzerinden sunun.
+Tüm globaller gibi, dışa aktarılan bir global de `main`'den önce bir kez
+başlatılır ve modül kapsamı yalnızca bildirim içerir: en üst düzeyde ona
+atama yapılamaz (E013), yalnızca bir fonksiyonun içinden yapılabilir.
+Paylaşımlı *değişebilir* durum gerekiyorsa, dışa aktarılan bir global yerine
+dışa aktarılan fonksiyonlar üzerinden de sunabilirsiniz.
 
 ---
 

@@ -125,6 +125,30 @@ int main() {
 - **Globals** are useful for a small amount of shared state, but because *any*
   function can change them, overusing them makes a program harder to follow.
 
+### Module scope is declaration-only (E013)
+
+The top level of a file is **module scope**. Only *declarations* are allowed
+there — global variables, functions, structs, enums. You **cannot** run
+statements (assignments, increments, method calls, `if`, loops, …) at module
+scope; the compiler rejects them with error **E013**:
+
+```c
+int counter = 5;          // OK — declaration
+counter = 10;             // ERROR E013: statements are not allowed at module scope
+counter++;                // ERROR E013
+arr.push(1);              // ERROR E013
+
+int main() {
+    counter = 10;         // OK — inside a function
+    counter++;            // OK
+    return 0;
+}
+```
+
+Global initializers may use literals and constant-foldable expressions
+(`int a = 24 + 20;`, `int b = a + 1;`), but any *computation* that must run
+at runtime belongs inside a function.
+
 > A dedicated page on local vs global variables and the call stack is planned.
 > For now: locals live inside their function/block; globals live at the top
 > level and are shared.
