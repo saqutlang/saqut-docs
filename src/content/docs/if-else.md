@@ -186,24 +186,18 @@ and **no** `?.` operator. The check is visible in the code, and the safety is
 proven at compile time with zero runtime cost. (See
 [null safety in data types](/data-types/#nullable-types).)
 
-## The Ternary Alternative
+## Picking a Value
 
-For a simple "choose one of two values," the [ternary
-operator](/operators/#ternary-operator) `?:` is a compact expression instead of
-a full `if`:
+saQut has **no** `?:` ternary operator — `?` is only the nullable type marker
+(`int?`). To choose between two values, declare the variable and assign it in
+each branch:
 
 ```c
 int x = 5;
 
-// if / else
 string label;
 if (x > 0) { label = "positive"; } else { label = "non-positive"; }
-
-// same thing as a ternary
-string label2 = x > 0 ? "positive" : "non-positive";
 ```
-
-Use `if` for running statements; use `?:` when you just need to pick a value.
 
 ## What's Next?
 

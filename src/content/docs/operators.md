@@ -27,12 +27,13 @@ Higher number = evaluated first.
 | 7 | Bitwise OR | `\|` | Left |
 | 6 | Logical AND | `&&` | Left |
 | 5 | Logical OR | `\|\|` | Left |
-| 4 | Ternary condition | `?` | **Right** |
-| 3 | Ternary else | `:` | **Right** |
 | 2 | Assignment | `=` `+=` `-=` `*=` etc. | **Right** |
 | 1 | Comma | `,` | Left |
 
 > **Right-associative:** `a = b = 5` → `a = (b = 5)`
+>
+> **No ternary:** saQut has no `?:` conditional operator. `?` appears only in
+> type positions as the nullable marker (`int?`, `Point?`) — never in expressions.
 > **Left-associative:** `10 - 4 - 3` → `(10 - 4) - 3` = 3
 
 ## Arithmetic Operators
@@ -157,15 +158,6 @@ x |= 8;     // x = 10
 x ^= 5;     // x = 15
 x <<= 1;    // x = 30
 x >>= 1;    // x = 15
-```
-
-## Ternary Operator
-
-A compact if-else that returns a value:
-
-```c
-int x = 5;
-string result = x > 0 ? "positive" : "zero or negative";
 ```
 
 ## Type Cast Operator (`as`)

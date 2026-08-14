@@ -28,12 +28,13 @@ Yüksek sayı = önce değerlendirilir.
 | 7 | Bitsel VEYA | `\|` | Sol |
 | 6 | Mantıksal VE | `&&` | Sol |
 | 5 | Mantıksal VEYA | `\|\|` | Sol |
-| 4 | Üçlü koşul | `?` | **Sağ** |
-| 3 | Üçlü else | `:` | **Sağ** |
 | 2 | Atama | `=` `+=` `-=` `*=` vb. | **Sağ** |
 | 1 | Virgül | `,` | Sol |
 
 > **Sağ-birleşmeli:** `a = b = 5` → `a = (b = 5)`
+>
+> **Üçlü işleç yok:** saQut'ta `?:` koşul operatörü yoktur. `?` yalnızca tip
+> konumunda nullable işareti olarak görünür (`int?`, `Point?`) — ifadelerde asla.
 > **Sol-birleşmeli:** `10 - 4 - 3` → `(10 - 4) - 3` = 3
 
 ## Aritmetik İşleçler
@@ -160,15 +161,6 @@ x |= 8;     // x = 10
 x ^= 5;     // x = 15
 x <<= 1;    // x = 30
 x >>= 1;    // x = 15
-```
-
-## Üçlü İşleç (Ternary)
-
-Değer döndüren kısa bir if-else:
-
-```c
-int x = 5;
-string result = x > 0 ? "positive" : "zero or negative";
 ```
 
 ## Tür Dönüşüm İşleci (`as`)

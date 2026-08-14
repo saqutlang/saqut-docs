@@ -189,25 +189,18 @@ Nullable bir değeri kullanmanın tek yolu budur: **`x!`** zorla-unwrap yoktur,
 zamanı maliyetiyle derleme zamanında kanıtlanır. (Bkz.
 [veri türlerinde null güvenliği](/data-types/#nullable-types).)
 
-## Ternary Alternatifi
+## Değer Seçme
 
-"İki değerden birini seç" gibi basit durumlarda, [ternary
-operatörü](/operators/#ternary-operator) `?:`, tam bir `if` yerine kompakt bir
-ifadedir:
+saQut'ta `?:` üçlü operatörü **yoktur** — `?` yalnızca nullable tip işaretidir
+(`int?`). İki değer arasında seçim yapmak için değişkeni tanımlayıp her dalda
+atayın:
 
 ```c
 int x = 5;
 
-// if / else
 string label;
 if (x > 0) { label = "positive"; } else { label = "non-positive"; }
-
-// aynısı ternary ile
-string label2 = x > 0 ? "positive" : "non-positive";
 ```
-
-İfade çalıştırmak için `if` kullanın; yalnızca bir değer seçmek için `?:`
-kullanın.
 
 ## Sırada Ne Var?
 
