@@ -169,6 +169,51 @@ Her ok, çalıştırıp inceleyebileceğiniz bir CLI komutuna karşılık gelir.
 
 ## Sürüm günlüğü
 
+### 24 Ağustos 2026 · 0.9.4 · Hatalar Artık Yakalanıyor
+
+- `a08c756` | `try` / `catch` / `throw` artık JIT tarafında da çalışıyor —
+  VM ile aynı çıktı ve çıkış koduyla; sıfıra bölme, başarısız dönüşüm ve
+  dizi sınır aşımı gibi yakalanabilir çalışma zamanı hataları dahil.
+  (Planlanan setjmp/longjmp tasarımının bir JIT'te tanımsız davranış
+  olduğu ortaya çıktı; yerine talimat başına bekleyen-hata denetimi
+  getirildi ve `try` içermeyen fonksiyonlar hâlâ sıfır maliyet ödüyor.)
+- `a68cad7` | JIT çöp toplayıcısında bir hata düzeltildi: tahsis yapan
+  özyinelemeli çağrılarda canlı bir nesne kullanılmaktayken süpürülüp
+  yeniden kullanılabiliyordu. Gölge-yığın çerçeveleri artık çağrı başına
+  düzgün geri sarılıyor.
+- `2095564` | Daha önce "JIT'te bilinçli bozuk" işaretli altı test
+  programı artık VM ile bayt bayt eşleşmek zorunda — bu alanda parite
+  yeniden ve istisnasız zorunlu.
+- `4568aac` | Capability (izin) sistemi kaldırıldı (ADR-043): host
+  çağrıları varsayılan olarak açık ve dosya işlemleri JIT'te de aynı
+  şekilde çalışıyor.
+- `5aeec2b` | String indeksleme ve `length()` artık bayt değil Unicode
+  code point sayıyor.
+- `1cea6bf` | `upper()` ve `lower()` artık gerçek Unicode harf
+  dönüşümü yapıyor.
+- `4bc1b2b` | Dosya içerikleri uçtan uca `byte[]` olarak işlenebiliyor.
+- `b2ed2f8` | 64-bit hex sabitleri `longint` olarak tam bit desenini
+  koruyor.
+- `b9f5c62` | Dizi tipli struct alanları artık boş diziyle başlıyor —
+  önce değer atamaya gerek olmadan `record.items.push(x)` çalışıyor.
+- `74296d6` | Yerleşik metodu çağırmadan kullanmak (parantezsiz
+  `s.length`) artık sessizce `0` üretmek yerine derleme hatası.
+- `dd8a493` | Modül kapsamında statement'lar (`x = 5;` gibi, herhangi
+  bir fonksiyonun dışında) artık C++'daki gibi net bir hatayla
+  reddediliyor — en üst düzey yalnızca bildirim kabul ediyor.
+- `030f4bd` | Fonksiyonu zorunlu argümanları olmadan çağırmak artık
+  derleme hatası; dil sunucusu da bu girdiyi zarifçe atlatıyor.
+- `907d904` | JIT sıcak dizi erişimlerini doğrudan bellek işlemine
+  indiriyor ve derlenmiş kodu yeniden kullanıyor — dizi ağırlıklı
+  döngüler daha hızlı.
+- `2645978` | Belgeler, dilde hiç var olmamış `?:` üçlü operatörünü
+  artık varmış gibi tanıtmıyor.
+- `2d6395c` | `--help` artık standart bir kılavuz sayfası gibi okunuyor
+  ve uygulanmayan komutlar CLI'dan tamamen çıkarıldı.
+- `ee102a3` | Kağıt üzerinde var olup hiç koşulmayan on beş hata
+  fixture'ı test koşucusuna bağlandı — sessiz hata sınıfları artık
+  yakalanıyor.
+
 ### 1 Ağustos 2026 · 0.9.2 · Kendini Ölçmeyi Öğreniyor
 
 - `c2266ad` | Tipine sığmayan bir `int` ya da `longint` sabiti artık

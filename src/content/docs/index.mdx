@@ -166,6 +166,49 @@ Each arrow corresponds to a CLI command you can run and inspect.
 
 ## Changelog
 
+### August 24, 2026 · 0.9.4 · Errors Get Caught Now
+
+- `a08c756` | `try` / `catch` / `throw` now work in the JIT backend with
+  the same output and exit code as the VM — including catchable runtime
+  errors like division by zero, failed casts, and out-of-range array
+  indexing. (The planned setjmp/longjmp design turned out to be
+  undefined behavior in a JIT; a per-instruction pending-error check is
+  used instead, and functions without a `try` still pay zero cost.)
+- `a68cad7` | Fixed a JIT garbage-collector bug: in recursive calls that
+  allocate, a live object could be swept and reused while still in use.
+  Shadow-stack frames now unwind properly per call.
+- `2095564` | The six test programs previously marked "JIT known broken"
+  are now required to match the VM byte for byte — parity is enforced
+  again in this area, with no exceptions.
+- `4568aac` | The capability (permission) system has been removed
+  (ADR-043): host calls are open by default, and file operations now
+  work identically in the JIT.
+- `5aeec2b` | String indexing and `length()` now count Unicode code
+  points instead of bytes.
+- `1cea6bf` | `upper()` and `lower()` now do real Unicode case mapping.
+- `4bc1b2b` | File contents can be handled as `byte[]` end to end.
+- `b2ed2f8` | 64-bit hex literals keep their exact bit pattern as
+  `longint` instead of being mangled.
+- `b9f5c62` | A struct field with an array type now starts as an empty
+  array — `record.items.push(x)` works without assigning a value first.
+- `74296d6` | Using a built-in method without calling it (`s.length`
+  without parentheses) is now a compile error instead of silently
+  producing `0`.
+- `dd8a493` | Statements at module scope (`x = 5;` outside any function)
+  are now rejected with a clear error, as in C++ — the top level only
+  accepts declarations.
+- `030f4bd` | Calling a function without its required arguments is now a
+  compile error; the language server also survives that input gracefully.
+- `907d904` | The JIT lowers hot array accesses to direct memory
+  operations and reuses compiled code — array-heavy loops run faster.
+- `2645978` | The docs no longer advertise a `?:` ternary operator the
+  language never had.
+- `2d6395c` | `--help` now reads like a standard manual page, and
+  unimplemented commands were removed from the CLI entirely.
+- `ee102a3` | Fifteen error fixtures that existed on paper but were
+  never actually run are now wired into the test runner, so silent
+  failure classes get caught.
+
 ### August 1, 2026 · 0.9.2 · Learning to Measure Itself
 
 - `c2266ad` | An `int` or `longint` literal that does not fit the type is
