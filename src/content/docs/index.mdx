@@ -193,6 +193,12 @@ Each arrow corresponds to a CLI command you can run and inspect.
   local variables, struct fields, and globals alike.
 - `b9f5c62` | A struct field with an array type now starts as an empty
   array — `record.items.push(x)` works without assigning a value first.
+- `690025b` | A module-level `int?`, `string?`, or `longint?` you never
+  assigned now really reads as `null` — before, `x == null` answered
+  false because the slot silently held `0`.
+- `2469bbf` | Ordering comparisons (`<`, `>`, `<=`, `>=`) on a nullable
+  value are now a compile error, same as arithmetic: pass the null gate
+  first (`if (x != null) { x < 26 }`). Equality (`==`, `!=`) is untouched.
 - `74296d6` | Using a built-in method without calling it (`s.length`
   without parentheses) is now a compile error instead of silently
   producing `0`.

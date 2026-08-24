@@ -198,6 +198,12 @@ Her ok, çalıştırıp inceleyebileceğiniz bir CLI komutuna karşılık gelir.
   değişkenler, struct alanları ve globaller dahil.
 - `b9f5c62` | Dizi tipli struct alanları artık boş diziyle başlıyor —
   önce değer atamaya gerek olmadan `record.items.push(x)` çalışıyor.
+- `690025b` | Hiç değer atanmamış modül-düzeyi `int?`, `string?` veya
+  `longint?` artık gerçekten `null` okunuyor — önce `x == null` slot
+  sessizce `0` tuttuğu için false yanıtı veriyordu.
+- `2469bbf` | Nullable değerle sıralama karşılaştırmaları (`<`, `>`,
+  `<=`, `>=`) artık aritmetikteki gibi derleme hatası: önce null kapısından
+  geçin (`if (x != null) { x < 26 }`). Eşitlik (`==`, `!=`) değişmedi.
 - `74296d6` | Yerleşik metodu çağırmadan kullanmak (parantezsiz
   `s.length`) artık sessizce `0` üretmek yerine derleme hatası.
 - `dd8a493` | Modül kapsamında statement'lar (`x = 5;` gibi, herhangi
