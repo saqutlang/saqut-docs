@@ -189,6 +189,8 @@ Each arrow corresponds to a CLI command you can run and inspect.
 - `4bc1b2b` | File contents can be handled as `byte[]` end to end.
 - `b2ed2f8` | 64-bit hex literals keep their exact bit pattern as
   `longint` instead of being mangled.
+- `ec4174c` | An uninitialized `string` now starts as `""` instead of `0` —
+  local variables, struct fields, and globals alike.
 - `b9f5c62` | A struct field with an array type now starts as an empty
   array — `record.items.push(x)` works without assigning a value first.
 - `74296d6` | Using a built-in method without calling it (`s.length`

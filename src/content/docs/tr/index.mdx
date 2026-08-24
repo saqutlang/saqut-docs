@@ -194,6 +194,8 @@ Her ok, çalıştırıp inceleyebileceğiniz bir CLI komutuna karşılık gelir.
 - `4bc1b2b` | Dosya içerikleri uçtan uca `byte[]` olarak işlenebiliyor.
 - `b2ed2f8` | 64-bit hex sabitleri `longint` olarak tam bit desenini
   koruyor.
+- `ec4174c` | Init'siz `string` artık `0` yerine `""` ile başlıyor — local
+  değişkenler, struct alanları ve globaller dahil.
 - `b9f5c62` | Dizi tipli struct alanları artık boş diziyle başlıyor —
   önce değer atamaya gerek olmadan `record.items.push(x)` çalışıyor.
 - `74296d6` | Yerleşik metodu çağırmadan kullanmak (parantezsiz

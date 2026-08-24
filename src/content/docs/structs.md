@@ -57,12 +57,14 @@ struct Product {
     string title;
     float price;
     int stock;
+    string[] tags;
 }
 
 Product item;
 print(item.title);       // "" (empty string)
 print(item.price);       // 0.0
 print(item.stock);       // 0
+print(item.tags.length()); // 0 (fields with an array type start empty)
 ```
 
 ## Reference Semantics
