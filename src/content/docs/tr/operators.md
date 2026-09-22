@@ -92,9 +92,17 @@ int y = x++;            // y = 5, x = 6
 
 Önek biçimi (`++x`, `--x`) yoktur. Gerektiği yerde `x = x + 1` yazın.
 
-> `++` ve `--` şu an yalnızca tamsayı değişkenlerde güvenilirdir; ondalık bir
-> değişkende beklenen sonucu vermez ([#238](https://github.com/saqutlang/saqut/issues/238)).
-> Ondalık için `f = f + 1.0;` kullanın.
+> `++` ve `--` şu an yalnızca **düz bir tamsayı değişkende** güvenilirdir.
+> Üç durum çalışmaz ve hiçbir tanılama üretmez:
+>
+> - **Ondalık değişken** — `float f = 1.5; f++;` `2.5` değil `1` basar.
+>   `--jit` altında ise çöker
+>   ([#238](https://github.com/saqutlang/saqut/issues/238)). `f = f + 1.0;` kullanın.
+> - **Dizi elemanı** — `a[0]++;` `a[0]`'ı değiştirmez. `a[0] = a[0] + 1;` kullanın.
+> - **Struct alanı** — `p.x++;` `p.x`'i değiştirmez. `p.x = p.x + 1;` kullanın.
+>
+> `byte` çalışır. Başarısız durumların hepsinde değer sessizce olduğu gibi
+> kalır; bunlar düzeltilene kadar açık `= … + 1` biçimini tercih edin.
 
 ## Karşılaştırma İşleçleri
 

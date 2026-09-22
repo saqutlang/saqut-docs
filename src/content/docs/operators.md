@@ -91,13 +91,17 @@ int y = x++;            // y = 5, x = 6
 There is no prefix `++x` or `--x`. Where you would reach for one, write
 `x = x + 1` as its own statement.
 
-> `++` and `--` are currently reliable only on integer variables; on a
-> floating-point variable they do not produce the expected result
-> ([#238](https://github.com/saqutlang/saqut/issues/238)). Use `f = f + 1.0;`
-> for those.
-
-> Note: `++` and `--` work on `int` and `float` types. They are statements,
-> not just expressions: you cannot write `foo(x++)` yet.
+> `++` and `--` are currently reliable **only on a plain integer variable**.
+> Three cases do not work and produce no diagnostic:
+>
+> - **Floating-point variable** — `float f = 1.5; f++;` prints `1`, not `2.5`.
+>   Under `--jit` it aborts instead
+>   ([#238](https://github.com/saqutlang/saqut/issues/238)). Use `f = f + 1.0;`.
+> - **Array element** — `a[0]++;` leaves `a[0]` unchanged. Use `a[0] = a[0] + 1;`.
+> - **Struct field** — `p.x++;` leaves `p.x` unchanged. Use `p.x = p.x + 1;`.
+>
+> `byte` works. In every failing case the value is silently left alone, so
+> prefer the explicit `= … + 1` form until these are fixed.
 
 ## Comparison Operators
 
