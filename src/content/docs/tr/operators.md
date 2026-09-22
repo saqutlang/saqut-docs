@@ -16,7 +16,8 @@ Yüksek sayı = önce değerlendirilir.
 |--------|----------|----------|----------|
 | 18 | Üye erişimi / çağrı | `.` `[ ]` `( )` | Sol |
 | 17 | Sonek | `++` `--` | Sol |
-| 16 | Tekil önek | `+` `-` `!` `~` | Sağ |
+| 16 | Tekil önek | `++` `--` `+` `-` `!` `~` | Sağ |
+| 15 | Üs alma | `**` | **Sağ** |
 | 14 | Çarpma / Bölme / Modül | `*` `/` `%` | Sol |
 | 13 | Toplama / Çıkarma | `+` `-` | Sol |
 | 12 | Bitsel kaydırma | `<<` `>>` | Sol |
@@ -37,8 +38,8 @@ Yüksek sayı = önce değerlendirilir.
 > **Virgül işleci yok:** `,` yalnızca argümanları, parametreleri ve dizi
 > elemanlarını ayırır. Bir ifade işleci değildir; `(a, b)` sözdizimi hatasıdır.
 >
-> **Üs alma işleci yok:** dilde `**` ya da `^` üs işleci bulunmaz. `math`
-> modülündeki `pow()` kullanılır. `^` bitsel XOR'dur.
+> **Üs alma `**`:** sağ-birleşmelidir; `2 ** 3 ** 2` → `2 ** (3 ** 2)` = 512.
+> `^` bir üs işleci **değildir**, bitsel XOR'dur (`2 ^ 3` = 1).
 >
 > **Sol-birleşmeli:** `10 - 4 - 3` → `(10 - 4) - 3` = 3
 
@@ -57,52 +58,65 @@ int pos = +10;          // tekil artı
 
 ### Üs Alma
 
-saQut'ta üs alma işleci yoktur. `math` modülündeki `pow()` kullanılır; aldığı
-ve döndürdüğü tip `double`'dır:
+`**` sol operandı sağ operandın kuvvetine yükseltir. **Sağ-birleşmelidir**:
+`2 ** 3 ** 2` ifadesi `2 ** (3 ** 2)` yani 512'dir. Çarpmadan daha sıkı bağlar:
+`2 * 3 ** 2` sonucu 18'dir.
 
 ```c
-import { pow } from math;
+int kup = 2 ** 3;           // 8
+int buyuk = 3 ** 5;         // 243
 
-int main() {
-    double kup = pow(2.0, 3.0);      // 8.0
-    int dokuz = pow(2.0, 9.0) as int; // 512
-    return 0;
-}
+double taban = 2.0;
+double kok = taban ** 0.5;   // 1.414213562
+double yarim = taban ** -1.0; // 0.5 (ondalıkta negatif üs geçerlidir)
 ```
+
+Tamsayılarda sonuç tamdır: `**` kayan noktadan geçmek yerine tekrarlı çarpma
+yapar, bu yüzden büyük değerlerde hassasiyet kaybı olmaz ve taşma diğer tamsayı
+aritmetiğiyle aynı şekilde sarar. **Tamsayıda negatif üs** çalışma zamanı
+hatasıdır (`E_POWNEG`), çünkü gerçek sonuç kesirli olurdu. Kesirli sonuç
+istiyorsanız `2.0 ** -1.0` yazın.
+
+`decimal` tipi `**` işlecini desteklemez: ölçeği sabittir, dolayısıyla sonuç
+genel durumda temsil edilemez. Önce dönüştürün: `deger as double ** us`.
 
 `^` bir üs işleci değil, bitsel XOR'dur: `2 ^ 3` sonucu `8` değil `1`'dir.
 
 ### Artırma ve Azaltma
 
-Yalnızca **sonek** biçimleri vardır:
+Hem **sonek** (`x++`) hem **önek** (`++x`) biçimleri vardır. Yan etkileri
+aynıdır; ifadenin ürettiği değerde ayrışırlar. Sonek **değişiklikten önceki**,
+önek **sonraki** değeri döndürür:
 
 ```c
 int x = 5;
-x++;                    // x = 6
-x--;                    // x = 5
+int y = x++;            // y = 5, x = 6   (eski değer)
+
+int w = 5;
+int v = ++w;            // v = 6, w = 6   (yeni değer)
 ```
 
-İfade olarak kullanıldığında sonek biçimi **değişiklikten önceki** değeri
-döndürür:
+`float`, `double`, `longint` ve `byte` dahil her sayısal tipte çalışır:
 
 ```c
-int x = 5;
-int y = x++;            // y = 5, x = 6
+float f = 1.5;  f++;    // 2.5
+byte b = 255;   b++;    // 0 (8 bite sarar, diğer byte aritmetiği gibi)
 ```
 
-Önek biçimi (`++x`, `--x`) yoktur. Gerektiği yerde `x = x + 1` yazın.
+Operand **yazılabilir bir konum** olmalıdır. Değişkenler, dizi elemanları ve
+struct alanları bu koşulu sağlar:
 
-> `++` ve `--` şu an yalnızca **düz bir tamsayı değişkende** güvenilirdir.
-> Üç durum çalışmaz ve hiçbir tanılama üretmez:
->
-> - **Ondalık değişken** — `float f = 1.5; f++;` `2.5` değil `1` basar.
->   `--jit` altında ise çöker
->   ([#238](https://github.com/saqutlang/saqut/issues/238)). `f = f + 1.0;` kullanın.
-> - **Dizi elemanı** — `a[0]++;` `a[0]`'ı değiştirmez. `a[0] = a[0] + 1;` kullanın.
-> - **Struct alanı** — `p.x++;` `p.x`'i değiştirmez. `p.x = p.x + 1;` kullanın.
->
-> `byte` çalışır. Başarısız durumların hepsinde değer sessizce olduğu gibi
-> kalır; bunlar düzeltilene kadar açık `= … + 1` biçimini tercih edin.
+```c
+int[] a = [10, 20];
+a[0]++;                 // a[0] = 11
+
+Nokta p;
+p.x++;                  // p.x = 1
+```
+
+Bunların dışındaki her şey derleme hatasıdır; `5++` ya da `f()++` sessizce göz
+ardı edilmek yerine reddedilir. Nullable operand da reddedilir; önce null
+denetimi yapın.
 
 ## Karşılaştırma İşleçleri
 

@@ -15,7 +15,8 @@ Higher number = evaluated first.
 |-------|----------|-----------|---------------|
 | 18 | Member access / call | `.` `[ ]` `( )` | Left |
 | 17 | Postfix | `++` `--` | Left |
-| 16 | Unary prefix | `+` `-` `!` `~` | Right |
+| 16 | Unary prefix | `++` `--` `+` `-` `!` `~` | Right |
+| 15 | Exponentiation | `**` | **Right** |
 | 14 | Multiply / Divide / Modulo | `*` `/` `%` | Left |
 | 13 | Add / Subtract | `+` `-` | Left |
 | 12 | Bitwise shift | `<<` `>>` | Left |
@@ -36,8 +37,8 @@ Higher number = evaluated first.
 > **No comma operator:** `,` separates arguments, parameters, and array
 > elements. It is not an expression operator; `(a, b)` is a syntax error.
 >
-> **No exponentiation operator:** there is no `**` or `^` power operator. Use
-> `pow()` from the `math` module. `^` is bitwise XOR.
+> **Exponentiation `**`:** right-associative, so `2 ** 3 ** 2` → `2 ** (3 ** 2)` = 512.
+> `^` is **not** a power operator; it is bitwise XOR (`2 ^ 3` is 1).
 >
 > **Left-associative:** `10 - 4 - 3` → `(10 - 4) - 3` = 3
 
@@ -56,52 +57,65 @@ int pos = +10;          // unary plus
 
 ### Exponentiation
 
-saQut has no exponentiation operator. Use `pow()` from the `math` module,
-which takes and returns `double`:
+`**` raises the left operand to the power of the right. It is
+**right-associative**, so `2 ** 3 ** 2` is `2 ** (3 ** 2)` = 512, and it binds
+tighter than `*`: `2 * 3 ** 2` is 18.
 
 ```c
-import { pow } from math;
+int cube = 2 ** 3;          // 8
+int big  = 3 ** 5;          // 243
 
-int main() {
-    double cube = pow(2.0, 3.0);     // 8.0
-    int nine = pow(2.0, 9.0) as int; // 512
-    return 0;
-}
+double base = 2.0;
+double root = base ** 0.5;  // 1.414213562
+double half = base ** -1.0; // 0.5 (a negative exponent is fine here)
 ```
+
+On integers the result is exact: `**` multiplies repeatedly rather than going
+through floating point, so large values do not lose precision, and overflow
+wraps like any other integer arithmetic. A **negative exponent on an integer**
+is a runtime error (`E_POWNEG`) because the true result would be fractional.
+Write `2.0 ** -1.0` if that is what you want.
+
+`decimal` does not support `**`: its scale is fixed, so the result is not
+generally representable. Cast first: `value as double ** exponent`.
 
 `^` is bitwise XOR, not a power operator: `2 ^ 3` is `1`, not `8`.
 
 ### Increment & Decrement
 
-Only the **postfix** forms exist:
+Both the **postfix** (`x++`) and **prefix** (`++x`) forms exist. The side
+effect is the same; they differ in the value the expression yields. Postfix
+returns the value from **before** the change, prefix the one from **after**:
 
 ```c
 int x = 5;
-x++;                    // x = 6
-x--;                    // x = 5
+int y = x++;            // y = 5, x = 6   (old value)
+
+int w = 5;
+int v = ++w;            // v = 6, w = 6   (new value)
 ```
 
-Used as an expression, postfix returns the value from **before** the change:
+They work on every numeric type, including `float`, `double`, `longint` and
+`byte`:
 
 ```c
-int x = 5;
-int y = x++;            // y = 5, x = 6
+float f = 1.5;  f++;    // 2.5
+byte b = 255;   b++;    // 0 (wraps to 8 bits, like other byte arithmetic)
 ```
 
-There is no prefix `++x` or `--x`. Where you would reach for one, write
-`x = x + 1` as its own statement.
+The operand must be a **writable location**. Variables, array elements and
+struct fields all qualify:
 
-> `++` and `--` are currently reliable **only on a plain integer variable**.
-> Three cases do not work and produce no diagnostic:
->
-> - **Floating-point variable** — `float f = 1.5; f++;` prints `1`, not `2.5`.
->   Under `--jit` it aborts instead
->   ([#238](https://github.com/saqutlang/saqut/issues/238)). Use `f = f + 1.0;`.
-> - **Array element** — `a[0]++;` leaves `a[0]` unchanged. Use `a[0] = a[0] + 1;`.
-> - **Struct field** — `p.x++;` leaves `p.x` unchanged. Use `p.x = p.x + 1;`.
->
-> `byte` works. In every failing case the value is silently left alone, so
-> prefer the explicit `= … + 1` form until these are fixed.
+```c
+int[] a = [10, 20];
+a[0]++;                 // a[0] = 11
+
+Point p;
+p.x++;                  // p.x = 1
+```
+
+Anything else is a compile error, so `5++` or `f()++` is rejected rather than
+silently ignored. A nullable operand is rejected too; check for null first.
 
 ## Comparison Operators
 

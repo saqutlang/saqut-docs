@@ -138,10 +138,9 @@ changes, and fix any page that disagrees with it.
   scalar code: strings, arrays, structs, `try`/`catch`, and host calls all run
   on it, and it is required to match the VM byte for byte. Embedded-runtime AOT
   (a `--output` binary) is still planned.
-  - Known JIT gaps, verified 2026-09-22 on `e4863e9`: `string?`-returning host
-    functions (`sys::env`, `os::osUser`, `stdin::readLine`) return a raw
-    pointer instead of the string (#239), and `++` on a `float`/`double`
-    crashes the JIT while the VM silently yields `1` (#238).
+  - #238 and #239 were fixed on branch `0.9.8`: `string?`-returning host
+    functions now return the string on both backends, and `++` works on every
+    numeric type, on array elements and on struct fields.
 - **Target platforms:** Linux x86-64 and Windows 11 x86-64 only. macOS is not
   a target and will not be supported. ARM (aarch64) and cross-compiling are
   planned for later, not shipped yet. Do not claim 32-bit support.
@@ -166,12 +165,14 @@ changes, and fix any page that disagrees with it.
 Each of these was verified by running the compiler on `e4863e9` (2026-09-22).
 Do not write the crossed-out form back into a page.
 
-- **No exponentiation operator.** `**` tokenizes and parses but is implemented
-  nowhere, so `2 ** 3` silently evaluates to `0` (#237). `^` is bitwise XOR.
-  Use `math::pow()`, which takes and returns `double`.
-- **No prefix `++x` / `--x`.** It parses and does nothing (#237). Postfix
-  `x++` works, including as an expression (`int y = x++;` gives `y = 5`,
-  `x = 6`).
+- **`**` is the exponentiation operator** (implemented in 0.9.8, #237). It is
+  right-associative and binds tighter than `*`, so `2 ** 3 ** 2` is 512 and
+  `2 * 3 ** 2` is 18. On integers a negative exponent is an `E_POWNEG` runtime
+  error; `decimal` rejects `**` at compile time. `^` is still bitwise XOR.
+- **Both `x++` and `++x` work** (prefix added in 0.9.8, #237). Postfix yields
+  the value from before the change, prefix the one from after. They work on
+  every numeric type and on array elements and struct fields; the operand must
+  be a writable location, so `5++` is a compile error.
 - **No comma operator.** `(a, b)` is a syntax error.
 - **String escapes are only** `\n`, `\t`, `\r`, `\b`, `\\`, `\"`. There is no
   `\x1b`, `\u001b`, or `\033`; the backslash is dropped and the letters print
