@@ -103,14 +103,21 @@ Each `<slug>` below exists in English at `/<slug>/` and in Turkish at
 | builtin-functions | Built-in Functions (UFCS) / Yerleşik Fonksiyonlar |
 | stdlib-overview | Standard Library / Standart Kütüphane |
 | stdlib-fs | fs (File System) / fs (Dosya Sistemi) |
+| stdlib-path | path (Paths) / path (Yollar) |
+| stdlib-utf8 | utf8 (Text Encoding) / utf8 (Metin Kodlama) |
+| stdlib-io | stdin / stdout / stderr |
 | stdlib-sys | sys (System) / sys (Sistem) |
+| stdlib-process | process (Process Control) / process (Süreç Kontrolü) |
+| stdlib-os | os / terminal |
 | stdlib-math | math |
 | stdlib-date | date |
-| stdlib-net | net (Network) / net (Ağ), status: planned for 0.9 |
-| capabilities | Capabilities & Permissions / Capability & İzinler |
 | ffi | FFI |
 | editor-setup | Editor Setup / Editör Kurulumu |
 | cli-reference | CLI Reference / CLI Referansı |
+
+There is no `capabilities` page: the capability system was removed in 0.9.4
+(ADR-043) and the page was deleted with it. There is no `stdlib-net` page
+either; `net` is not a shipped module and importing it is an error.
 
 ### Under the Hood
 
@@ -127,20 +134,69 @@ Facts that content must not contradict. Update this block when the compiler
 changes, and fix any page that disagrees with it.
 
 - **Backends:** the bytecode VM is the default and reference backend. An
-  experimental MIR JIT runs via `saqut run --jit` and currently handles whole
-  programs made of integer and float scalar code only; anything else is
-  rejected with an explicit error (no silent fallback, no partial JIT).
-  Embedded-runtime AOT (a `--output` binary) is still planned.
+  experimental MIR JIT runs via `saqut run --jit`. It is no longer limited to
+  scalar code: strings, arrays, structs, `try`/`catch`, and host calls all run
+  on it, and it is required to match the VM byte for byte. Embedded-runtime AOT
+  (a `--output` binary) is still planned.
+  - Known JIT gaps, verified 2026-09-22 on `e4863e9`: `string?`-returning host
+    functions (`sys::env`, `os::osUser`, `stdin::readLine`) return a raw
+    pointer instead of the string (#239), and `++` on a `float`/`double`
+    crashes the JIT while the VM silently yields `1` (#238).
 - **Target platforms:** Linux x86-64 and Windows 11 x86-64 only. macOS is not
   a target and will not be supported. ARM (aarch64) and cross-compiling are
   planned for later, not shipped yet. Do not claim 32-bit support.
-- **`net` module:** planned for 0.9, not shipped. `stdlib-net` is a planned-API
-  page and says so.
+- **`net` module:** planned, not shipped. Importing it is an `E_IMPORT_UNKNOWN`
+  error, so no page documents it as available.
+- **Embedded modules:** the full list the compiler accepts is `math`, `core`,
+  `fs`, `sys`, `date`, `process`, `stdin`, `stdout`, `stderr`, `path`, `utf8`,
+  `os`, `terminal`. The authoritative declarations, with exact signatures, are
+  in the compiler repo at `src/internal/ffi.sqt`. Check any stdlib claim
+  against that file, not against an older page.
+- **Capability system:** removed in 0.9.4 (ADR-043). There is no `--allow`
+  flag, no `caps` module, and no `saqut ir --capabilities`. Host calls are open
+  by default. Do not reintroduce capability language into any page.
 - **FFI:** a curated host-function seam (how `fs`, `sys`, `math`, `date` reach
   your program). It is not a mechanism for loading arbitrary C/C++ libraries.
 - **VS Code extension:** distributed as a `.vsix` (current: `saqut-0.4.0.vsix`).
   End users install the file downloaded from GitHub Releases by its full path;
   the `editor/vscode/...` repo-relative path only works from a source checkout.
+
+### Language details that pages have gotten wrong before
+
+Each of these was verified by running the compiler on `e4863e9` (2026-09-22).
+Do not write the crossed-out form back into a page.
+
+- **No exponentiation operator.** `**` tokenizes and parses but is implemented
+  nowhere, so `2 ** 3` silently evaluates to `0` (#237). `^` is bitwise XOR.
+  Use `math::pow()`, which takes and returns `double`.
+- **No prefix `++x` / `--x`.** It parses and does nothing (#237). Postfix
+  `x++` works, including as an expression (`int y = x++;` gives `y = 5`,
+  `x = 6`).
+- **No comma operator.** `(a, b)` is a syntax error.
+- **String escapes are only** `\n`, `\t`, `\r`, `\b`, `\\`, `\"`. There is no
+  `\x1b`, `\u001b`, or `\033`; the backslash is dropped and the letters print
+  literally.
+- **No wildcard import.** `import * from fs;` is a syntax error. `import { x
+  as y } from fs;` does work.
+- **`args()[0]` is the first user argument**, not the program name. Arguments
+  come after `--`: `saqut run prog.sqt -- a b`.
+- **`readFile` returns `byte[]`**, not `string`, and takes optional `seek` and
+  `size`. Convert with `utf8::decode`.
+- **`date::parse` accepts only** a 20-character ISO-8601 UTC string ending in
+  `Z`. A date-only string returns `null`.
+- **`date::format` tokens are** `yyyy MM dd HH mm ss` (month uppercase, minute
+  lowercase). `%Y-%m-%d` and `YYYY-MM-DD` are not patterns; unknown tokens are
+  copied through literally.
+- **A null check in a `while` condition does not narrow inside the body.** The
+  working idiom for `stdin::readLine` is `while (true) { ...; if (x == null)
+  { break; } }`.
+- **String methods** are `upper, lower, trim, split, substring, replace,
+  repeat, charAt, indexOf, contains, startsWith, endsWith`. There is no
+  `slice` on a string; `slice` is an array method. `toJson()` exists on a
+  struct but not on an array.
+
+When a page shows code, run it before publishing. Several of the errors above
+were shipped for months because the examples were never compiled.
 
 ### Live content
 

@@ -87,7 +87,7 @@ int square(int x) {
 // Arrays and loops
 int sum(int[] numbers) {
     int result = 0;
-    for (int i = 0; i < numbers.length; i = i + 1) {
+    for (int i = 0; i < numbers.length(); i = i + 1) {
         result = result + numbers[i];
     }
     return result;

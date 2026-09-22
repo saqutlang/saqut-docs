@@ -18,18 +18,25 @@ saqut run program.sqt
 
 | Flag | Purpose |
 |---|---|
-| `--allow fs,net,sys` | Whitelist runtime capabilities; without it, all capabilities are enabled |
 | `--jit` | Run through the experimental MIR JIT instead of the VM |
-| `--optimized` | Apply constant folding and DCE |
-| `--gc-threshold N` | Trigger GC after N allocations |
-| `--gc-stats` | Print GC statistics after execution |
-| `--profile` | Print a per-stage profile (tokenizing, parsing, IR generation, execution) with a work count per stage |
+| `--dont-optimize` | Turn off constant folding and dead code elimination |
+| `--gc-threshold=N` | GC threshold in bytes; `0` uses the default, a negative value disables collection |
+| `--gc-stats` | Print GC statistics on exit |
+| `--profile` | Report per-stage timings |
+| `--verbose` | Print stage progress |
+| `-- args` | Pass everything after `--` to the program, readable with `sys::args()` |
 
-The bytecode VM is the default and reference backend. The `--jit` flag runs the
-program through the experimental MIR JIT, which currently handles whole programs
-made of integer and float scalar code; a program that uses anything else stops
-with an explicit error instead of running partially. Embedded-runtime AOT (a
-`--output` binary) is still planned.
+Optimization is **on by default**. `--dont-optimize` turns it off;
+`--optimized` is still accepted as a no-op so older commands keep working.
+
+The bytecode VM is the default and reference backend. `--jit` runs the program
+through the experimental MIR JIT, which is required to produce the same output
+and exit code as the VM. Embedded-runtime AOT (a `--output` binary) is still
+planned.
+
+```bash
+saqut run program.sqt -- input.txt 42
+```
 
 ### tokens
 
@@ -71,11 +78,16 @@ Print the intermediate representation (three-address code).
 
 ```bash
 saqut ir program.sqt
-saqut ir --capabilities program.sqt
+saqut ir --cfg program.sqt
+saqut ir --dont-optimize program.sqt
 ```
 
-The `--capabilities` flag scans the IR and reports which capabilities
-(`fs`, `net`, `sys`) the program needs, without executing it.
+`--cfg` prints the control flow graph instead of a flat instruction list: each
+basic block with its predecessors, successors, and terminator. Use it to see
+how branches and loops were laid out.
+
+`--dont-optimize` shows the IR before constant folding and dead code
+elimination, which is the way to see exactly what the optimizer changed.
 
 ### check
 
@@ -138,15 +150,19 @@ saqut dap
 ## Common patterns
 
 ```bash
-# Run with an explicit capability whitelist and full introspection
-saqut run --allow fs --gc-stats --profile program.sqt
+# Run with full introspection
+saqut run --gc-stats --profile program.sqt
 
 # Check before running
 saqut check program.sqt && saqut run program.sqt
 
-# Inspect what a program needs
-saqut ir --capabilities program.sqt
+# Compare the two backends on the same program
+saqut run program.sqt > vm.txt
+saqut run --jit program.sqt > jit.txt
+diff vm.txt jit.txt
 
-# See the optimized AST
-saqut ast program.sqt --optimized
+# See what optimization changed
+saqut ast program.sqt --json > optimized.json
+saqut ast program.sqt --dont-optimize --json > original.json
+diff original.json optimized.json
 ```

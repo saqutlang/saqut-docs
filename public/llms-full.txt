@@ -740,88 +740,6 @@ host-function mechanism.
 - Learn how [arrays](/arrays/) store and share sequences
 - Split your program across files with [modules](/modules/)
 
-## /capabilities/
-
-saQut uses an explicit capability policy. With no `--allow` option, all three
-currently defined capabilities are enabled. If `--allow` is present, it becomes
-a whitelist and only the listed capabilities are enabled.
-
-## The three capabilities
-
-| Capability | Flag | What it unlocks |
-|---|---|---|
-| File system | `--allow fs` | `readFile`, `writeFile`, `readDir`, `exists`, `remove` |
-| Network | `--allow net` | HTTP requests, sockets (planned 0.9) |
-| System | `--allow sys` | `random`, `randomRange`, `env`, `args`, `sleep`, `date::now()` |
-
-Multiple capabilities are comma-separated:
-
-```bash
-saqut run --allow fs,net prog.sqt
-saqut run --allow fs,net,sys prog.sqt
-```
-
-The older `--allow-fs`, `--allow-net`, and `--allow-sys` forms are not valid.
-
-## How enforcement works
-
-Capability checks happen at the point where a gated function is called:
-
-Importing a capability-gated function is allowed even when that capability is
-currently disabled. The VM checks the active capability set immediately before
-the call. If the capability is missing, the call fails with `E_CAP_MISSING`.
-This also makes dynamic changes such as `caps::drop("fs")` effective for later
-calls. The import itself is not rejected.
-
-## Querying capabilities
-
-You can ask the compiler which capabilities a program needs without running it:
-
-```bash
-saqut ir --capabilities prog.sqt
-```
-
-Output:
-
-```
-fs, sys
-```
-
-This scans all imported functions and reports every capability they declare.
-
-## caps module
-
-The `caps` module lets your program inspect and manage its own permissions at
-runtime:
-
-```c
-import { has, drop } from caps;
-
-if (caps::has("fs")) {
-    string data = readFile("secret.txt");
-    caps::drop("fs");     // renounce fs for the rest of the program
-}
-```
-
-- `caps::has(name)` returns `true` if the capability is currently active
-- `caps::drop(name)` removes it permanently; there is no way to regain it
-
-This lets you follow the principle of least privilege: keep a capability only
-for as long as you need it.
-
-## Why this matters for practitioners
-
-- Your build script can read source files and write output, but cannot open
-  sockets; `--allow fs` is enough
-- Your HTTP client program needs network but should not touch the file system;
-  grant `--allow net` only
-- A utility that reads environment variables and command-line arguments
-  only needs `--allow sys`
-
-Each program can inspect its active capability set at runtime. The CLI policy
-and runtime call checks enforce the boundary; importing a module alone does
-not grant or consume a capability.
-
 ## /cli-reference/
 
 This page covers every `saqut` subcommand and flag a practitioner needs. For
@@ -839,18 +757,25 @@ saqut run program.sqt
 
 | Flag | Purpose |
 |---|---|
-| `--allow fs,net,sys` | Whitelist runtime capabilities; without it, all capabilities are enabled |
 | `--jit` | Run through the experimental MIR JIT instead of the VM |
-| `--optimized` | Apply constant folding and DCE |
-| `--gc-threshold N` | Trigger GC after N allocations |
-| `--gc-stats` | Print GC statistics after execution |
-| `--profile` | Print a per-stage profile (tokenizing, parsing, IR generation, execution) with a work count per stage |
+| `--dont-optimize` | Turn off constant folding and dead code elimination |
+| `--gc-threshold=N` | GC threshold in bytes; `0` uses the default, a negative value disables collection |
+| `--gc-stats` | Print GC statistics on exit |
+| `--profile` | Report per-stage timings |
+| `--verbose` | Print stage progress |
+| `-- args` | Pass everything after `--` to the program, readable with `sys::args()` |
 
-The bytecode VM is the default and reference backend. The `--jit` flag runs the
-program through the experimental MIR JIT, which currently handles whole programs
-made of integer and float scalar code; a program that uses anything else stops
-with an explicit error instead of running partially. Embedded-runtime AOT (a
-`--output` binary) is still planned.
+Optimization is **on by default**. `--dont-optimize` turns it off;
+`--optimized` is still accepted as a no-op so older commands keep working.
+
+The bytecode VM is the default and reference backend. `--jit` runs the program
+through the experimental MIR JIT, which is required to produce the same output
+and exit code as the VM. Embedded-runtime AOT (a `--output` binary) is still
+planned.
+
+```bash
+saqut run program.sqt -- input.txt 42
+```
 
 ### tokens
 
@@ -892,11 +817,16 @@ Print the intermediate representation (three-address code).
 
 ```bash
 saqut ir program.sqt
-saqut ir --capabilities program.sqt
+saqut ir --cfg program.sqt
+saqut ir --dont-optimize program.sqt
 ```
 
-The `--capabilities` flag scans the IR and reports which capabilities
-(`fs`, `net`, `sys`) the program needs, without executing it.
+`--cfg` prints the control flow graph instead of a flat instruction list: each
+basic block with its predecessors, successors, and terminator. Use it to see
+how branches and loops were laid out.
+
+`--dont-optimize` shows the IR before constant folding and dead code
+elimination, which is the way to see exactly what the optimizer changed.
 
 ### check
 
@@ -959,17 +889,21 @@ saqut dap
 ## Common patterns
 
 ```bash
-# Run with an explicit capability whitelist and full introspection
-saqut run --allow fs --gc-stats --profile program.sqt
+# Run with full introspection
+saqut run --gc-stats --profile program.sqt
 
 # Check before running
 saqut check program.sqt && saqut run program.sqt
 
-# Inspect what a program needs
-saqut ir --capabilities program.sqt
+# Compare the two backends on the same program
+saqut run program.sqt > vm.txt
+saqut run --jit program.sqt > jit.txt
+diff vm.txt jit.txt
 
-# See the optimized AST
-saqut ast program.sqt --optimized
+# See what optimization changed
+saqut ast program.sqt --json > optimized.json
+saqut ast program.sqt --dont-optimize --json > original.json
+diff original.json optimized.json
 ```
 
 ## /compiler-errors/
@@ -1012,7 +946,7 @@ E002`) will be able to expand on it.
 
 ---
 
-## Semantic errors (E001-E011)
+## Semantic errors (E001-E013)
 
 These are caught after parsing, while the compiler is checking names, types,
 and structure.
@@ -1165,6 +1099,31 @@ int main() {
 ```
 
 **Fix:** move the `struct`/function definition out to the top of the file.
+
+### E013 (Statement at module scope)
+
+The top level of a file is **module scope**: only declarations (global
+variables, functions, structs, enums) are allowed there. Running a *statement*
+at module scope (an assignment, increment, method call, `if`, loop, and so on) is
+rejected:
+
+```c
+int counter = 5;    // OK: declaration
+
+counter = 10;       // E013, statements are not allowed at module scope
+counter++;          // E013
+arr.push(1);        // E013
+print(counter);     // E013
+
+int main() {
+    counter = 10;   // OK: inside a function
+    return 0;
+}
+```
+
+**Fix:** move the statement inside a function (e.g. `main`). Global
+initializers may use literals and constant-foldable expressions, but anything
+that must run at runtime belongs in a function.
 
 ---
 
@@ -1444,7 +1403,7 @@ saqut ast examples/algorithm/03_insertion_sort.sqt --json
 ```
 
 Without `--json`, `saqut ast` prints the same tree as an indented,
-human-readable text dump instead — useful at a terminal, not meant for
+human-readable text dump instead, which is useful at a terminal, not meant for
 parsing.
 
 The `--optimized` flag shows the AST **after** constant folding and dead code
@@ -2433,13 +2392,19 @@ Host functions are declared in the compiler's embedded `root.sqt` using the
 `ffi` keyword:
 
 ```
-ffi float sqrt(float x) : MATH_SQRT from math;
-ffi string readFile(string path) : FS_READFILE from fs requires fs;
+ffi double sqrt(double x) : MATH_SQRT from math;
+ffi byte[] readFile(string path, int? seek, int? size) : FS_READ_FILE from fs;
 ```
 
-Each declaration specifies: the **signature** (types for type checking), a
-**symbolic host ID** (maps to C++ `HostFnId` enum), a **module** (for
-import-gating), and optionally a **capability** and stability flag.
+Each declaration specifies three things: the **signature** (the types the type
+checker uses), a **symbolic host ID** (which maps to the C++ implementation),
+and a **module** (which import brings the name into scope).
+
+These declarations are not hidden inside the compiler's C++ source. They live
+in `src/internal/ffi.sqt`, a real saQut file that is embedded into the binary
+at build time, so it opens in an editor with syntax highlighting and is visible
+to the language server. Reading that file is the authoritative way to see every
+host function the compiler provides, with exact signatures.
 
 When you write:
 
@@ -2459,18 +2424,23 @@ int main() {
 
 No string matching. No runtime reflection. A single numeric dispatch.
 
-## Capability and FFI
+## No capability gate
 
-Host functions that reach outside the VM (file I/O, network, system calls)
-must declare `requires fs` (or `net`, `sys`). The compiler and runtime both
-enforce this. A host function without a `requires` clause is pure and needs
-no `--allow` flag.
+Earlier versions gated host functions behind a capability system: a
+declaration carried a `requires fs` clause, and running the program needed a
+matching `--allow` flag. That system was removed in 0.9.4 (ADR-043). Host
+calls are open by default, there is no `requires` clause, and `--allow` is not
+a flag.
+
+What still gates a host function is the import: a name you have not imported
+is not in scope, so the set of outside functions a file can reach is visible
+at the top of that file.
 
 ## print() is also FFI
 
 The `print()` function you've been using since Hello World is itself a host
-function (`: PRINT from core`). It is always available because it is declared in
-the core module, which needs no import and no capability.
+function. It is always available because it belongs to the core module, which
+needs no import.
 
 ## Writing your own host function
 
@@ -2481,11 +2451,11 @@ root, implement the C++ body in `host_functions.hpp`, assign a new
 
 ## FFI vs. standard library
 
-| What | Mechanism | Import required | Capability required |
-|---|---|---|---|
-| `s.upper()`, `arr.append()` | UFCS built-in | No | No |
-| `readFile()`, `sqrt()` | FFI (stdlib) | Yes | Depends on function |
-| `print()` | FFI (core) | No | No |
+| What | Mechanism | Import required |
+|---|---|---|
+| `s.upper()`, `arr.push()` | UFCS built-in | No |
+| `readFile()`, `sqrt()` | FFI (stdlib) | Yes |
+| `print()` | FFI (core) | No |
 
 The standard library is a set of FFI declarations shipped with the compiler.
 You don't see the FFI machinery when using `import { readFile } from fs`
@@ -3265,24 +3235,18 @@ and **no** `?.` operator. The check is visible in the code, and the safety is
 proven at compile time with zero runtime cost. (See
 [null safety in data types](/data-types/#nullable-types).)
 
-## The Ternary Alternative
+## Picking a Value
 
-For a simple "choose one of two values," the [ternary
-operator](/operators/#ternary-operator) `?:` is a compact expression instead of
-a full `if`:
+saQut has **no** `?:` ternary operator; `?` is only the nullable type marker
+(`int?`). To choose between two values, declare the variable and assign it in
+each branch:
 
 ```c
 int x = 5;
 
-// if / else
 string label;
 if (x > 0) { label = "positive"; } else { label = "non-positive"; }
-
-// same thing as a ternary
-string label2 = x > 0 ? "positive" : "non-positive";
 ```
-
-Use `if` for running statements; use `?:` when you just need to pick a value.
 
 ## What's Next?
 
@@ -3345,21 +3309,42 @@ and writing longer programs.
 
 ## A glimpse of the language
 
+Binary search over a sorted array. Each step halves the search range, so a
+10,000-element array is decided in at most 14 comparisons.
+
 ```c
-int fibonacci(int n) {
-    if (n <= 1) {
-        return n;
+int binarySearch(int[] values, int target) {
+    int low = 0;
+    int high = values.length() - 1;
+
+    while (low <= high) {
+        // (high - low) / 2 instead of (low + high) / 2:
+        // the second form can overflow int on a large array.
+        int mid = low + (high - low) / 2;
+
+        if (values[mid] == target) {
+            return mid;
+        }
+        if (values[mid] < target) {
+            low = mid + 1;
+        } else {
+            high = mid - 1;
+        }
     }
-    return fibonacci(n - 1) + fibonacci(n - 2);
+    return -1;   // not found
 }
 
 int main() {
-    print(fibonacci(10));   // 55
+    int[] sorted = [2, 5, 8, 12, 16, 23, 38, 56, 72, 91];
+
+    print(binarySearch(sorted, 23));   // 5
+    print(binarySearch(sorted, 7));    // -1
     return 0;
 }
 ```
 
-Functions, control flow, and `print()`. No mandatory scaffolding.
+Functions, arrays, control flow, and `print()`. No mandatory scaffolding. The
+same program produces the same output on the VM and on the JIT.
 
 ---
 
@@ -3387,7 +3372,8 @@ Functions, control flow, and `print()`. No mandatory scaffolding.
   <Card title="Deterministic VM" icon="random">
     The bytecode VM is the reference backend: the same input produces the same
     output on every run. LLVM is intentionally not used. An experimental MIR JIT
-    runs via <code>--jit</code>; embedded-runtime AOT is planned next.
+    runs via <code>--jit</code> and is required to match the VM byte for byte;
+    embedded-runtime AOT is planned next.
   </Card>
   <Card title="Catchable errors" icon="error">
     <code>try</code> / <code>catch</code> / <code>throw</code> with struct-based
@@ -3402,7 +3388,7 @@ Functions, control flow, and `print()`. No mandatory scaffolding.
 
 <CardGrid>
   <LinkCard title="Data Types" href="/data-types/" description="int, float, bool, byte, string, struct, array, nullable, and the type-promotion rules." />
-  <LinkCard title="Operators" href="/operators/" description="Arithmetic, logic, bitwise, assignment, ternary, and the as cast, with a full precedence table." />
+  <LinkCard title="Operators" href="/operators/" description="Arithmetic, logic, bitwise, assignment, and the as cast, with a full precedence table." />
   <LinkCard title="Built-in Functions" href="/builtin-functions/" description="Every string, array, and struct method explained from scratch with examples." />
   <LinkCard title="Modules" href="/modules/" description="Split code across files with import / export, from a two-file program to dependency graphs." />
   <LinkCard title="Error Handling" href="/error-handling/" description="Catch and throw runtime errors with try / catch / throw." />
@@ -3424,6 +3410,57 @@ Each arrow corresponds to a CLI command you can run and inspect.
 
 ## Changelog
 
+### August 24, 2026 · 0.9.4 · Errors Get Caught Now
+
+- `a08c756` | `try` / `catch` / `throw` now work in the JIT backend with
+  the same output and exit code as the VM, including catchable runtime
+  errors like division by zero, failed casts, and out-of-range array
+  indexing. (The planned setjmp/longjmp design turned out to be
+  undefined behavior in a JIT; a per-instruction pending-error check is
+  used instead, and functions without a `try` still pay zero cost.)
+- `a68cad7` | Fixed a JIT garbage-collector bug: in recursive calls that
+  allocate, a live object could be swept and reused while still in use.
+  Shadow-stack frames now unwind properly per call.
+- `2095564` | The six test programs previously marked "JIT known broken"
+  are now required to match the VM byte for byte; parity is enforced
+  again in this area, with no exceptions.
+- `4568aac` | The capability (permission) system has been removed
+  (ADR-043): host calls are open by default, and file operations now
+  work identically in the JIT.
+- `5aeec2b` | String indexing and `length()` now count Unicode code
+  points instead of bytes.
+- `1cea6bf` | `upper()` and `lower()` now do real Unicode case mapping.
+- `4bc1b2b` | File contents can be handled as `byte[]` end to end.
+- `b2ed2f8` | 64-bit hex literals keep their exact bit pattern as
+  `longint` instead of being mangled.
+- `ec4174c` | An uninitialized `string` now starts as `""` instead of `0`:
+  local variables, struct fields, and globals alike.
+- `b9f5c62` | A struct field with an array type now starts as an empty
+  array, so `record.items.push(x)` works without assigning a value first.
+- `690025b` | A module-level `int?`, `string?`, or `longint?` you never
+  assigned now really reads as `null`. Before, `x == null` answered
+  false because the slot silently held `0`.
+- `2469bbf` | Ordering comparisons (`<`, `>`, `<=`, `>=`) on a nullable
+  value are now a compile error, same as arithmetic: pass the null gate
+  first (`if (x != null) { x < 26 }`). Equality (`==`, `!=`) is untouched.
+- `74296d6` | Using a built-in method without calling it (`s.length`
+  without parentheses) is now a compile error instead of silently
+  producing `0`.
+- `dd8a493` | Statements at module scope (`x = 5;` outside any function)
+  are now rejected with a clear error, as in C++; the top level only
+  accepts declarations.
+- `030f4bd` | Calling a function without its required arguments is now a
+  compile error; the language server also survives that input gracefully.
+- `907d904` | The JIT lowers hot array accesses to direct memory
+  operations and reuses compiled code, so array-heavy loops run faster.
+- `2645978` | The docs no longer advertise a `?:` ternary operator the
+  language never had.
+- `2d6395c` | `--help` now reads like a standard manual page, and
+  unimplemented commands were removed from the CLI entirely.
+- `ee102a3` | Fifteen error fixtures that existed on paper but were
+  never actually run are now wired into the test runner, so silent
+  failure classes get caught.
+
 ### August 1, 2026 · 0.9.2 · Learning to Measure Itself
 
 - `c2266ad` | An `int` or `longint` literal that does not fit the type is
@@ -3436,7 +3473,7 @@ Each arrow corresponds to a CLI command you can run and inspect.
 - `7c8f678` | The JIT and the VM now give the same answer for `decimal`
   values and the same message for runtime errors.
 - `3261321` | The VM stopped doing debugger bookkeeping on every single
-  instruction — programs run about 1.9x faster.
+  instruction, so programs run about 1.9x faster.
 - `f4a60c8` | The parser reads each token once instead of six times.
 - `1a096ee` | Source positions got three times smaller, so long file
   paths no longer cost memory.
@@ -3679,9 +3716,10 @@ because private symbols are perfectly usable *within their own file*.
 
 | Can export | Cannot export (yet) |
 |------------|---------------------|
-| `export` functions | Global variables |
+| `export` functions | |
 | `export struct` | |
 | `export enum` | |
+| `export` global variables | |
 
 ```c
 export int add(int a, int b) { return a + b; }   // ok
@@ -3690,11 +3728,13 @@ export struct Vec { int x; int y; }              // ok
 
 export enum State { Idle, Running, Done }         // ok
 
-export int counter = 0;   // ERROR, globals cannot be exported
+export int counter = 0;   // ok: global variables can be exported
 ```
 
-If you need shared state, expose it through exported functions rather than an
-exported global.
+Like all globals, an exported global is initialized once, before `main`, and
+module scope is declaration-only: you cannot assign to it at the top level
+(E013), only from inside a function. If you need shared *mutable* state, you
+can still expose it through exported functions rather than an exported global.
 
 ---
 
@@ -3994,7 +4034,7 @@ A function that might not produce a result should return a nullable type:
 
 ```c
 int? findIndex(int[] arr, int target) {
-    for (int i = 0; i < arr.length; i = i + 1) {
+    for (int i = 0; i < arr.length(); i = i + 1) {
         if (arr[i] == target) {
             return i;
         }
@@ -4048,7 +4088,6 @@ Higher number = evaluated first.
 | 18 | Member access / call | `.` `[ ]` `( )` | Left |
 | 17 | Postfix | `++` `--` | Left |
 | 16 | Unary prefix | `+` `-` `!` `~` | Right |
-| 15 | Exponentiation | `**` `^` | **Right** |
 | 14 | Multiply / Divide / Modulo | `*` `/` `%` | Left |
 | 13 | Add / Subtract | `+` `-` | Left |
 | 12 | Bitwise shift | `<<` `>>` | Left |
@@ -4059,12 +4098,19 @@ Higher number = evaluated first.
 | 7 | Bitwise OR | `\|` | Left |
 | 6 | Logical AND | `&&` | Left |
 | 5 | Logical OR | `\|\|` | Left |
-| 4 | Ternary condition | `?` | **Right** |
-| 3 | Ternary else | `:` | **Right** |
 | 2 | Assignment | `=` `+=` `-=` `*=` etc. | **Right** |
-| 1 | Comma | `,` | Left |
 
 > **Right-associative:** `a = b = 5` → `a = (b = 5)`
+>
+> **No ternary:** saQut has no `?:` conditional operator. `?` appears only in
+> type positions as the nullable marker (`int?`, `Point?`), never in expressions.
+>
+> **No comma operator:** `,` separates arguments, parameters, and array
+> elements. It is not an expression operator; `(a, b)` is a syntax error.
+>
+> **No exponentiation operator:** there is no `**` or `^` power operator. Use
+> `pow()` from the `math` module. `^` is bitwise XOR.
+>
 > **Left-associative:** `10 - 4 - 3` → `(10 - 4) - 3` = 3
 
 ## Arithmetic Operators
@@ -4082,23 +4128,45 @@ int pos = +10;          // unary plus
 
 ### Exponentiation
 
+saQut has no exponentiation operator. Use `pow()` from the `math` module,
+which takes and returns `double`:
+
 ```c
-int a = 2 ** 3;         // 8  (2³)
-int b = 2 ^ 3;          // also 8
+import { pow } from math;
+
+int main() {
+    double cube = pow(2.0, 3.0);     // 8.0
+    int nine = pow(2.0, 9.0) as int; // 512
+    return 0;
+}
 ```
 
-Both `**` and `^` mean exponentiation. They are **right-associative**:
-`2 ^ 3 ^ 2` → `2 ^ (3 ^ 2)` = `2 ^ 9` = 512
+`^` is bitwise XOR, not a power operator: `2 ^ 3` is `1`, not `8`.
 
 ### Increment & Decrement
 
+Only the **postfix** forms exist:
+
 ```c
 int x = 5;
-x++;                    // x = 6  (postfix, returns old value)
-++x;                    // x = 7  (prefix, returns new value)
-x--;                    // x = 6
---x;                    // x = 5
+x++;                    // x = 6
+x--;                    // x = 5
 ```
+
+Used as an expression, postfix returns the value from **before** the change:
+
+```c
+int x = 5;
+int y = x++;            // y = 5, x = 6
+```
+
+There is no prefix `++x` or `--x`. Where you would reach for one, write
+`x = x + 1` as its own statement.
+
+> `++` and `--` are currently reliable only on integer variables; on a
+> floating-point variable they do not produce the expected result
+> ([#238](https://github.com/saqutlang/saqut/issues/238)). Use `f = f + 1.0;`
+> for those.
 
 > Note: `++` and `--` work on `int` and `float` types. They are statements,
 > not just expressions: you cannot write `foo(x++)` yet.
@@ -4189,15 +4257,6 @@ x |= 8;     // x = 10
 x ^= 5;     // x = 15
 x <<= 1;    // x = 30
 x >>= 1;    // x = 15
-```
-
-## Ternary Operator
-
-A compact if-else that returns a value:
-
-```c
-int x = 5;
-string result = x > 0 ? "positive" : "zero or negative";
 ```
 
 ## Type Cast Operator (`as`)
@@ -4388,24 +4447,28 @@ import { now, fromEpochMillis, toEpochMillis, addDays, year } from date;
 
 ## Exact signatures
 
-| Function | Signature | Capability |
-|---|---|---|
-| `now` | `date now()` | `sys` |
-| `fromEpochMillis` | `date fromEpochMillis(int ms)` | none |
-| `toEpochMillis` | `int toEpochMillis(date d)` | none |
-| `addDays` | `date addDays(date d, int n)` | none |
-| `addHours` | `date addHours(date d, int n)` | none |
-| `addMinutes` | `date addMinutes(date d, int n)` | none |
-| `addSeconds` | `date addSeconds(date d, int n)` | none |
-| `year` | `int year(date d)` | none |
-| `month` | `int month(date d)` | none |
-| `day` | `int day(date d)` | none |
-| `hour` | `int hour(date d)` | none |
-| `minute` | `int minute(date d)` | none |
-| `second` | `int second(date d)` | none |
-| `diffMillis` | `int diffMillis(date a, date b)` | none |
-| `parse` | `date? parse(string iso8601)` | none |
-| `format` | `string format(date d, string pattern)` | none |
+| Function | Signature |
+|---|---|
+| `now` | `date now()` |
+| `fromEpochMillis` | `date fromEpochMillis(longint milliseconds)` |
+| `toEpochMillis` | `longint toEpochMillis(date value)` |
+| `addDays` | `date addDays(date d, int n)` |
+| `addHours` | `date addHours(date d, int n)` |
+| `addMinutes` | `date addMinutes(date d, int n)` |
+| `addSeconds` | `date addSeconds(date d, int n)` |
+| `year` | `int year(date d)` |
+| `month` | `int month(date d)` |
+| `day` | `int day(date d)` |
+| `hour` | `int hour(date d)` |
+| `minute` | `int minute(date d)` |
+| `second` | `int second(date d)` |
+| `diffMillis` | `longint diffMillis(date left, date right)` |
+| `parse` | `date? parse(string iso8601)` |
+| `format` | `string format(date d, string pattern)` |
+
+Every function except `now()` is a pure calculation on the value you pass in.
+`now()` is the only one that reads the system clock, which makes it the only
+one whose result changes between two otherwise identical runs.
 
 `date(2026, 5, 1)` is not a constructor in the current standard library.
 Use `fromEpochMillis(...)` or `parse(...)` instead. The year/month/day values
@@ -4417,114 +4480,379 @@ import { fromEpochMillis, parse, format } from date;
 
 int main() {
     date epoch = fromEpochMillis(0);
-    date? parsed = parse("2026-05-01");
+    date? parsed = parse("2026-05-01T14:30:00Z");
     if (parsed != null) {
-        print(format(parsed, "%Y-%m-%d"));
+        print(format(parsed, "yyyy-MM-dd"));
     }
     print(epoch);
     return 0;
 }
 ```
 
-Only `now()` reads the system clock and therefore requires `--allow sys`.
-Invalid input to `parse` returns `null` rather than throwing an error.
+## parse
+
+`parse` accepts one shape only: a full ISO-8601 UTC timestamp, exactly 20
+characters, ending in `Z`.
+
+```c
+parse("2026-05-01T14:30:00Z")   // a date
+parse("2026-05-01")             // null, no time part
+parse("2026-05-01T14:30:00")    // null, no trailing Z
+```
+
+Anything else returns `null` instead of raising an error, so the result is
+`date?` and has to pass a null check before you can use it. A date that does
+not exist on the calendar, such as month 13, also returns `null`.
+
+## format
+
+`format` replaces these tokens and copies every other character through
+unchanged. Note that month is uppercase `MM` and minute is lowercase `mm`.
+
+| Token | Meaning | Example |
+|---|---|---|
+| `yyyy` | Year, 4 digits | `2026` |
+| `MM` | Month, 01 to 12 | `05` |
+| `dd` | Day, 01 to 31 | `01` |
+| `HH` | Hour, 00 to 23 | `14` |
+| `mm` | Minute, 00 to 59 | `30` |
+| `ss` | Second, 00 to 59 | `00` |
+
+```c
+format(d, "yyyy-MM-dd")            // 2026-05-01
+format(d, "dd.MM.yyyy HH:mm")      // 01.05.2026 14:30
+format(d, "yyyy-MM-ddTHH:mm:ssZ")  // 2026-05-01T14:30:00Z
+```
+
+There are no tokens for month names, weekdays, or 12-hour time. A pattern
+containing an unknown token keeps that text as written: `format(d, "YYYY")`
+returns the literal `YYYY`, because the year token is lowercase.
 
 ## /stdlib-fs/
 
-The `fs` module lets your program interact with the file system. All functions
-require `--allow fs` at runtime.
-
-## Import
+The `fs` module reads and writes files and directories. Every function is
+imported by name:
 
 ```c
-import { readFile, writeFile, readDir, exists, remove } from fs;
+import { readFile, writeFile, existsFile } from fs;
 ```
 
-## Functions
+File contents are `byte[]`, not `string`. saQut does not guess a text encoding
+for you: a file is a sequence of bytes, and you decide how to interpret it. To
+convert, use the [`utf8`](/stdlib-utf8/) module.
 
-### readFile
+```c
+import { readFile, writeFile } from fs;
+import { encode, decode } from utf8;
 
-Reads the entire contents of a file and returns it as a string.
+int main() {
+    writeFile("note.txt", encode("hello"));
+    byte[] raw = readFile("note.txt");
+    print(decode(raw));
+    return 0;
+}
+```
+
+There are no file handles. Each call opens the file, does its work, and closes
+it. This keeps every operation a single observable step, which is what makes
+record and replay of a program's file activity possible.
+
+## Reading
+
+### `byte[] readFile(string path, int? seek, int? size)`
+
+Reads a file and returns its bytes. `seek` and `size` are optional: pass
+neither to read the whole file, or pass both to read a window of it.
 
 ```c
 import { readFile } from fs;
+import { decode } from utf8;
 
 int main() {
-    string content = readFile("data.txt");
-    print(content);
+    byte[] all = readFile("data.txt");           // whole file
+    byte[] part = readFile("data.txt", 3, 4);    // 4 bytes, starting at byte 3
+    print(decode(part));
     return 0;
 }
 ```
 
-If the file does not exist, `readFile` throws a catchable error. Wrap it in
-`try`/`catch` or check with `exists` first.
+If the file does not exist, `readFile` raises a catchable error. Either check
+with `existsFile` first or wrap the call in `try` / `catch`.
 
-### writeFile
+### `longint fileSize(string path)`
 
-Writes a string to a file. Creates the file if it does not exist; overwrites
-it if it does.
+Size in bytes. Returns `longint` because a file can be larger than `int`
+holds.
+
+### `bool existsFile(string path)`
+
+`true` if something exists at that path, file or directory.
+
+### `bool isFile(string path)` / `bool isDirectory(string path)`
+
+Distinguishes the two. Use these when the difference matters, since
+`existsFile` answers `true` for both.
+
+### `bool isEmpty(string path)`
+
+`true` for a zero-byte file, or for a directory with no entries.
+
+## Writing
+
+### `void writeFile(string path, byte[] data)`
+
+Writes bytes, creating the file if needed and replacing its contents if it
+already exists.
+
+### `void appendFile(string path, byte[] data)`
+
+Adds bytes to the end, leaving what is already there untouched.
 
 ```c
-import { writeFile } from fs;
+import { writeFile, appendFile } from fs;
+import { encode } from utf8;
 
 int main() {
-    writeFile("output.txt", "Hello, saQut!");
+    writeFile("log.txt", encode("first line\n"));
+    appendFile("log.txt", encode("second line\n"));
     return 0;
 }
 ```
 
-### readDir
+### `void createFile(string path)`
 
-Returns an array of entry names in a directory.
+Creates an empty file.
+
+### `void copyFile(string src, string dst)`
+
+Copies a file to a new path.
+
+### `void renameFile(string from, string to)`
+
+Renames a file, which also moves it when the target is in another directory.
+
+### `void removeFile(string path)`
+
+Deletes a file. Raises an error if the path does not exist or is a directory;
+use `removeDirectory` for directories.
+
+## Directories
+
+### `string[] list(string path)`
+
+Entry names in one directory, sorted. Names only, not full paths, and it does
+not descend into subdirectories.
 
 ```c
-import { readDir } from fs;
+import { list } from fs;
 
 int main() {
-    string[] entries = readDir(".");
-    for (int i = 0; i < entries.length; i = i + 1) {
+    string[] entries = list(".");
+    int i = 0;
+    while (i < entries.length()) {
         print(entries[i]);
+        print("\n");
+        i = i + 1;
     }
     return 0;
 }
 ```
 
-### exists
+### `string[] walk(string path)`
 
-Returns `true` if a file or directory exists at the given path.
+Every entry underneath a directory, recursively, as full paths. Where `list`
+answers "what is in this directory", `walk` answers "everything under this
+tree".
+
+### `void createDirectory(string path)` / `void removeDirectory(string path)`
+
+Creates or deletes a directory.
+
+### `longint modifiedTime(string path)`
+
+Last modification time as a Unix timestamp in milliseconds. Pass it to
+`date::fromEpochMillis()` to get a `date` value.
 
 ```c
-import { exists } from fs;
+import { modifiedTime } from fs;
+import { fromEpochMillis, format } from date;
 
 int main() {
-    if (exists("config.txt")) {
-        string c = readFile("config.txt");
-        print(c);
-    } else {
-        print("no config found");
+    date changed = fromEpochMillis(modifiedTime("report.txt"));
+    print(format(changed, "yyyy-MM-dd"));
+    return 0;
+}
+```
+
+## Errors
+
+File operations fail for reasons your program cannot rule out in advance: the
+file disappears between the check and the read, the permission is missing, the
+disk is full. These raise catchable errors rather than terminating the
+program.
+
+```c
+import { readFile } from fs;
+import { decode } from utf8;
+
+int main() {
+    try {
+        byte[] data = readFile("maybe-missing.txt");
+        print(decode(data));
+    } catch (Error e) {
+        print("could not read the file");
     }
     return 0;
 }
 ```
 
-### remove
+Checking with `existsFile` first narrows the window but does not close it: the
+file can still be removed between the two calls. For code that must not fail,
+handle the error rather than relying on the check.
 
-Deletes a file. Throws if the path does not exist or is a directory.
+## Complete function list
+
+| Function | Returns | Purpose |
+|---|---|---|
+| `readFile(path, seek, size)` | `byte[]` | Read a whole file or a window of it |
+| `writeFile(path, data)` | `void` | Write, replacing existing contents |
+| `appendFile(path, data)` | `void` | Add to the end |
+| `createFile(path)` | `void` | Create an empty file |
+| `copyFile(src, dst)` | `void` | Copy |
+| `renameFile(from, to)` | `void` | Rename or move |
+| `removeFile(path)` | `void` | Delete a file |
+| `existsFile(path)` | `bool` | Does the path exist |
+| `isFile(path)` | `bool` | Is it a file |
+| `isDirectory(path)` | `bool` | Is it a directory |
+| `isEmpty(path)` | `bool` | Empty file or empty directory |
+| `fileSize(path)` | `longint` | Size in bytes |
+| `modifiedTime(path)` | `longint` | Modification time, epoch ms |
+| `list(path)` | `string[]` | Entry names in one directory |
+| `walk(path)` | `string[]` | Full paths, recursive |
+| `createDirectory(path)` | `void` | Create a directory |
+| `removeDirectory(path)` | `void` | Delete a directory |
+
+## See also
+
+- [`path`](/stdlib-path/) builds and splits path strings without touching the disk.
+- [`utf8`](/stdlib-utf8/) converts between `byte[]` and `string`.
+
+## /stdlib-io/
+
+Three small modules connect a program to the streams it was started with, so
+it can take input from a pipe and split its output from its diagnostics.
 
 ```c
-import { remove } from fs;
+import { readLine, readAll, readBytes } from stdin;
+import { write, writeBytes } from stdout;
+```
+
+Both `stdout` and `stderr` export `write` and `writeBytes`. Importing the same
+name from both in one file is a collision, so rename one with `as`:
+
+```c
+import { write } from stdout;
+import { write as writeError } from stderr;
+```
+
+## Reading
+
+### `string? readLine()`
+
+Reads one line, without its newline. Returns `null` at end of input, which is
+how a loop knows to stop.
+
+The return type is `string?`, and a null check in a `while` condition does not
+narrow the type inside the loop body. Read inside the loop and break on null:
+
+```c
+import { readLine } from stdin;
+import { write } from stdout;
 
 int main() {
-    remove("temp.txt");
+    while (true) {
+        string? line = readLine();
+        if (line == null) {
+            break;
+        }
+        write("> ");
+        write(line);
+        write("\n");
+    }
     return 0;
 }
 ```
-
-## Run with fs access
 
 ```bash
-saqut run --allow fs program.sqt
+printf "one\ntwo\n" | saqut run echo.sqt
 ```
+
+```
+> one
+> two
+```
+
+### `string readAll()`
+
+Reads all of standard input as one string. Convenient for small inputs;
+remember that it holds the entire input in memory at once.
+
+### `byte[] readBytes()`
+
+Reads all of standard input as raw bytes, for binary data that is not text.
+Use [`utf8::decode`](/stdlib-utf8/) if you decide to treat it as text after
+all.
+
+## Writing
+
+### `void write(string text)`
+
+Writes text to the stream, with no trailing newline. Unlike `print()`, it adds
+nothing: write `"\n"` yourself when you want a line break.
+
+### `void writeBytes(byte[] data)`
+
+Writes raw bytes, for output that is not text.
+
+## Which stream to use
+
+Standard output carries the program's result; standard error carries messages
+about the run. The split is what lets a caller redirect one and still see the
+other:
+
+```bash
+saqut run report.sqt > result.txt     # result saved, errors still on screen
+```
+
+```c
+import { write } from stdout;
+import { write as writeError } from stderr;
+
+int main() {
+    writeError("reading input...\n");   // progress, not part of the result
+    write("42\n");                      // the result
+    return 0;
+}
+```
+
+Sending a progress message to standard output would put it in `result.txt`,
+mixed in with the data.
+
+## Complete function list
+
+| Module | Function | Returns | Purpose |
+|---|---|---|---|
+| `stdin` | `readLine()` | `string?` | One line, or `null` at end of input |
+| `stdin` | `readAll()` | `string` | All input as text |
+| `stdin` | `readBytes()` | `byte[]` | All input as raw bytes |
+| `stdout` | `write(text)` | `void` | Write text, no newline added |
+| `stdout` | `writeBytes(data)` | `void` | Write raw bytes |
+| `stderr` | `write(text)` | `void` | Write text to standard error |
+| `stderr` | `writeBytes(data)` | `void` | Write raw bytes to standard error |
+
+Reading from standard input depends on what was piped in, so a program that
+reads it is not reproducible on its own; the same program with the same input
+file is.
 
 ## /stdlib-math/
 
@@ -4568,189 +4896,596 @@ int main() {
 }
 ```
 
+## /stdlib-os/
+
+These two modules answer questions about the machine the program is running
+on. They read only; nothing here changes the system.
+
+```c
+import { osName, osArch, osHostname, osUser, osCpuCount } from os;
+import { isTTY } from terminal;
+```
+
+## os
+
+| Function | Returns | Example |
+|---|---|---|
+| `osName()` | `string` | `linux`, `windows` |
+| `osArch()` | `string` | `x86_64` |
+| `osHostname()` | `string` | The machine's network name |
+| `osUser()` | `string?` | The current user, or `null` if unavailable |
+| `osCpuCount()` | `int` | Number of logical processors |
+
+```c
+import { osName, osArch, osCpuCount } from os;
+
+int main() {
+    print(osName());        // linux
+    print("\n");
+    print(osArch());        // x86_64
+    print("\n");
+    print(osCpuCount());    // 8
+    print("\n");
+    return 0;
+}
+```
+
+`osUser()` returns `string?` because the current user is not always
+determinable; check for `null` before using it.
+
+These are diagnostic values. Use them to report an environment or to size a
+piece of work, not to decide whether a feature exists: asking whether a file
+is present tells you more than inferring it from the platform name.
+
+## terminal
+
+### `bool isTTY()`
+
+Whether standard output is connected to a real terminal. `false` when output
+is redirected to a file or piped into another program.
+
+```c
+import { isTTY } from terminal;
+
+int main() {
+    if (isTTY()) {
+        print("=== Report ===\n");   // a person is reading
+    } else {
+        print("report\n");           // something is parsing
+    }
+    return 0;
+}
+```
+
+This is the check that decides whether to decorate output. The compiler makes
+the same decision for its own: `saqut ir` prints color on a terminal and plain
+text when redirected, so piped output stays clean.
+
+To emit an ANSI color code you have to build the escape byte yourself, since
+string literals support only `\n`, `\t`, `\r`, `\b`, `\\`, and `\"`. There is
+no `\x1b` or `\u001b`:
+
+```c
+import { decode } from utf8;
+
+string escape() {
+    byte[] esc = [27 as byte];      // ESC, decimal 27
+    return decode(esc);
+}
+```
+
+## Reproducibility
+
+Every function on this page reports something about the environment, so the
+same program prints different values on a different machine, or when its
+output is redirected. Keep them out of code whose result has to be identical
+everywhere.
+
 ## /stdlib-overview/
 
-saQut's standard library is a set of **import-gated modules** that give your
-programs access to the file system, networking, system information, math, and
-dates. Unlike the built-in functions (`.upper()`, `.append()`) which are always
-available, standard library functions must be explicitly imported.
+The standard library is a set of modules that reach things the language itself
+does not describe: files, the clock, the environment, the terminal. Unlike the
+built-in type methods (`.upper()`, `.push()`), which are always available,
+these functions have to be imported by name.
 
 ## How importing works
 
-Each module is imported by name without quotes:
+Each module is imported by name, without quotes:
 
 ```c
 import { readFile, writeFile } from fs;
 import { sqrt, abs } from math;
 ```
 
-A quoted name means a file path; an unquoted name means a standard library
-module:
+A quoted name is a file path; an unquoted name is a standard library module:
 
 ```c
-import { greet } from "./helpers.sqt";   // file
+import { greet } from "./helpers.sqt";   // another file
 import { readFile } from fs;             // stdlib module
 ```
 
-You can import multiple functions in one statement, or use `*` for everything:
+You can rename on import with `as`, which is how you resolve a collision
+between two modules that export the same name:
 
 ```c
-import * from fs;       // all fs functions
-import { readFile } from fs;  // just one
+import { readFile as loadConfig } from fs;
 ```
 
-## Capability gates
-
-Some modules require **runtime permission**. By default saQut denies all
-external access. You grant it on the command line:
-
-```bash
-saqut run --allow fs prog.sqt
-saqut run --allow fs,net,sys prog.sqt
-```
-
-| Capability | What it allows |
-|---|---|
-| `fs` | File system access (read, write, list) |
-| `net` | Network access (HTTP, sockets) |
-| `sys` | System calls: current time, random, environment, args |
-
-Functions that require a capability declare it (`requires fs`). If you try to
-use them without the matching `--allow` flag, the compiler produces an error
-at compile time. The runtime also checks before each call as a backstop.
-
-You can query which capabilities a program needs without running it:
-
-```bash
-saqut ir --capabilities prog.sqt
-```
+There is no wildcard import: every name you use has to be listed. `import *
+from fs;` is a syntax error. Naming each import keeps the reader able to tell,
+from the top of the file, exactly which outside functions the program can
+reach.
 
 ## Module index
 
-| Module | Import from | Requires | Status |
-|---|---|---|---|
-| File system | `fs` | `--allow fs` | Available |
-| System | `sys` | `--allow sys` | Available |
-| Math | `math` | none | Available |
-| Date | `date` | `--allow sys` (only `now()`) | Available |
-| Network | `net` | `--allow net` | Planned (0.9) |
+| Module | Import from | What it covers |
+|---|---|---|
+| File system | `fs` | Read, write, copy, list files and directories |
+| Path | `path` | Build and split path strings, no disk access |
+| UTF-8 | `utf8` | Convert between `byte[]` and `string` |
+| System | `sys` | Random numbers, environment, arguments, sleep |
+| Process | `process` | Exit code, working directory, process id |
+| Standard input | `stdin` | Read from standard input |
+| Standard output | `stdout` | Write to standard output |
+| Standard error | `stderr` | Write to standard error |
+| Math | `math` | Absolute value, min/max, roots, powers, rounding |
+| Date | `date` | UTC timestamps, calendar fields, formatting |
+| Operating system | `os` | Platform name, architecture, host name, CPU count |
+| Terminal | `terminal` | Whether output is going to a real terminal |
+| Core | `core` | Compiler version |
 
-## Does not import from anywhere
+Every module in this table is available now. There is no network module: `net`
+is planned but not shipped, and importing it is an error.
 
-The built-in type methods (`.upper()`, `.append()`, `.toJson()`) are not part
-of the standard library. They use UFCS (Uniform Function Call Syntax) dot
-notation and are always available without import. See [Built-in Functions
-(UFCS)](/builtin-functions/).
+## Determinism
+
+Most of these functions are pure calculations on the values you pass in: the
+same input gives the same result on every run. A few read state from outside
+the program and therefore cannot promise that:
+
+| Function | Why it varies |
+|---|---|
+| `sys::random`, `sys::randomInt` | Operating system randomness |
+| `sys::env`, `sys::args` | Depends on how the program was started |
+| `date::now` | Reads the system clock |
+| `fs::*` | The file system changes underneath the program |
+| `stdin::*` | Depends on what is piped in |
+| `os::*`, `terminal::isTTY` | Depends on the machine and how it was run |
+
+Everything else, including all of `math`, `path`, `utf8`, and every `date`
+function except `now()`, computes only from its arguments.
+
+## Not part of the standard library
+
+The built-in type methods (`.upper()`, `.push()`, `.length()`) are not
+imported. They are called with dot notation on a value and are always
+available. See [Built-in Functions (UFCS)](/builtin-functions/).
+
+## /stdlib-path/
+
+The `path` module works on path strings as text. Nothing here opens a file or
+asks the operating system whether a path exists: `dirname("/a/b/c.txt")`
+answers `/a/b` whether or not that directory is real. For anything that touches
+the disk, use [`fs`](/stdlib-fs/).
+
+Because these are pure string operations, they give the same answer on every
+run and on every machine.
+
+```c
+import { join, basename, extension } from path;
+```
+
+## `string join(string[] parts)`
+
+Joins path segments with the platform separator, inserting exactly one between
+each pair.
+
+```c
+import { join } from path;
+
+int main() {
+    string[] parts = ["usr", "local", "bin"];
+    print(join(parts));      // usr/local/bin
+    return 0;
+}
+```
+
+`join` takes an array rather than a variable number of arguments, because
+saQut has no variadic functions. Build the array first when the number of
+segments is not fixed.
+
+## `string normalize(string path)`
+
+Resolves `.` and `..` segments textually and collapses repeated separators.
+
+```c
+normalize("/usr/local/../bin/./tool")   // /usr/bin/tool
+```
+
+This is a calculation on the string, not a resolution against the file system.
+A `..` is removed along with the segment before it, even when that segment is
+a symbolic link that would have led somewhere else.
+
+## `string dirname(string path)` / `string basename(string path)`
+
+Splits a path into the directory part and the final component.
+
+```c
+dirname("/home/saqut/report.txt")    // /home/saqut
+basename("/home/saqut/report.txt")   // report.txt
+```
+
+## `string extension(string path)`
+
+The final extension, **including the dot**.
+
+```c
+extension("/home/saqut/report.txt")   // .txt
+```
+
+## `bool isAbsolute(string path)`
+
+Whether the path starts from the root rather than from the current directory.
+
+```c
+isAbsolute("/usr/bin")   // true
+isAbsolute("usr/bin")    // false
+```
+
+## `string separator()`
+
+The platform path separator: `/` on Linux, `\` on Windows. Use `join` where
+you can and reach for `separator()` only when you are formatting a path
+yourself.
+
+## Worked example
+
+Turning a source file name into an output file name next to it:
+
+```c
+import { dirname, basename, extension, join } from path;
+
+string outputFor(string source) {
+    string dir = dirname(source);
+    string name = basename(source);
+    string ext = extension(source);
+
+    // Drop the extension from the file name.
+    string stem = name.substring(0, name.length() - ext.length());
+
+    string[] parts = [dir, stem + ".out"];
+    return join(parts);
+}
+
+int main() {
+    print(outputFor("/home/saqut/src/main.sqt"));   // /home/saqut/src/main.out
+    return 0;
+}
+```
+
+## Complete function list
+
+| Function | Returns | Purpose |
+|---|---|---|
+| `join(parts)` | `string` | Join segments with the separator |
+| `normalize(path)` | `string` | Resolve `.` and `..` textually |
+| `dirname(path)` | `string` | The directory part |
+| `basename(path)` | `string` | The final component |
+| `extension(path)` | `string` | The extension, with the dot |
+| `isAbsolute(path)` | `bool` | Does it start from the root |
+| `separator()` | `string` | The platform separator |
+
+There is no `absolute()` or `relative()`. Both would have to read the current
+working directory, which would make them depend on outside state; the rest of
+this module does not. Where you need an absolute path, combine
+`process::cwd()` with `join`.
+
+## /stdlib-process/
+
+The `process` module covers the program's own execution: how it ends, where it
+is running, and which process it is.
+
+```c
+import { exit, cwd, pid, chdir } from process;
+```
+
+## `void exit(int code)`
+
+Ends the program immediately with the given exit code. Code `0` means success;
+anything else signals failure to whatever started the program.
+
+```c
+import { exit } from process;
+import { existsFile } from fs;
+
+int main() {
+    if (!existsFile("config.txt")) {
+        print("config.txt is missing\n");
+        exit(1);
+    }
+
+    print("running\n");
+    return 0;
+}
+```
+
+`exit` does not return, so nothing after it in the function runs. Returning a
+value from `main` does the same thing in the ordinary case; reach for `exit`
+when you need to stop from somewhere deeper than `main` without threading a
+failure value back up through every caller.
+
+## `string cwd()`
+
+The current working directory as an absolute path. This is the directory the
+program was started from, which is what relative paths in `fs` calls resolve
+against.
+
+```c
+import { cwd } from process;
+
+int main() {
+    print(cwd());     // e.g. /home/saqut/project
+    return 0;
+}
+```
+
+## `void chdir(string path)`
+
+Changes the working directory. Every relative path used afterwards resolves
+against the new location.
+
+```c
+import { cwd, chdir } from process;
+
+int main() {
+    chdir("/tmp");
+    print(cwd());     // /tmp
+    return 0;
+}
+```
+
+This changes state that the rest of the program depends on, including any
+`fs` call that uses a relative path. Where a program does more than one thing,
+absolute paths are easier to follow than a working directory that moves.
+
+## `int pid()`
+
+The operating system's process id for this run. Useful for a log line or a
+lock file name that has to differ between concurrent runs.
+
+## Complete function list
+
+| Function | Returns | Purpose |
+|---|---|---|
+| `exit(code)` | `void` | End the program with an exit code |
+| `cwd()` | `string` | The current working directory |
+| `chdir(path)` | `void` | Change the working directory |
+| `pid()` | `int` | This process's id |
+
+`cwd()` and `pid()` read state from outside the program, so their results are
+not reproducible between runs or between machines.
 
 ## /stdlib-sys/
 
-The `sys` module provides access to system-level features. All functions
-require `--allow sys` at runtime.
+The `sys` module reaches outside the program: to the operating system's random
+source, its environment, the command line, and the clock. These are the
+functions whose results the compiler cannot predict, which is why they live
+together in one module.
 
 ## Import
 
 ```c
-import { random, randomRange, env, args, sleep } from sys;
+import { random, randomInt, env, args, sleep } from sys;
 ```
 
-## Functions
+## `double random()`
 
-### `float random()`
-
-Returns a pseudo-random `float` in the interval `[0.0, 1.0)`: zero can be
-returned, but `1.0` cannot. This function does not accept parameters.
+Returns a pseudo-random `double` in `[0.0, 1.0)`. Zero is possible, `1.0` is
+not. Takes no parameters.
 
 ```c
 import { random } from sys;
 
 int main() {
-    float r = random();
-    print(r);     // e.g. 1634872934
+    double r = random();
+    print(r);     // e.g. 0.8846772796
     return 0;
 }
 ```
 
-The result comes from a general-purpose CSPRNG. For cryptographic randomness
-use the planned `crypto` module.
+The bytes come from the operating system's CSPRNG, not from C's `rand()`. That
+makes the sequence unpredictable, and it also means **two runs of the same
+program produce different values**. Where you need a repeatable run, do not
+call `random()`.
 
-### `int randomInt(int min, int max)`
+## `int randomInt(int lo, int hi)`
 
-Returns a random 32-bit `int` in the half-open interval `[min, max)`. `min` is
-included and `max` is excluded; `min` must be smaller than `max`.
+A random `int` in the half-open interval `[lo, hi)`: `lo` can come back,
+`hi` cannot.
 
 ```c
-import { randomRange } from sys;
+import { randomInt } from sys;
 
 int main() {
-    int dice = randomRange(1, 7);   // 1 to 6
+    int dice = randomInt(1, 7);   // 1 through 6
     print(dice);
     return 0;
 }
 ```
 
-### `string? env(string name)`
+The upper bound being excluded is what makes `randomInt(0, array.length())`
+always a valid index.
 
-Returns the value of the environment variable named by `name`. Returns `null`
-when the variable does not exist.
+## `string? env(string name)`
+
+The value of an environment variable, or `null` when it is not set. The return
+type is `string?`, so the null case has to be handled before use.
 
 ```c
 import { env } from sys;
 
 int main() {
-    string home = env("HOME");
-    print(home);     // e.g. "/home/saqut"
+    string? home = env("HOME");
+    if (home != null) {
+        print(home);
+    } else {
+        print("HOME is not set");
+    }
     return 0;
 }
 ```
 
-### `string[] args()`
+## `string[] args()`
 
-Returns the command-line arguments passed to the program as a `string[]`. This
-function has no parameters.
+The arguments passed to the program, in order.
 
 ```c
 import { args } from sys;
 
 int main() {
     string[] a = args();
-    for (int i = 0; i < a.length; i = i + 1) {
+    int i = 0;
+    while (i < a.length()) {
         print(a[i]);
+        print("\n");
+        i = i + 1;
     }
     return 0;
 }
 ```
 
-The first element (`a[0]`) is the program name; following elements are the
-arguments.
+Arguments intended for the program go after `--`, which separates them from
+the compiler's own flags:
 
 ```bash
-saqut run --allow sys prog.sqt hello world
-# a[0] = "prog.sqt"
-# a[1] = "hello"
-# a[2] = "world"
+saqut run prog.sqt -- hello world
 ```
 
-### `void sleep(int millis)`
+```
+a[0] = "hello"
+a[1] = "world"
+```
 
-Pauses the program for `millis` milliseconds. The parameter is an `int` and
-fractional seconds are not accepted.
+`a[0]` is the **first argument**, not the program name. The array holds only
+what follows `--`, so a program run with no arguments gets an empty array and
+`a.length()` is `0`.
+
+## `void sleep(int millis)`
+
+Pauses the program for the given number of milliseconds. The parameter is an
+`int`: `sleep(1500)` waits a second and a half, while `sleep(1.5)` is a
+compile error, because a float literal cannot be used where an `int` is
+expected.
 
 ```c
 import { sleep } from sys;
 
 int main() {
-    print("waiting...");
-    sleep(1.5);
-    print("done");
+    print("waiting...\n");
+    sleep(1500);
+    print("done\n");
     return 0;
 }
 ```
 
-## Run with sys access
+## Determinism
 
-```bash
-saqut run --allow sys program.sqt
+`random()`, `randomInt()`, and `env()` read state from outside the program, so
+the same source can produce different output on two runs. Everything else in
+saQut's standard library is a pure calculation on the values you pass in. When
+a program has to be reproducible, this module is where to look first.
+
+## /stdlib-utf8/
+
+The `utf8` module converts between the two ways saQut represents text: a
+`string`, which is a sequence of characters, and a `byte[]`, which is a
+sequence of bytes.
+
+```c
+import { encode, decode } from utf8;
 ```
+
+The distinction matters because files, standard input, and network data are
+bytes. saQut does not guess an encoding for them. [`fs::readFile`](/stdlib-fs/)
+hands you a `byte[]`, and turning that into text is a step you take
+deliberately, with `decode`.
+
+## `byte[] encode(string text)`
+
+Encodes text as UTF-8 bytes.
+
+```c
+import { encode } from utf8;
+
+int main() {
+    byte[] data = encode("hello");
+    print(data.length());     // 5
+    return 0;
+}
+```
+
+## `string decode(byte[] data)`
+
+Decodes UTF-8 bytes back into text.
+
+```c
+import { encode, decode } from utf8;
+
+int main() {
+    byte[] data = encode("hello");
+    print(decode(data));      // hello
+    return 0;
+}
+```
+
+## Characters are not bytes
+
+For text outside ASCII, the two counts differ. saQut counts a `string` in
+Unicode code points, while a `byte[]` counts bytes:
+
+```c
+import { encode } from utf8;
+
+int main() {
+    string word = "çğüş";
+    print(word.length());              // 4  characters
+    print(encode(word).length());      // 8  bytes
+    return 0;
+}
+```
+
+Each of those four characters takes two bytes in UTF-8. An emoji or a CJK
+character takes more. This is why cutting a `byte[]` at an arbitrary position
+can split a character in half, while `substring` on a `string` cannot.
+
+Work in `string` when you mean text, and in `byte[]` when you mean file
+contents or wire data. Convert at the boundary, once.
+
+## Round trip
+
+```c
+import { readFile, writeFile } from fs;
+import { encode, decode } from utf8;
+
+int main() {
+    writeFile("note.txt", encode("merhaba"));
+
+    byte[] raw = readFile("note.txt");
+    string text = decode(raw);
+
+    print(text);        // merhaba
+    return 0;
+}
+```
+
+## Complete function list
+
+| Function | Returns | Purpose |
+|---|---|---|
+| `encode(text)` | `byte[]` | Text to UTF-8 bytes |
+| `decode(data)` | `string` | UTF-8 bytes to text |
+
+Both are pure calculations: the same input always produces the same output.
 
 ## /strings/
 
@@ -4982,12 +5717,14 @@ struct Product {
     string title;
     float price;
     int stock;
+    string[] tags;
 }
 
 Product item;
 print(item.title);       // "" (empty string)
 print(item.price);       // 0.0
 print(item.stock);       // 0
+print(item.tags.length()); // 0 (fields with an array type start empty)
 ```
 
 ## Reference Semantics
@@ -5435,13 +6172,13 @@ put this at the top.
 ## Step 2: Store the task list
 
 We will keep tasks in an array. Since we don't know how many tasks there will
-be, we start with an empty array and append to it:
+be, we start with an empty array and push onto it:
 
 ```c
-Task[] tasks;
+Task[] tasks = [];
 ```
 
-Add a function to create and append a task:
+Add a function to create and store a task:
 
 ```c
 void addTask(string title, Priority prio) {
@@ -5449,11 +6186,11 @@ void addTask(string title, Priority prio) {
     t.title    = title;
     t.priority = prio;
     t.done     = false;
-    tasks.append(t);
+    tasks.push(t);
 }
 ```
 
-`tasks.append(t)` puts `t` at the end of the array and grows it by one.
+`tasks.push(t)` puts `t` at the end of the array and grows it by one.
 
 ## Step 3: Mark a task as done
 
@@ -5461,7 +6198,7 @@ We need a way to find a task by its position and mark it:
 
 ```c
 void markDone(int index) {
-    if (index >= 0 && index < tasks.length) {
+    if (index >= 0 && index < tasks.length()) {
         tasks[index].done = true;
     }
 }
@@ -5484,19 +6221,19 @@ string prioLabel(Priority p) {
 }
 
 void printTasks() {
-    print("--- Tasks ---");
+    print("--- Tasks ---\n");
     int doneCount = 0;
-    for (int i = 0; i < tasks.length; i = i + 1) {
+    for (int i = 0; i < tasks.length(); i = i + 1) {
         string checkbox = "[ ]";
         if (tasks[i].done) {
             checkbox = "[x]";
             doneCount = doneCount + 1;
         }
         print(checkbox + " " + tasks[i].title +
-              " (" + prioLabel(tasks[i].priority) + ")");
+              " (" + prioLabel(tasks[i].priority) + ")\n");
     }
     print("Done: " + (doneCount as string) + " / " +
-          (tasks.length as string));
+          (tasks.length() as string) + "\n");
 }
 ```
 
@@ -5530,18 +6267,18 @@ struct Task {
     bool   done;
 }
 
-Task[] tasks;
+Task[] tasks = [];
 
 void addTask(string title, Priority prio) {
     Task t;
     t.title    = title;
     t.priority = prio;
     t.done     = false;
-    tasks.append(t);
+    tasks.push(t);
 }
 
 void markDone(int index) {
-    if (index >= 0 && index < tasks.length) {
+    if (index >= 0 && index < tasks.length()) {
         tasks[index].done = true;
     }
 }
@@ -5556,19 +6293,19 @@ string prioLabel(Priority p) {
 }
 
 void printTasks() {
-    print("--- Tasks ---");
+    print("--- Tasks ---\n");
     int doneCount = 0;
-    for (int i = 0; i < tasks.length; i = i + 1) {
+    for (int i = 0; i < tasks.length(); i = i + 1) {
         string checkbox = "[ ]";
         if (tasks[i].done) {
             checkbox = "[x]";
             doneCount = doneCount + 1;
         }
         print(checkbox + " " + tasks[i].title +
-              " (" + prioLabel(tasks[i].priority) + ")");
+              " (" + prioLabel(tasks[i].priority) + ")\n");
     }
     print("Done: " + (doneCount as string) + " / " +
-          (tasks.length as string));
+          (tasks.length() as string) + "\n");
 }
 
 int main() {
@@ -5612,8 +6349,8 @@ Done: 1 / 3
 | `switch` | Priority label |
 | `as` (cast) | `int` to `string` for output |
 | String concat | `+` in `print()` |
-| `.length` | Array size |
-| `.append()` | Adding to array |
+| `.length()` | Array size |
+| `.push()` | Adding to array |
 
 ## Try these on your own
 
@@ -5849,6 +6586,30 @@ int main() {
 - **Globals** are useful for a small amount of shared state, but because *any*
   function can change them, overusing them makes a program harder to follow.
 
+### Module scope is declaration-only (E013)
+
+The top level of a file is **module scope**. Only *declarations* are allowed
+there: global variables, functions, structs, enums. You **cannot** run
+statements (assignments, increments, method calls, `if`, loops, …) at module
+scope; the compiler rejects them with error **E013**:
+
+```c
+int counter = 5;          // OK: declaration
+counter = 10;             // ERROR E013: statements are not allowed at module scope
+counter++;                // ERROR E013
+arr.push(1);              // ERROR E013
+
+int main() {
+    counter = 10;         // OK: inside a function
+    counter++;            // OK
+    return 0;
+}
+```
+
+Global initializers may use literals and constant-foldable expressions
+(`int a = 24 + 20;`, `int b = a + 1;`), but any *computation* that must run
+at runtime belongs inside a function.
+
 > A dedicated page on local vs global variables and the call stack is planned.
 > For now: locals live inside their function/block; globals live at the top
 > level and are shared.
@@ -6065,7 +6826,7 @@ int square(int x) {
 // Arrays and loops
 int sum(int[] numbers) {
     int result = 0;
-    for (int i = 0; i < numbers.length; i = i + 1) {
+    for (int i = 0; i < numbers.length(); i = i + 1) {
         result = result + numbers[i];
     }
     return result;
@@ -7357,90 +8118,6 @@ açılır.
 - [Dizilerin](/arrays/) sıralı veriyi nasıl sakladığını ve paylaştığını öğrenin
 - Programınızı [modüllerle](/modules/) birden çok dosyaya bölün
 
-## /tr/capabilities/
-
-saQut açık bir capability politikası kullanır. `--allow` verilmezse şu anda
-tanımlı üç capability'nin tamamı açıktır. `--allow` verilirse bu seçenek bir
-whitelist olur ve yalnızca listelenen capability'ler açılır.
-
-## Üç capability
-
-| Capability | Bayrak | Açtıkları |
-|---|---|---|
-| Dosya sistemi | `--allow fs` | `readFile`, `writeFile`, `readDir`, `exists`, `remove` |
-| Ağ | `--allow net` | HTTP istekleri, soketler (planlanan 0.9) |
-| Sistem | `--allow sys` | `random`, `randomRange`, `env`, `args`, `sleep`, `date::now()` |
-
-Birden fazla capability virgülle ayrılır:
-
-```bash
-saqut run --allow fs,net prog.sqt
-saqut run --allow fs,net,sys prog.sqt
-```
-
-Eski `--allow-fs`, `--allow-net` ve `--allow-sys` biçimleri geçerli değildir.
-
-## Denetim nasıl çalışır
-
-Capability denetimi, korumalı fonksiyon çağrıldığı anda yapılır:
-
-Capability isteyen bir fonksiyonu import etmek, capability o anda kapalı olsa
-bile serbesttir. VM çağrıdan hemen önce aktif capability kümesini kontrol eder.
-Capability yoksa çağrı `E_CAP_MISSING` ile başarısız olur. Böylece
-`caps::drop("fs")` gibi dinamik değişiklikler sonraki çağrılarda etkili olur;
-import işlemi tek başına reddedilmez.
-
-## Capability sorgulama
-
-Bir programın hangi capability'lere ihtiyaç duyduğunu çalıştırmadan
-derleyiciye sorabilirsin:
-
-```bash
-saqut ir --capabilities prog.sqt
-```
-
-Çıktı:
-
-```
-fs, sys
-```
-
-Bu, import edilen tüm fonksiyonları tarar ve bildirdikleri her capability'yi
-raporlar.
-
-## caps modülü
-
-`caps` modülü programının kendi izinlerini çalışma zamanında denetlemesini ve
-yönetmesini sağlar:
-
-```c
-import { has, drop } from caps;
-
-if (caps::has("fs")) {
-    string veri = readFile("gizli.txt");
-    caps::drop("fs");     // programın geri kalanı için fs'ten vazgeç
-}
-```
-
-- `caps::has(ad)` capability şu anda aktifse `true` döndürür
-- `caps::drop(ad)` kalıcı olarak kaldırır; geri alma yolu yoktur
-
-Bu, en az yetki prensibini uygulamanı sağlar: bir capability'yi yalnızca
-ihtiyacın olduğu sürece tutarsın.
-
-## Pratisyenler için neden önemli
-
-- Derleme betiğin kaynak dosyaları okuyup çıktı yazabilir ama soket acamaz;
-  `--allow fs` yeterlidir
-- HTTP istemci programin aga ihtiyac duyar ama dosya sistemine dokunmamalidir;
-  yalnizca `--allow net` ver
-- Ortam değişkeni ve komut satırı argümanı okuyan bir araç yalnızca
-  `--allow sys` ister
-
-Programın aktif capability'lerini çalışma zamanında sorgulayabilirsin. CLI
-politikası ve çağrı öncesi çalışma zamanı denetimi sınırı uygular; bir modülü
-import etmek tek başına capability vermez.
-
 ## /tr/cli-reference/
 
 Bu sayfa bir pratisyenin ihtiyaç duyduğu tüm `saqut` alt komutlarını ve
@@ -7459,18 +8136,26 @@ saqut run program.sqt
 
 | Bayrak | Amacı |
 |---|---|
-| `--allow fs,net,sys` | Çalışma zamanı capability'lerini whitelist olarak verir; verilmezse tümü açıktır |
 | `--jit` | Programı VM yerine deneysel MIR JIT ile çalıştırır |
-| `--optimized` | Sabit katlama ve ölü kod eleme uygular |
-| `--gc-threshold N` | N tahsis sonrası GC'yi tetikler |
-| `--gc-stats` | Çalışma sonrası GC istatistiklerini yazar |
-| `--profile` | Aşama başına profil çıkarır (tokenleme, ayrıştırma, IR üretimi, çalıştırma) ve her aşamanın iş miktarını gösterir |
+| `--dont-optimize` | Sabit katlama ve ölü kod elemeyi kapatır |
+| `--gc-threshold=N` | Bayt cinsinden GC eşiği; `0` varsayılanı kullanır, negatif değer toplamayı kapatır |
+| `--gc-stats` | Çıkışta GC istatistiklerini yazar |
+| `--profile` | Aşama başına süreleri raporlar |
+| `--verbose` | Aşama ilerlemesini yazar |
+| `-- args` | `--` işaretinden sonrasını programa geçirir; `sys::args()` ile okunur |
 
-Varsayılan ve referans arka uç bytecode VM'dir. `--jit` bayrağı programı
-deneysel MIR JIT ile çalıştırır; bu şu anda yalnızca tam sayı ve float skaler
-koddan oluşan programları işler. Başka bir şey kullanan program kısmen
-çalışmak yerine açık bir hatayla durur. Gömülü çalışma zamanlı AOT (`--output`
-ikilisi) hâlâ planlanmaktadır.
+Optimizasyon **varsayılan olarak açıktır**. `--dont-optimize` kapatır;
+`--optimized` eski komutların çalışmaya devam etmesi için no-op olarak hâlâ
+kabul edilir.
+
+Varsayılan ve referans arka uç bytecode VM'dir. `--jit`, programı deneysel MIR
+JIT ile çalıştırır; JIT'in VM ile aynı çıktıyı ve aynı çıkış kodunu üretmesi
+zorunludur. Gömülü çalışma zamanlı AOT (`--output` ikilisi) hâlâ
+planlanmaktadır.
+
+```bash
+saqut run program.sqt -- girdi.txt 42
+```
 
 ### tokens
 
@@ -7512,11 +8197,16 @@ Ara kodu (üç adresli kod) yazar.
 
 ```bash
 saqut ir program.sqt
-saqut ir --capabilities program.sqt
+saqut ir --cfg program.sqt
+saqut ir --dont-optimize program.sqt
 ```
 
-`--capabilities` bayrağı IR'yi tarar ve programın hangi capability'lere
-(`fs`, `net`, `sys`) ihtiyaç duyduğunu çalıştırmadan raporlar.
+`--cfg`, düz talimat listesi yerine kontrol akış çizgesini yazar: her temel
+blok, öncülleri, ardılları ve sonlandırıcısıyla birlikte. Dallanmaların ve
+döngülerin nasıl yerleştiğini görmek için kullanılır.
+
+`--dont-optimize`, IR'yi sabit katlama ve ölü kod elemeden önceki haliyle
+gösterir; optimize edicinin tam olarak neyi değiştirdiğini görmenin yolu budur.
 
 ### check
 
@@ -7579,16 +8269,20 @@ saqut dap
 
 ```bash
 # Tam içgözlemle çalıştır
-saqut run --allow fs --gc-stats --profile program.sqt
+saqut run --gc-stats --profile program.sqt
 
 # Çalıştırmadan önce kontrol et
 saqut check program.sqt && saqut run program.sqt
 
-# Programın neye ihtiyacı var gör
-saqut ir --capabilities program.sqt
+# İki arka ucu aynı programda karşılaştır
+saqut run program.sqt > vm.txt
+saqut run --jit program.sqt > jit.txt
+diff vm.txt jit.txt
 
-# Optimize edilmiş AST'yi gör
-saqut ast program.sqt --optimized
+# Optimizasyonun neyi değiştirdiğini gör
+saqut ast program.sqt --json > optimize.json
+saqut ast program.sqt --dont-optimize --json > ozgun.json
+diff ozgun.json optimize.json
 ```
 
 ## /tr/compiler-errors/
@@ -7631,7 +8325,7 @@ Kod kararlıdır: arayabilirsiniz ve gelecekteki araçlar (`saqut explain E002`)
 
 ---
 
-## Anlamsal hatalar (E001-E011)
+## Anlamsal hatalar (E001-E013)
 
 Bunlar çözümlemeden (parsing) sonra, derleyici isimleri, türleri ve yapıyı
 kontrol ederken yakalanır.
@@ -7785,6 +8479,31 @@ int main() {
 ```
 
 **Düzeltme:** `struct`/fonksiyon tanımını dosyanın en üstüne taşıyın.
+
+### E013 (Modül kapsamında statement)
+
+Dosyanın en üst düzeyi **modül kapsamıdır**: burada yalnızca bildirimlere
+(global değişken, fonksiyon, struct, enum) izin verilir. Modül kapsamında
+*statement* çalıştırmak (atama, artırım, metod çağrısı, `if`, döngü vb.)
+reddedilir:
+
+```c
+int counter = 5;    // OK: bildirim
+
+counter = 10;       // E013, statements are not allowed at module scope
+counter++;          // E013
+arr.push(1);        // E013
+print(counter);     // E013
+
+int main() {
+    counter = 10;   // OK: fonksiyon içinde
+    return 0;
+}
+```
+
+**Düzeltme:** statement'ı bir fonksiyonun (ör. `main`) içine taşıyın. Global
+başlatıcılar literal ve sabit-katlanabilir ifadeler kullanabilir, ancak
+çalışma zamanında koşması gereken her şey bir fonksiyonun içine aittir.
 
 ---
 
@@ -8068,7 +8787,7 @@ saqut ast examples/algorithm/03_insertion_sort.sqt --json
 ```
 
 `--json` olmadan `saqut ast` aynı ağacı girintili, insan-okunur bir metin
-dökümü olarak basar — terminalde okumak için kullanışlıdır, ayrıştırmak için
+dökümü olarak basar; terminalde okumak için kullanışlıdır, ayrıştırmak için
 değil.
 
 `--optimized` bayrağı, sabit katlama ve ölü kod temizliği **sonrası** AST'yi
@@ -9063,13 +9782,19 @@ Host fonksiyonlar derleyicinin gömülü `root.sqt` dosyasında `ffi` anahtar
 kelimesiyle bildirilir:
 
 ```
-ffi float sqrt(float x) : MATH_SQRT from math;
-ffi string readFile(string path) : FS_READFILE from fs requires fs;
+ffi double sqrt(double x) : MATH_SQRT from math;
+ffi byte[] readFile(string path, int? seek, int? size) : FS_READ_FILE from fs;
 ```
 
-Her bildirim şunları belirtir: **imza** (tip denetimi için), **sembolik host
-kimliği** (C++ `HostFnId` enum'una eşlenir), **modül** (import-kapısı için)
-ve isteğe bağlı olarak **capability** ve kararlılık bayrağı.
+Her bildirim üç şeyi belirtir: **imza** (tip denetleyicinin kullandığı tipler),
+**sembolik host kimliği** (C++ tarafındaki gerçeklemeye eşlenir) ve **modül**
+(adı kapsama hangi import'un getirdiği).
+
+Bu bildirimler derleyicinin C++ kaynağının içinde gizli değildir.
+`src/internal/ffi.sqt` dosyasında dururlar; bu gerçek bir saQut dosyasıdır ve
+derleme sırasında binary'ye gömülür. Yani editörde sözdizimi vurgulamasıyla
+açılır, dil sunucusu da görür. Derleyicinin sağladığı bütün host
+fonksiyonlarını tam imzalarıyla görmenin yetkili yolu o dosyayı okumaktır.
 
 Sen şunu yazdığında:
 
@@ -9089,19 +9814,23 @@ int main() {
 
 String eşleştirme yok. Çalışma zamanı yansıması yok. Tek bir sayısal dağıtım.
 
-## Capability ve FFI
+## Capability kapısı yok
 
-VM dışına çıkan host fonksiyonlar (dosya I/O, ağ, sistem çağrıları)
-`requires fs` (veya `net`, `sys`) bildirmek zorundadır. Derleyici ve çalışma
-zamanı bunu denetler. `requires` olmayan bir host fonksiyonu saftır ve
-`--allow` bayrağı gerektirmez.
+Önceki sürümlerde host fonksiyonları bir capability sisteminin arkasındaydı:
+bildirim `requires fs` yan tümcesi taşır, programı çalıştırmak da eşleşen bir
+`--allow` bayrağı gerektirirdi. Bu sistem 0.9.4'te kaldırıldı (ADR-043). Host
+çağrıları varsayılan olarak açıktır, `requires` yan tümcesi yoktur ve `--allow`
+diye bir bayrak bulunmaz.
+
+Host fonksiyonunu hâlâ kapı arkasında tutan şey import'tur: içe aktarmadığınız
+bir ad kapsamda değildir, dolayısıyla bir dosyanın erişebileceği dış
+fonksiyonlar kümesi o dosyanın en üstünde görünür.
 
 ## print() de bir FFI'dır
 
 Hello World'den beri kullandığın `print()` fonksiyonu da bir host
-fonksiyondur (`: PRINT from core`). Her zaman kullanılabilir olmasının nedeni,
-import gerektirmeyen ve capability istemeyen `core` modülünde bildirilmiş
-olmasıdır.
+fonksiyondur. Her zaman kullanılabilir olmasının nedeni, import gerektirmeyen
+`core` modülüne ait olmasıdır.
 
 ## Kendi host fonksiyonunu yazmak
 
@@ -9112,11 +9841,11 @@ rehberine](https://github.com/saqutlang/saqut/blob/main/CONTRIBUTING.md) bak.
 
 ## FFI vs. standart kütüphane
 
-| Ne | Mekanizma | Import gerekir | Capability gerekir |
-|---|---|---|---|
-| `s.upper()`, `dizi.append()` | UFCS yerleşik | Hayır | Hayır |
-| `readFile()`, `sqrt()` | FFI (stdlib) | Evet | Fonksiyona bağlı |
-| `print()` | FFI (core) | Hayır | Hayır |
+| Ne | Mekanizma | Import gerekir |
+|---|---|---|
+| `s.upper()`, `dizi.push()` | UFCS yerleşik | Hayır |
+| `readFile()`, `sqrt()` | FFI (stdlib) | Evet |
+| `print()` | FFI (core) | Hayır |
 
 Standart kütüphane, derleyiciyle birlikte gelen bir FFI bildirimleri
 kümesidir. `import { readFile } from fs` yazarken FFI mekanizmasını görmezsin
@@ -9910,25 +10639,18 @@ Nullable bir değeri kullanmanın tek yolu budur: **`x!`** zorla-unwrap yoktur,
 zamanı maliyetiyle derleme zamanında kanıtlanır. (Bkz.
 [veri türlerinde null güvenliği](/data-types/#nullable-types).)
 
-## Ternary Alternatifi
+## Değer Seçme
 
-"İki değerden birini seç" gibi basit durumlarda, [ternary
-operatörü](/operators/#ternary-operator) `?:`, tam bir `if` yerine kompakt bir
-ifadedir:
+saQut'ta `?:` üçlü operatörü **yoktur**; `?` yalnızca nullable tip işaretidir
+(`int?`). İki değer arasında seçim yapmak için değişkeni tanımlayıp her dalda
+atayın:
 
 ```c
 int x = 5;
 
-// if / else
 string label;
 if (x > 0) { label = "positive"; } else { label = "non-positive"; }
-
-// aynısı ternary ile
-string label2 = x > 0 ? "positive" : "non-positive";
 ```
-
-İfade çalıştırmak için `if` kullanın; yalnızca bir değer seçmek için `?:`
-kullanın.
 
 ## Sırada Ne Var?
 
@@ -9991,21 +10713,42 @@ programlar yazmayı anlatır.
 
 ## Kısa bir bakış
 
+Sıralı bir dizide ikili arama. Her adım arama aralığını yarıya indirir; bu
+yüzden 10.000 elemanlı bir dizi en fazla 14 karşılaştırmada sonuçlanır.
+
 ```c
-int fibonacci(int n) {
-    if (n <= 1) {
-        return n;
+int binarySearch(int[] values, int target) {
+    int low = 0;
+    int high = values.length() - 1;
+
+    while (low <= high) {
+        // (low + high) / 2 yerine (high - low) / 2:
+        // ilk biçim büyük dizilerde int taşmasına yol açabilir.
+        int mid = low + (high - low) / 2;
+
+        if (values[mid] == target) {
+            return mid;
+        }
+        if (values[mid] < target) {
+            low = mid + 1;
+        } else {
+            high = mid - 1;
+        }
     }
-    return fibonacci(n - 1) + fibonacci(n - 2);
+    return -1;   // bulunamadı
 }
 
 int main() {
-    print(fibonacci(10));   // 55
+    int[] sorted = [2, 5, 8, 12, 16, 23, 38, 56, 72, 91];
+
+    print(binarySearch(sorted, 23));   // 5
+    print(binarySearch(sorted, 7));    // -1
     return 0;
 }
 ```
 
-Fonksiyonlar, kontrol akışı ve `print()`. Zorunlu tören kodu yok.
+Fonksiyonlar, diziler, kontrol akışı ve `print()`. Zorunlu tören kodu yok. Aynı
+program VM'de ve JIT'te aynı çıktıyı üretir.
 
 ---
 
@@ -10036,7 +10779,8 @@ Fonksiyonlar, kontrol akışı ve `print()`. Zorunlu tören kodu yok.
   <Card title="Belirlenimci sanal makine" icon="random">
     Referans arka uç bir bytecode sanal makinesidir: aynı girdi her çalıştırmada
     aynı çıktıyı üretir. LLVM bilinçli olarak kullanılmaz. Deneysel bir MIR JIT
-    <code>--jit</code> ile çalışır; sırada gömülü çalışma zamanlı AOT var.
+    <code>--jit</code> ile çalışır ve VM ile bayt bayt eşleşmek zorundadır;
+    sırada gömülü çalışma zamanlı AOT var.
   </Card>
   <Card title="Yakalanabilir hatalar" icon="error">
     <code>try</code> / <code>catch</code> / <code>throw</code> ile struct tabanlı
@@ -10051,7 +10795,7 @@ Fonksiyonlar, kontrol akışı ve `print()`. Zorunlu tören kodu yok.
 
 <CardGrid>
   <LinkCard title="Veri Tipleri" href="/tr/data-types/" description="int, float, bool, byte, string, struct, array, nullable ve tip yükseltme kuralları." />
-  <LinkCard title="Operatörler" href="/tr/operators/" description="Aritmetik, mantıksal, bitsel, atama, üçlü ve as dönüşümü; tam öncelik tablosuyla birlikte." />
+  <LinkCard title="Operatörler" href="/tr/operators/" description="Aritmetik, mantıksal, bitsel, atama ve as dönüşümü; tam öncelik tablosuyla birlikte." />
   <LinkCard title="Yerleşik Fonksiyonlar" href="/tr/builtin-functions/" description="Her string, array ve struct metodu örneklerle sıfırdan anlatılıyor." />
   <LinkCard title="Modüller" href="/tr/modules/" description="Kodu import/export ile dosyalara bölün; iki dosyalı programdan bağımlılık çizgelerine kadar." />
   <LinkCard title="Hata Yönetimi" href="/tr/error-handling/" description="try / catch / throw ile çalışma zamanı hatalarını yakalayın ve fırlatın." />
@@ -10073,17 +10817,70 @@ Her ok, çalıştırıp inceleyebileceğiniz bir CLI komutuna karşılık gelir.
 
 ## Sürüm günlüğü
 
+### 24 Ağustos 2026 · 0.9.4 · Hatalar Artık Yakalanıyor
+
+- `a08c756` | `try` / `catch` / `throw` artık JIT tarafında da çalışıyor:
+  VM ile aynı çıktı ve çıkış koduyla; sıfıra bölme, başarısız dönüşüm ve
+  dizi sınır aşımı gibi yakalanabilir çalışma zamanı hataları dahil.
+  (Planlanan setjmp/longjmp tasarımının bir JIT'te tanımsız davranış
+  olduğu ortaya çıktı; yerine talimat başına bekleyen-hata denetimi
+  getirildi ve `try` içermeyen fonksiyonlar hâlâ sıfır maliyet ödüyor.)
+- `a68cad7` | JIT çöp toplayıcısında bir hata düzeltildi: tahsis yapan
+  özyinelemeli çağrılarda canlı bir nesne kullanılmaktayken süpürülüp
+  yeniden kullanılabiliyordu. Gölge-yığın çerçeveleri artık çağrı başına
+  düzgün geri sarılıyor.
+- `2095564` | Daha önce "JIT'te bilinçli bozuk" işaretli altı test
+  programı artık VM ile bayt bayt eşleşmek zorunda; bu alanda parite
+  yeniden ve istisnasız zorunlu.
+- `4568aac` | Capability (izin) sistemi kaldırıldı (ADR-043): host
+  çağrıları varsayılan olarak açık ve dosya işlemleri JIT'te de aynı
+  şekilde çalışıyor.
+- `5aeec2b` | String indeksleme ve `length()` artık bayt değil Unicode
+  code point sayıyor.
+- `1cea6bf` | `upper()` ve `lower()` artık gerçek Unicode harf
+  dönüşümü yapıyor.
+- `4bc1b2b` | Dosya içerikleri uçtan uca `byte[]` olarak işlenebiliyor.
+- `b2ed2f8` | 64-bit hex sabitleri `longint` olarak tam bit desenini
+  koruyor.
+- `ec4174c` | Init'siz `string` artık `0` yerine `""` ile başlıyor; local
+  değişkenler, struct alanları ve globaller dahil.
+- `b9f5c62` | Dizi tipli struct alanları artık boş diziyle başlıyor:
+  önce değer atamaya gerek olmadan `record.items.push(x)` çalışıyor.
+- `690025b` | Hiç değer atanmamış modül-düzeyi `int?`, `string?` veya
+  `longint?` artık gerçekten `null` okunuyor. Önce `x == null` slot
+  sessizce `0` tuttuğu için false yanıtı veriyordu.
+- `2469bbf` | Nullable değerle sıralama karşılaştırmaları (`<`, `>`,
+  `<=`, `>=`) artık aritmetikteki gibi derleme hatası: önce null kapısından
+  geçin (`if (x != null) { x < 26 }`). Eşitlik (`==`, `!=`) değişmedi.
+- `74296d6` | Yerleşik metodu çağırmadan kullanmak (parantezsiz
+  `s.length`) artık sessizce `0` üretmek yerine derleme hatası.
+- `dd8a493` | Modül kapsamında statement'lar (`x = 5;` gibi, herhangi
+  bir fonksiyonun dışında) artık C++'daki gibi net bir hatayla
+  reddediliyor; en üst düzey yalnızca bildirim kabul ediyor.
+- `030f4bd` | Fonksiyonu zorunlu argümanları olmadan çağırmak artık
+  derleme hatası; dil sunucusu da bu girdiyi zarifçe atlatıyor.
+- `907d904` | JIT sıcak dizi erişimlerini doğrudan bellek işlemine
+  indiriyor ve derlenmiş kodu yeniden kullanıyor; dizi ağırlıklı
+  döngüler daha hızlı.
+- `2645978` | Belgeler, dilde hiç var olmamış `?:` üçlü operatörünü
+  artık varmış gibi tanıtmıyor.
+- `2d6395c` | `--help` artık standart bir kılavuz sayfası gibi okunuyor
+  ve uygulanmayan komutlar CLI'dan tamamen çıkarıldı.
+- `ee102a3` | Kağıt üzerinde var olup hiç koşulmayan on beş hata
+  fixture'ı test koşucusuna bağlandı; sessiz hata sınıfları artık
+  yakalanıyor.
+
 ### 1 Ağustos 2026 · 0.9.2 · Kendini Ölçmeyi Öğreniyor
 
 - `c2266ad` | Tipine sığmayan bir `int` ya da `longint` sabiti artık
   sessizce başka bir değere dönüşmek yerine derleme zamanında yakalanıyor.
 - `d85c7ee` | `decimal` karşılaştırmaları artık `decimal` aritmetiğiyle
-  aynı fikirde — para hesabı nihayet tutuyor.
+  aynı fikirde; para hesabı nihayet tutuyor.
 - `fd7d082` | `Node { Node? next; }` gibi kendine referans veren
   struct'lar artık derleniyor ve `T?` alanlar `null` başlıyor.
 - `7c8f678` | JIT ve VM artık `decimal` değerlerde aynı cevabı, çalışma
   zamanı hatalarında aynı mesajı veriyor.
-- `3261321` | VM her talimatta debugger defteri tutmayı bıraktı —
+- `3261321` | VM her talimatta debugger defteri tutmayı bıraktı:
   programlar yaklaşık 1.9 kat daha hızlı çalışıyor.
 - `f4a60c8` | Parser her token'ı altı kez yerine bir kez okuyor.
 - `1a096ee` | Kaynak konumları üçte bir boyutuna indi; uzun dosya yolları
@@ -10339,9 +11136,10 @@ semboller *kendi dosyaları içinde* tamamen kullanılabilirdir.
 
 | Aktarılabilir | Aktarılamaz (şimdilik) |
 |---------------|------------------------|
-| `export` fonksiyonlar | Global değişkenler |
+| `export` fonksiyonlar | |
 | `export struct` | |
 | `export enum` | |
+| `export` global değişkenler | |
 
 ```c
 export int add(int a, int b) { return a + b; }   // tamam
@@ -10350,11 +11148,14 @@ export struct Vec { int x; int y; }              // tamam
 
 export enum State { Idle, Running, Done }         // tamam
 
-export int counter = 0;   // HATA, global değişkenler dışa aktarılamaz
+export int counter = 0;   // tamam: global değişkenler dışa aktarılabilir
 ```
 
-Paylaşımlı durum gerekiyorsa, dışa aktarılan bir global yerine dışa aktarılan
-fonksiyonlar üzerinden sunun.
+Tüm globaller gibi, dışa aktarılan bir global de `main`'den önce bir kez
+başlatılır ve modül kapsamı yalnızca bildirim içerir: en üst düzeyde ona
+atama yapılamaz (E013), yalnızca bir fonksiyonun içinden yapılabilir.
+Paylaşımlı *değişebilir* durum gerekiyorsa, dışa aktarılan bir global yerine
+dışa aktarılan fonksiyonlar üzerinden de sunabilirsiniz.
 
 ---
 
@@ -10657,7 +11458,7 @@ Sonuç üretemeyebilecek bir fonksiyon nullable tip döndürmelidir:
 
 ```c
 int? indeksBul(int[] dizi, int hedef) {
-    for (int i = 0; i < dizi.length; i = i + 1) {
+    for (int i = 0; i < dizi.length(); i = i + 1) {
         if (dizi[i] == hedef) {
             return i;
         }
@@ -10712,7 +11513,6 @@ Yüksek sayı = önce değerlendirilir.
 | 18 | Üye erişimi / çağrı | `.` `[ ]` `( )` | Sol |
 | 17 | Sonek | `++` `--` | Sol |
 | 16 | Tekil önek | `+` `-` `!` `~` | Sağ |
-| 15 | Üs alma | `**` `^` | **Sağ** |
 | 14 | Çarpma / Bölme / Modül | `*` `/` `%` | Sol |
 | 13 | Toplama / Çıkarma | `+` `-` | Sol |
 | 12 | Bitsel kaydırma | `<<` `>>` | Sol |
@@ -10723,12 +11523,19 @@ Yüksek sayı = önce değerlendirilir.
 | 7 | Bitsel VEYA | `\|` | Sol |
 | 6 | Mantıksal VE | `&&` | Sol |
 | 5 | Mantıksal VEYA | `\|\|` | Sol |
-| 4 | Üçlü koşul | `?` | **Sağ** |
-| 3 | Üçlü else | `:` | **Sağ** |
 | 2 | Atama | `=` `+=` `-=` `*=` vb. | **Sağ** |
-| 1 | Virgül | `,` | Sol |
 
 > **Sağ-birleşmeli:** `a = b = 5` → `a = (b = 5)`
+>
+> **Üçlü işleç yok:** saQut'ta `?:` koşul operatörü yoktur. `?` yalnızca tip
+> konumunda nullable işareti olarak görünür (`int?`, `Point?`), ifadelerde asla.
+>
+> **Virgül işleci yok:** `,` yalnızca argümanları, parametreleri ve dizi
+> elemanlarını ayırır. Bir ifade işleci değildir; `(a, b)` sözdizimi hatasıdır.
+>
+> **Üs alma işleci yok:** dilde `**` ya da `^` üs işleci bulunmaz. `math`
+> modülündeki `pow()` kullanılır. `^` bitsel XOR'dur.
+>
 > **Sol-birleşmeli:** `10 - 4 - 3` → `(10 - 4) - 3` = 3
 
 ## Aritmetik İşleçler
@@ -10746,27 +11553,44 @@ int pos = +10;          // tekil artı
 
 ### Üs Alma
 
+saQut'ta üs alma işleci yoktur. `math` modülündeki `pow()` kullanılır; aldığı
+ve döndürdüğü tip `double`'dır:
+
 ```c
-int a = 2 ** 3;         // 8  (2³)
-int b = 2 ^ 3;          // yine 8
+import { pow } from math;
+
+int main() {
+    double kup = pow(2.0, 3.0);      // 8.0
+    int dokuz = pow(2.0, 9.0) as int; // 512
+    return 0;
+}
 ```
 
-Hem `**` hem `^` üs alma anlamına gelir. **Sağ-birleşmelidir**:
-`2 ^ 3 ^ 2` → `2 ^ (3 ^ 2)` = `2 ^ 9` = 512
+`^` bir üs işleci değil, bitsel XOR'dur: `2 ^ 3` sonucu `8` değil `1`'dir.
 
 ### Artırma ve Azaltma
 
+Yalnızca **sonek** biçimleri vardır:
+
 ```c
 int x = 5;
-x++;                    // x = 6  (sonek, eski değeri döndürür)
-++x;                    // x = 7  (önek, yeni değeri döndürür)
-x--;                    // x = 6
---x;                    // x = 5
+x++;                    // x = 6
+x--;                    // x = 5
 ```
 
-> Not: `++` ve `--`, `int` ve `float` türlerinde çalışır. Bunlar yalnızca birer
-> ifade değil, aynı zamanda birer deyimdir (statement): şimdilik `foo(x++)`
-> yazamazsınız.
+İfade olarak kullanıldığında sonek biçimi **değişiklikten önceki** değeri
+döndürür:
+
+```c
+int x = 5;
+int y = x++;            // y = 5, x = 6
+```
+
+Önek biçimi (`++x`, `--x`) yoktur. Gerektiği yerde `x = x + 1` yazın.
+
+> `++` ve `--` şu an yalnızca tamsayı değişkenlerde güvenilirdir; ondalık bir
+> değişkende beklenen sonucu vermez ([#238](https://github.com/saqutlang/saqut/issues/238)).
+> Ondalık için `f = f + 1.0;` kullanın.
 
 ## Karşılaştırma İşleçleri
 
@@ -10855,15 +11679,6 @@ x |= 8;     // x = 10
 x ^= 5;     // x = 15
 x <<= 1;    // x = 30
 x >>= 1;    // x = 15
-```
-
-## Üçlü İşleç (Ternary)
-
-Değer döndüren kısa bir if-else:
-
-```c
-int x = 5;
-string result = x > 0 ? "positive" : "zero or negative";
 ```
 
 ## Tür Dönüşüm İşleci (`as`)
@@ -11053,8 +11868,8 @@ değiştirilmez; hesaplama fonksiyonları yeni bir `date` döndürür.
 | Fonksiyon | İmza | Açıklama |
 |---|---|---|
 | `now` | `date now()` | Sistem saatindeki güncel zamanı döndürür; `sys` ister. |
-| `fromEpochMillis` | `date fromEpochMillis(int milliseconds)` | Epoch milisaniyesinden `date` üretir. |
-| `toEpochMillis` | `int toEpochMillis(date value)` | `date` değerini epoch milisaniyesine çevirir. |
+| `fromEpochMillis` | `date fromEpochMillis(longint milliseconds)` | Epoch milisaniyesinden `date` üretir. |
+| `toEpochMillis` | `longint toEpochMillis(date value)` | `date` değerini epoch milisaniyesine çevirir. |
 | `addDays` | `date addDays(date value, int amount)` | Tarihe gün ekleyip yeni tarih döndürür. |
 | `addHours` | `date addHours(date value, int amount)` | Tarihe saat ekler. |
 | `addMinutes` | `date addMinutes(date value, int amount)` | Tarihe dakika ekler. |
@@ -11065,7 +11880,7 @@ değiştirilmez; hesaplama fonksiyonları yeni bir `date` döndürür.
 | `hour` | `int hour(date value)` | Saat bölümünü döndürür. |
 | `minute` | `int minute(date value)` | Dakika bölümünü döndürür. |
 | `second` | `int second(date value)` | Saniye bölümünü döndürür. |
-| `diffMillis` | `int diffMillis(date left, date right)` | İki tarih arasındaki milisaniye farkını döndürür. |
+| `diffMillis` | `longint diffMillis(date left, date right)` | İki tarih arasındaki milisaniye farkını döndürür. |
 | `parse` | `date? parse(string iso8601)` | ISO tarih metnini ayrıştırır; geçersizse `null` döndürür. |
 | `format` | `string format(date value, string pattern)` | Tarihi verilen biçim metnine göre yazıya çevirir. |
 
@@ -11077,115 +11892,385 @@ import { fromEpochMillis, parse, format, year, addDays } from date;
 
 int main() {
     date epoch = fromEpochMillis(0);
-    date? parsed = parse("2026-05-01");
+    date? parsed = parse("2026-05-01T14:30:00Z");
     if (parsed != null) {
         print(year(parsed));
-        print(format(parsed, "%Y-%m-%d"));
-        print(addDays(parsed, 1));
+        print(format(parsed, "yyyy-MM-dd"));
+        print(format(addDays(parsed, 1), "yyyy-MM-dd"));
     }
     print(epoch);
     return 0;
 }
 ```
 
-`now()` sistem saatini okuduğu için `--allow sys` gerektirir. Diğer date
-fonksiyonları saf hesap yapar ve capability istemez.
+`now()` dışındaki bütün fonksiyonlar, verdiğiniz değer üzerinde saf hesap
+yapar. Sistem saatini yalnızca `now()` okur; bu yüzden aynı programın iki
+çalıştırmasında sonucu değişebilen tek fonksiyon odur.
+
+## parse
+
+`parse` tek bir biçim kabul eder: tam ISO-8601 UTC damgası, tam 20 karakter,
+sonu `Z` ile biten.
+
+```c
+parse("2026-05-01T14:30:00Z")   // date döner
+parse("2026-05-01")             // null, saat bölümü yok
+parse("2026-05-01T14:30:00")    // null, sonunda Z yok
+```
+
+Bunun dışındaki her girdi hata fırlatmak yerine `null` döner; dönüş tipi
+`date?` olduğu için kullanmadan önce null denetiminden geçmek zorundadır.
+Takvimde var olmayan bir tarih (örneğin 13. ay) da `null` döner.
+
+## format
+
+`format` aşağıdaki simgeleri değiştirir, geri kalan her karakteri olduğu gibi
+kopyalar. Dikkat: ay büyük harf `MM`, dakika küçük harf `mm`.
+
+| Simge | Anlamı | Örnek |
+|---|---|---|
+| `yyyy` | Yıl, 4 hane | `2026` |
+| `MM` | Ay, 01-12 | `05` |
+| `dd` | Gün, 01-31 | `01` |
+| `HH` | Saat, 00-23 | `14` |
+| `mm` | Dakika, 00-59 | `30` |
+| `ss` | Saniye, 00-59 | `00` |
+
+```c
+format(d, "yyyy-MM-dd")            // 2026-05-01
+format(d, "dd.MM.yyyy HH:mm")      // 01.05.2026 14:30
+format(d, "yyyy-MM-ddTHH:mm:ssZ")  // 2026-05-01T14:30:00Z
+```
+
+Ay adı, gün adı ya da 12 saatlik biçim için simge yoktur. Tanınmayan bir simge
+metinde olduğu gibi kalır: `format(d, "YYYY")` sonucu harfi harfine `YYYY`
+olur, çünkü yıl simgesi küçük harflidir.
 
 ## /tr/stdlib-fs/
 
-`fs` modülü programının dosya sistemiyle etkileşime girmesini sağlar. Tüm
-fonksiyonlar çalışma zamanında `--allow fs` gerektirir.
-
-## Import
+`fs` modülü dosya ve dizinleri okur, yazar. Her fonksiyon adıyla içe aktarılır:
 
 ```c
-import { readFile, writeFile, readDir, exists, remove } from fs;
+import { readFile, writeFile, existsFile } from fs;
 ```
 
-## Fonksiyonlar
+Dosya içeriği `string` değil `byte[]`'dir. saQut sizin yerinize bir metin
+kodlaması varsaymaz: dosya bir bayt dizisidir, onu nasıl yorumlayacağınıza siz
+karar verirsiniz. Dönüştürmek için [`utf8`](/tr/stdlib-utf8/) modülü kullanılır.
 
-### readFile
+```c
+import { readFile, writeFile } from fs;
+import { encode, decode } from utf8;
 
-Bir dosyanın tüm içeriğini okur ve string olarak döndürür.
+int main() {
+    writeFile("not.txt", encode("merhaba"));
+    byte[] ham = readFile("not.txt");
+    print(decode(ham));
+    return 0;
+}
+```
+
+Dosya tanıtıcısı (handle) yoktur. Her çağrı dosyayı açar, işini yapar ve
+kapatır. Böylece her işlem tek ve gözlemlenebilir bir adım olur; bir programın
+dosya etkinliğini kaydedip yeniden oynatmayı mümkün kılan da budur.
+
+## Okuma
+
+### `byte[] readFile(string path, int? seek, int? size)`
+
+Dosyayı okur ve baytlarını döndürür. `seek` ile `size` isteğe bağlıdır:
+hiçbirini vermezseniz dosyanın tamamı, ikisini birden verirseniz yalnız
+belirttiğiniz aralık okunur.
 
 ```c
 import { readFile } from fs;
+import { decode } from utf8;
 
 int main() {
-    string icerik = readFile("veri.txt");
-    print(icerik);
+    byte[] tumu = readFile("veri.txt");          // dosyanın tamamı
+    byte[] parca = readFile("veri.txt", 3, 4);   // 3. bayttan itibaren 4 bayt
+    print(decode(parca));
     return 0;
 }
 ```
 
-Dosya yoksa `readFile` yakalanabilir bir hata fırlatır. `try`/`catch` ile
-sarabilir veya önce `exists` ile kontrol edebilirsin.
+Dosya yoksa `readFile` yakalanabilir bir hata fırlatır. Ya önce `existsFile`
+ile denetleyin ya da çağrıyı `try` / `catch` içine alın.
 
-### writeFile
+### `longint fileSize(string path)`
 
-Bir string'i dosyaya yazar. Dosya yoksa oluşturur, varsa üzerine yazar.
+Bayt cinsinden boyut. Bir dosya `int`'in tutabileceğinden büyük olabildiği için
+dönüş tipi `longint`'tir.
+
+### `bool existsFile(string path)`
+
+O yolda bir şey varsa `true`; dosya da olabilir dizin de.
+
+### `bool isFile(string path)` / `bool isDirectory(string path)`
+
+İkisini ayırır. `existsFile` her ikisine de `true` dediği için, fark önemliyse
+bunları kullanın.
+
+### `bool isEmpty(string path)`
+
+Sıfır baytlık bir dosya ya da hiç girdisi olmayan bir dizin için `true`.
+
+## Yazma
+
+### `void writeFile(string path, byte[] data)`
+
+Baytları yazar; dosya yoksa oluşturur, varsa içeriğini değiştirir.
+
+### `void appendFile(string path, byte[] data)`
+
+Baytları sona ekler, mevcut içeriğe dokunmaz.
 
 ```c
-import { writeFile } from fs;
+import { writeFile, appendFile } from fs;
+import { encode } from utf8;
 
 int main() {
-    writeFile("cikti.txt", "Merhaba saQut!");
+    writeFile("kayit.txt", encode("ilk satir\n"));
+    appendFile("kayit.txt", encode("ikinci satir\n"));
     return 0;
 }
 ```
 
-### readDir
+### `void createFile(string path)`
 
-Bir dizindeki giriş adlarını dizi olarak döndürür.
+Boş bir dosya oluşturur.
+
+### `void copyFile(string src, string dst)`
+
+Dosyayı yeni bir yola kopyalar.
+
+### `void renameFile(string from, string to)`
+
+Dosyayı yeniden adlandırır; hedef başka bir dizindeyse taşıma işlevi de görür.
+
+### `void removeFile(string path)`
+
+Dosyayı siler. Yol yoksa ya da bir dizinse hata fırlatır; dizinler için
+`removeDirectory` kullanılır.
+
+## Dizinler
+
+### `string[] list(string path)`
+
+Tek bir dizindeki girdi adları, sıralı. Tam yol değil yalnızca ad döner ve alt
+dizinlere inmez.
 
 ```c
-import { readDir } from fs;
+import { list } from fs;
 
 int main() {
-    string[] girisler = readDir(".");
-    for (int i = 0; i < girisler.length; i = i + 1) {
-        print(girisler[i]);
+    string[] girdiler = list(".");
+    int i = 0;
+    while (i < girdiler.length()) {
+        print(girdiler[i]);
+        print("\n");
+        i = i + 1;
     }
     return 0;
 }
 ```
 
-### exists
+### `string[] walk(string path)`
 
-Verilen yolda bir dosya veya dizin varsa `true` döndürür.
+Bir dizinin altındaki her girdiyi, özyinelemeli olarak, tam yol biçiminde
+verir. `list` "bu dizinde ne var" sorusunu yanıtlarken `walk` "bu ağacın
+altında ne var" sorusunu yanıtlar.
+
+### `void createDirectory(string path)` / `void removeDirectory(string path)`
+
+Dizin oluşturur ya da siler.
+
+### `longint modifiedTime(string path)`
+
+Son değişiklik zamanı, milisaniye cinsinden Unix zaman damgası. `date` değerine
+çevirmek için `date::fromEpochMillis()` fonksiyonuna verin.
 
 ```c
-import { exists } from fs;
+import { modifiedTime } from fs;
+import { fromEpochMillis, format } from date;
 
 int main() {
-    if (exists("ayar.txt")) {
-        string a = readFile("ayar.txt");
-        print(a);
-    } else {
-        print("ayar dosyası bulunamadı");
+    date degisti = fromEpochMillis(modifiedTime("rapor.txt"));
+    print(format(degisti, "yyyy-MM-dd"));
+    return 0;
+}
+```
+
+## Hatalar
+
+Dosya işlemleri, programınızın önceden eleyemeyeceği nedenlerle başarısız olur:
+denetimle okuma arasında dosya silinir, izin yoktur, disk dolar. Bunlar programı
+sonlandırmak yerine yakalanabilir hata fırlatır.
+
+```c
+import { readFile } from fs;
+import { decode } from utf8;
+
+int main() {
+    try {
+        byte[] veri = readFile("belki-yok.txt");
+        print(decode(veri));
+    } catch (Error e) {
+        print("dosya okunamadi");
     }
     return 0;
 }
 ```
 
-### remove
+Önce `existsFile` ile denetlemek aradaki boşluğu daraltır ama kapatmaz: dosya
+iki çağrı arasında hâlâ silinebilir. Başarısız olmaması gereken kodda denetime
+güvenmek yerine hatayı ele alın.
 
-Bir dosyayı siler. Yol yoksa veya bir dizinse hata fırlatır.
+## Fonksiyonların tam listesi
+
+| Fonksiyon | Döndürür | İşlevi |
+|---|---|---|
+| `readFile(path, seek, size)` | `byte[]` | Dosyanın tamamını ya da bir aralığını okur |
+| `writeFile(path, data)` | `void` | Yazar, mevcut içeriği değiştirir |
+| `appendFile(path, data)` | `void` | Sona ekler |
+| `createFile(path)` | `void` | Boş dosya oluşturur |
+| `copyFile(src, dst)` | `void` | Kopyalar |
+| `renameFile(from, to)` | `void` | Yeniden adlandırır ya da taşır |
+| `removeFile(path)` | `void` | Dosyayı siler |
+| `existsFile(path)` | `bool` | Yol var mı |
+| `isFile(path)` | `bool` | Dosya mı |
+| `isDirectory(path)` | `bool` | Dizin mi |
+| `isEmpty(path)` | `bool` | Boş dosya ya da boş dizin |
+| `fileSize(path)` | `longint` | Bayt cinsinden boyut |
+| `modifiedTime(path)` | `longint` | Değişiklik zamanı, epoch ms |
+| `list(path)` | `string[]` | Tek dizindeki girdi adları |
+| `walk(path)` | `string[]` | Tam yollar, özyinelemeli |
+| `createDirectory(path)` | `void` | Dizin oluşturur |
+| `removeDirectory(path)` | `void` | Dizin siler |
+
+## Ayrıca bakın
+
+- [`path`](/tr/stdlib-path/) diske dokunmadan yol metinlerini birleştirir ve ayırır.
+- [`utf8`](/tr/stdlib-utf8/) `byte[]` ile `string` arasında dönüştürür.
+
+## /tr/stdlib-io/
+
+Üç küçük modül, programı başlatıldığı akışlara bağlar: böylece program bir
+borudan girdi alabilir ve çıktısını tanı mesajlarından ayırabilir.
 
 ```c
-import { remove } from fs;
+import { readLine, readAll, readBytes } from stdin;
+import { write, writeBytes } from stdout;
+```
+
+Hem `stdout` hem `stderr`, `write` ve `writeBytes` adlarını dışa verir. Aynı
+adı tek dosyada ikisinden birden içe aktarmak çakışmadır; birini `as` ile
+yeniden adlandırın:
+
+```c
+import { write } from stdout;
+import { write as hataYaz } from stderr;
+```
+
+## Okuma
+
+### `string? readLine()`
+
+Bir satır okur, satır sonu karakteri olmadan. Girdi bittiğinde `null` döner;
+döngünün duracağını böyle anlar.
+
+Dönüş tipi `string?`'dır ve `while` koşulundaki null denetimi döngü gövdesinde
+tipi daraltmaz. Okumayı döngünün içinde yapın ve null gelince çıkın:
+
+```c
+import { readLine } from stdin;
+import { write } from stdout;
 
 int main() {
-    remove("gecici.txt");
+    while (true) {
+        string? satir = readLine();
+        if (satir == null) {
+            break;
+        }
+        write("> ");
+        write(satir);
+        write("\n");
+    }
     return 0;
 }
 ```
-
-## fs erişimiyle çalıştırma
 
 ```bash
-saqut run --allow fs program.sqt
+printf "bir\niki\n" | saqut run yankila.sqt
 ```
+
+```
+> bir
+> iki
+```
+
+### `string readAll()`
+
+Standart girdinin tamamını tek bir metin olarak okur. Küçük girdiler için
+elverişlidir; girdinin tamamını bir anda bellekte tuttuğunu unutmayın.
+
+### `byte[] readBytes()`
+
+Standart girdinin tamamını ham bayt olarak okur; metin olmayan ikili veri
+için. Sonradan metin gibi ele almaya karar verirseniz
+[`utf8::decode`](/tr/stdlib-utf8/) kullanın.
+
+## Yazma
+
+### `void write(string text)`
+
+Metni akışa yazar, sona satır sonu eklemeden. `print()` fonksiyonunun aksine
+hiçbir şey eklemez: satır sonu istiyorsanız `"\n"` karakterini kendiniz
+yazarsınız.
+
+### `void writeBytes(byte[] data)`
+
+Ham bayt yazar; metin olmayan çıktı için.
+
+## Hangi akış kullanılmalı
+
+Standart çıktı programın sonucunu, standart hata ise koşuyla ilgili mesajları
+taşır. Bu ayrım, çağıranın birini yönlendirip diğerini görmeye devam etmesini
+sağlar:
+
+```bash
+saqut run rapor.sqt > sonuc.txt     # sonuç dosyaya, hatalar ekranda kalır
+```
+
+```c
+import { write } from stdout;
+import { write as hataYaz } from stderr;
+
+int main() {
+    hataYaz("girdi okunuyor...\n");   // ilerleme, sonucun parçası değil
+    write("42\n");                    // sonuç
+    return 0;
+}
+```
+
+İlerleme mesajını standart çıktıya göndermek, onu veriyle karışmış biçimde
+`sonuc.txt` dosyasına koyardı.
+
+## Fonksiyonların tam listesi
+
+| Modül | Fonksiyon | Döndürür | İşlevi |
+|---|---|---|---|
+| `stdin` | `readLine()` | `string?` | Bir satır, girdi bittiyse `null` |
+| `stdin` | `readAll()` | `string` | Girdinin tamamı, metin olarak |
+| `stdin` | `readBytes()` | `byte[]` | Girdinin tamamı, ham bayt olarak |
+| `stdout` | `write(text)` | `void` | Metin yazar, satır sonu eklemez |
+| `stdout` | `writeBytes(data)` | `void` | Ham bayt yazar |
+| `stderr` | `write(text)` | `void` | Standart hataya metin yazar |
+| `stderr` | `writeBytes(data)` | `void` | Standart hataya ham bayt yazar |
+
+Standart girdiden okumak, boruya ne verildiğine bağlıdır; bu yüzden girdi okuyan
+bir program tek başına tekrarlanabilir değildir, aynı girdi dosyasıyla çalışan
+aynı program ise tekrarlanabilirdir.
 
 ## /tr/stdlib-math/
 
@@ -11262,189 +12347,593 @@ int main() {
 }
 ```
 
+## /tr/stdlib-os/
+
+Bu iki modül, programın üzerinde çalıştığı makineyle ilgili soruları yanıtlar.
+Yalnızca okurlar; buradaki hiçbir şey sistemi değiştirmez.
+
+```c
+import { osName, osArch, osHostname, osUser, osCpuCount } from os;
+import { isTTY } from terminal;
+```
+
+## os
+
+| Fonksiyon | Döndürür | Örnek |
+|---|---|---|
+| `osName()` | `string` | `linux`, `windows` |
+| `osArch()` | `string` | `x86_64` |
+| `osHostname()` | `string` | Makinenin ağ adı |
+| `osUser()` | `string?` | Geçerli kullanıcı, belirlenemezse `null` |
+| `osCpuCount()` | `int` | Mantıksal işlemci sayısı |
+
+```c
+import { osName, osArch, osCpuCount } from os;
+
+int main() {
+    print(osName());        // linux
+    print("\n");
+    print(osArch());        // x86_64
+    print("\n");
+    print(osCpuCount());    // 8
+    print("\n");
+    return 0;
+}
+```
+
+`osUser()` dönüş tipi `string?`'dır, çünkü geçerli kullanıcı her zaman
+belirlenemez; kullanmadan önce `null` denetimi yapın.
+
+Bunlar tanı amaçlı değerlerdir. Bir ortamı raporlamak ya da bir işin boyutunu
+belirlemek için kullanın; bir özelliğin var olup olmadığına karar vermek için
+değil: bir dosyanın var olup olmadığını sormak, bunu platform adından çıkarmaya
+çalışmaktan daha çok şey söyler.
+
+## terminal
+
+### `bool isTTY()`
+
+Standart çıktının gerçek bir terminale bağlı olup olmadığı. Çıktı bir dosyaya
+yönlendirildiğinde ya da başka bir programa borulandığında `false` olur.
+
+```c
+import { isTTY } from terminal;
+
+int main() {
+    if (isTTY()) {
+        print("=== Rapor ===\n");   // okuyan bir insan var
+    } else {
+        print("rapor\n");           // ayrıştıran bir program var
+    }
+    return 0;
+}
+```
+
+Çıktının süslenip süslenmeyeceğine karar veren denetim budur. Derleyici kendi
+çıktısı için aynı kararı verir: `saqut ir` terminalde renkli, yönlendirildiğinde
+düz metin basar; böylece borulanan çıktı temiz kalır.
+
+Bir ANSI renk kodu basmak için kaçış baytını kendiniz kurmanız gerekir, çünkü
+metin sabitleri yalnızca `\n`, `\t`, `\r`, `\b`, `\\` ve `\"` kaçışlarını
+destekler. `\x1b` ya da `\u001b` yoktur:
+
+```c
+import { decode } from utf8;
+
+string kacis() {
+    byte[] esc = [27 as byte];      // ESC, onluk 27
+    return decode(esc);
+}
+```
+
+## Tekrarlanabilirlik
+
+Bu sayfadaki her fonksiyon ortamla ilgili bir şey bildirir; bu yüzden aynı
+program başka bir makinede ya da çıktısı yönlendirildiğinde farklı değerler
+basar. Sonucu her yerde birebir aynı olması gereken kodun dışında tutun.
+
 ## /tr/stdlib-overview/
 
-saQut'un standart kütüphanesi, programlarınıza dosya sistemi, ağ, sistem
-bilgisi, matematik ve tarih erişimi sağlayan **import-kapılı modüllerden**
-oluşur. Her zaman erişilebilir olan yerleşik fonksiyonların (`.upper()`,
-`.append()`) aksine, standart kütüphane fonksiyonları açıkça import edilmelidir.
+Standart kütüphane, dilin kendisinin tarif etmediği şeylere uzanan modüllerden
+oluşur: dosyalar, saat, ortam değişkenleri, terminal. Her zaman kullanılabilir
+olan yerleşik tip metotlarının (`.upper()`, `.push()`) aksine bu fonksiyonların
+adıyla içe aktarılması gerekir.
 
-## Import nasıl çalışır
+## İçe aktarma nasıl çalışır
 
-Her modül tırnaksız adıyla import edilir:
+Her modül tırnaksız, adıyla içe aktarılır:
 
 ```c
 import { readFile, writeFile } from fs;
 import { sqrt, abs } from math;
 ```
 
-Tırnaklı ad dosya yolunu, tırnaksız ad standart kütüphane modülünü belirtir:
+Tırnaklı ad bir dosya yolu, tırnaksız ad bir standart kütüphane modülüdür:
 
 ```c
-import { selamla } from "./yardimci.sqt";   // dosya
-import { readFile } from fs;                // stdlib modülü
+import { greet } from "./yardimcilar.sqt";   // başka bir dosya
+import { readFile } from fs;                 // stdlib modülü
 ```
 
-Birden fazla fonksiyonu tek ifadede import edebilir veya `*` ile hepsini
-alabilirsin:
+`as` ile içe aktarırken yeniden adlandırabilirsiniz; aynı adı dışa veren iki
+modül çakıştığında çözüm budur:
 
 ```c
-import * from fs;              // tüm fs fonksiyonları
-import { readFile } from fs;   // yalnızca biri
+import { readFile as ayarOku } from fs;
 ```
 
-## Capability kapıları
-
-Bazı modüller **çalışma zamanı izni** gerektirir. saQut varsayılan olarak tüm
-dış erişimi reddeder. Komut satırından izin verirsin:
-
-```bash
-saqut run --allow fs prog.sqt
-saqut run --allow fs,net,sys prog.sqt
-```
-
-| Capability | Neye izin verir |
-|---|---|
-| `fs` | Dosya sistemi erişimi (okuma, yazma, listeleme) |
-| `net` | Ağ erişimi (HTTP, soket) |
-| `sys` | Sistem çağrıları: güncel zaman, rastgele sayı, ortam değişkenleri, argümanlar |
-
-Capability gerektiren fonksiyonlar bunu bildirir (`requires fs`). Import işlemi
-tek başına reddedilmez; fonksiyon çağrıldığında çalışma zamanı aktif capability
-kümesini kontrol eder. Capability yoksa çağrı `E_CAP_MISSING` ile başarısız olur.
-
-Bir programın hangi capability'lere ihtiyaç duyduğunu çalıştırmadan
-sorgulayabilirsin:
-
-```bash
-saqut ir --capabilities prog.sqt
-```
+Joker içe aktarma yoktur: kullandığınız her ad tek tek yazılmalıdır. `import *
+from fs;` sözdizimi hatasıdır. Her içe aktarmanın adıyla yazılması, okuyanın
+dosyanın en üstüne bakarak programın dışarıdan hangi fonksiyonlara
+erişebildiğini görmesini sağlar.
 
 ## Modül dizini
 
-| Modül | Import | Gerektirir | Durum |
-|---|---|---|---|
-| Dosya sistemi | `fs` | `--allow fs` | Kullanılabilir |
-| Sistem | `sys` | `--allow sys` | Kullanılabilir |
-| Matematik | `math` | yok | Kullanılabilir |
-| Tarih | `date` | `--allow sys` (yalnızca `now()`) | Kullanılabilir |
-| Ağ | `net` | `--allow net` | Planlandı (0.9) |
+| Modül | İçe aktarma | Kapsamı |
+|---|---|---|
+| Dosya sistemi | `fs` | Dosya ve dizin okuma, yazma, kopyalama, listeleme |
+| Yol | `path` | Yol metinlerini birleştirme ve ayırma, diske erişmeden |
+| UTF-8 | `utf8` | `byte[]` ile `string` arasında dönüşüm |
+| Sistem | `sys` | Rastgele sayı, ortam değişkeni, argümanlar, bekleme |
+| Süreç | `process` | Çıkış kodu, çalışma dizini, süreç kimliği |
+| Standart girdi | `stdin` | Standart girdiden okuma |
+| Standart çıktı | `stdout` | Standart çıktıya yazma |
+| Standart hata | `stderr` | Standart hataya yazma |
+| Matematik | `math` | Mutlak değer, min/maks, kök, üs, yuvarlama |
+| Tarih | `date` | UTC zaman damgası, takvim alanları, biçimleme |
+| İşletim sistemi | `os` | Platform adı, mimari, makine adı, çekirdek sayısı |
+| Terminal | `terminal` | Çıktının gerçek bir terminale gidip gitmediği |
+| Çekirdek | `core` | Derleyici sürümü |
 
-## Hiçbir yerden import edilmez
+Tablodaki her modül şu an kullanılabilir durumdadır. Ağ modülü yoktur: `net`
+planlanmış ama yayınlanmamıştır, içe aktarmak hata verir.
 
-Yerleşik tip metotları (`.upper()`, `.append()`, `.toJson()`) standart
-kütüphanenin parçası değildir. UFCS (Uniform Function Call Syntax) nokta
-gösterimiyle çağrılır ve import gerektirmeden her zaman kullanılabilir.
-Bkz. [Yerleşik Fonksiyonlar (UFCS)](/tr/builtin-functions/).
+## Belirlenimcilik
+
+Bu fonksiyonların çoğu, verdiğiniz değerler üzerinde saf hesap yapar: aynı
+girdi her koşuda aynı sonucu verir. Birkaçı ise programın dışındaki durumu
+okur ve bunu vaat edemez:
+
+| Fonksiyon | Neden değişir |
+|---|---|
+| `sys::random`, `sys::randomInt` | İşletim sistemi rastgeleliği |
+| `sys::env`, `sys::args` | Programın nasıl başlatıldığına bağlı |
+| `date::now` | Sistem saatini okur |
+| `fs::*` | Dosya sistemi programın altından değişir |
+| `stdin::*` | Neyin aktarıldığına bağlı |
+| `os::*`, `terminal::isTTY` | Makineye ve çalıştırma biçimine bağlı |
+
+Geri kalan her şey (bütün `math`, `path`, `utf8` ve `now()` dışındaki bütün
+`date` fonksiyonları) yalnızca argümanlarından hesaplar.
+
+## Standart kütüphaneye dahil olmayanlar
+
+Yerleşik tip metotları (`.upper()`, `.push()`, `.length()`) içe aktarılmaz. Bir
+değer üzerinde nokta ile çağrılır ve her zaman kullanılabilirler. Bkz.
+[Yerleşik Fonksiyonlar (UFCS)](/tr/builtin-functions/).
+
+## /tr/stdlib-path/
+
+`path` modülü yol metinleri üzerinde metin olarak çalışır. Buradaki hiçbir şey
+bir dosya açmaz ya da işletim sistemine o yolun var olup olmadığını sormaz:
+`dirname("/a/b/c.txt")` o dizin gerçekten var olsa da olmasa da `/a/b` yanıtını
+verir. Diske dokunan her şey için [`fs`](/tr/stdlib-fs/) kullanılır.
+
+Bunlar saf metin işlemleri olduğu için her koşuda ve her makinede aynı yanıtı
+verirler.
+
+```c
+import { join, basename, extension } from path;
+```
+
+## `string join(string[] parts)`
+
+Yol parçalarını platform ayıracıyla, her çiftin arasına tam olarak bir tane
+koyarak birleştirir.
+
+```c
+import { join } from path;
+
+int main() {
+    string[] parts = ["usr", "local", "bin"];
+    print(join(parts));      // usr/local/bin
+    return 0;
+}
+```
+
+`join` değişken sayıda argüman yerine dizi alır, çünkü saQut'ta değişken
+argümanlı fonksiyon yoktur. Parça sayısı sabit değilse önce diziyi kurun.
+
+## `string normalize(string path)`
+
+`.` ve `..` parçalarını metin düzeyinde çözer, tekrarlanan ayıraçları
+sadeleştirir.
+
+```c
+normalize("/usr/local/../bin/./tool")   // /usr/bin/tool
+```
+
+Bu, dosya sistemine karşı çözümleme değil, metin üzerinde hesaptır. Bir `..`,
+kendinden önceki parçayla birlikte silinir; o parça başka bir yere götürecek
+bir sembolik bağ olsa bile.
+
+## `string dirname(string path)` / `string basename(string path)`
+
+Yolu dizin kısmı ile son bileşenine ayırır.
+
+```c
+dirname("/home/saqut/rapor.txt")    // /home/saqut
+basename("/home/saqut/rapor.txt")   // rapor.txt
+```
+
+## `string extension(string path)`
+
+Son uzantı, **nokta dahil**.
+
+```c
+extension("/home/saqut/rapor.txt")   // .txt
+```
+
+## `bool isAbsolute(string path)`
+
+Yolun geçerli dizinden değil kökten başlayıp başlamadığı.
+
+```c
+isAbsolute("/usr/bin")   // true
+isAbsolute("usr/bin")    // false
+```
+
+## `string separator()`
+
+Platform yol ayıracı: Linux'ta `/`, Windows'ta `\`. Mümkün olan yerde `join`
+kullanın; `separator()` yalnızca yolu kendiniz biçimlediğinizde gerekir.
+
+## Çalışan örnek
+
+Bir kaynak dosya adından, yanına konacak bir çıktı dosyası adı üretmek:
+
+```c
+import { dirname, basename, extension, join } from path;
+
+string ciktiAdi(string kaynak) {
+    string dizin = dirname(kaynak);
+    string ad = basename(kaynak);
+    string uzanti = extension(kaynak);
+
+    // Dosya adından uzantıyı çıkar.
+    string govde = ad.substring(0, ad.length() - uzanti.length());
+
+    string[] parcalar = [dizin, govde + ".out"];
+    return join(parcalar);
+}
+
+int main() {
+    print(ciktiAdi("/home/saqut/src/main.sqt"));   // /home/saqut/src/main.out
+    return 0;
+}
+```
+
+## Fonksiyonların tam listesi
+
+| Fonksiyon | Döndürür | İşlevi |
+|---|---|---|
+| `join(parts)` | `string` | Parçaları ayıraçla birleştirir |
+| `normalize(path)` | `string` | `.` ve `..` parçalarını metin düzeyinde çözer |
+| `dirname(path)` | `string` | Dizin kısmı |
+| `basename(path)` | `string` | Son bileşen |
+| `extension(path)` | `string` | Uzantı, nokta dahil |
+| `isAbsolute(path)` | `bool` | Kökten mi başlıyor |
+| `separator()` | `string` | Platform ayıracı |
+
+`absolute()` ya da `relative()` yoktur. İkisi de geçerli çalışma dizinini
+okumak zorunda kalırdı; bu da onları dış duruma bağımlı kılardı, oysa bu
+modülün geri kalanı öyle değildir. Mutlak yol gerektiğinde `process::cwd()` ile
+`join` birlikte kullanılır.
+
+## /tr/stdlib-process/
+
+`process` modülü programın kendi çalışmasıyla ilgilidir: nasıl sonlandığı,
+nerede çalıştığı ve hangi süreç olduğu.
+
+```c
+import { exit, cwd, pid, chdir } from process;
+```
+
+## `void exit(int code)`
+
+Programı verilen çıkış koduyla hemen sonlandırır. `0` başarı demektir; başka
+her değer, programı başlatan tarafa başarısızlık bildirir.
+
+```c
+import { exit } from process;
+import { existsFile } from fs;
+
+int main() {
+    if (!existsFile("ayar.txt")) {
+        print("ayar.txt bulunamadi\n");
+        exit(1);
+    }
+
+    print("calisiyor\n");
+    return 0;
+}
+```
+
+`exit` geri dönmez; fonksiyonda ondan sonrası çalışmaz. Olağan durumda
+`main`'den değer döndürmek de aynı işi görür. `exit`, `main`'den daha derin bir
+yerden durmanız ve başarısızlık değerini her çağıran üzerinden yukarı taşımak
+istemediğiniz durumlar içindir.
+
+## `string cwd()`
+
+Geçerli çalışma dizini, mutlak yol olarak. Program bu dizinden başlatılmıştır
+ve `fs` çağrılarındaki göreli yollar buna göre çözülür.
+
+```c
+import { cwd } from process;
+
+int main() {
+    print(cwd());     // örneğin /home/saqut/proje
+    return 0;
+}
+```
+
+## `void chdir(string path)`
+
+Çalışma dizinini değiştirir. Sonrasında kullanılan her göreli yol yeni konuma
+göre çözülür.
+
+```c
+import { cwd, chdir } from process;
+
+int main() {
+    chdir("/tmp");
+    print(cwd());     // /tmp
+    return 0;
+}
+```
+
+Bu, programın geri kalanının bağlı olduğu bir durumu değiştirir; göreli yol
+kullanan her `fs` çağrısı dahil. Birden fazla iş yapan bir programda, yer
+değiştiren bir çalışma dizini yerine mutlak yolları izlemek daha kolaydır.
+
+## `int pid()`
+
+Bu koşuya ait işletim sistemi süreç kimliği. Bir kayıt satırı ya da eşzamanlı
+koşular arasında farklı olması gereken bir kilit dosyası adı için kullanışlıdır.
+
+## Fonksiyonların tam listesi
+
+| Fonksiyon | Döndürür | İşlevi |
+|---|---|---|
+| `exit(code)` | `void` | Programı çıkış koduyla sonlandırır |
+| `cwd()` | `string` | Geçerli çalışma dizini |
+| `chdir(path)` | `void` | Çalışma dizinini değiştirir |
+| `pid()` | `int` | Bu sürecin kimliği |
+
+`cwd()` ve `pid()` programın dışındaki durumu okur; sonuçları koşular ya da
+makineler arasında tekrarlanabilir değildir.
 
 ## /tr/stdlib-sys/
 
-`sys` modülü sistem seviyesindeki özelliklere erişim sağlar. Tüm fonksiyonlar
-çalışma zamanında `--allow sys` gerektirir.
+`sys` modülü programın dışına uzanır: işletim sisteminin rastgelelik
+kaynağına, ortam değişkenlerine, komut satırına ve saate. Sonucunu derleyicinin
+önceden bilemeyeceği fonksiyonlar bunlardır; tek bir modülde toplanmalarının
+nedeni de budur.
 
-## Import
+## İçe aktarma
 
 ```c
-import { random, randomRange, env, args, sleep } from sys;
+import { random, randomInt, env, args, sleep } from sys;
 ```
 
-## Fonksiyonlar
+## `double random()`
 
-### `float random()`
-
-`[0.0, 1.0)` aralığında rastgele bir `float` döndürür. `0.0` dönebilir,
-ancak `1.0` dönmez. Bu fonksiyon parametre almaz.
+`[0.0, 1.0)` aralığında sözde rastgele bir `double` döndürür. Sıfır gelebilir,
+`1.0` gelemez. Parametre almaz.
 
 ```c
 import { random } from sys;
 
 int main() {
-    float r = random();
-    print(r);     // örn. 1634872934
+    double r = random();
+    print(r);     // örneğin 0.8846772796
     return 0;
 }
 ```
 
-Sonuç genel amaçlı bir CSPRNG'den gelir. Kriptografik rastgelelik için
-planlanan `crypto` modülünü kullan.
+Baytlar C'nin `rand()` fonksiyonundan değil, işletim sisteminin CSPRNG'sinden
+gelir. Bu diziyi öngörülemez kılar; ayrıca **aynı programın iki çalıştırması
+farklı değerler üretir** demektir. Tekrarlanabilir bir koşu gerekiyorsa
+`random()` çağırmayın.
 
-### `int randomInt(int min, int max)`
+## `int randomInt(int lo, int hi)`
 
-`min` dahil ve `max` hariç olacak şekilde `[min, max)` aralığında rastgele bir
-32-bit `int` döndürür. `min`, `max` değerinden küçük olmalıdır.
+`[lo, hi)` yarı açık aralığında rastgele bir `int`: `lo` gelebilir, `hi`
+gelemez.
 
 ```c
-import { randomRange } from sys;
+import { randomInt } from sys;
 
 int main() {
-    int zar = randomRange(1, 7);   // 1 ile 6 arası
+    int zar = randomInt(1, 7);   // 1 ile 6 arası
     print(zar);
     return 0;
 }
 ```
 
-### `string? env(string name)`
+Üst sınırın dışarıda kalması, `randomInt(0, dizi.length())` çağrısını her
+zaman geçerli bir indeks yapan şeydir.
 
-`name` ile belirtilen ortam değişkeninin değerini döndürür. Değişken yoksa
-boş string yerine `null` döndürür.
+## `string? env(string name)`
+
+Bir ortam değişkeninin değeri; tanımlı değilse `null`. Dönüş tipi `string?`
+olduğu için kullanmadan önce null durumunun ele alınması gerekir.
 
 ```c
 import { env } from sys;
 
 int main() {
-    string ev = env("HOME");
-    print(ev);     // örn. "/home/saqut"
+    string? home = env("HOME");
+    if (home != null) {
+        print(home);
+    } else {
+        print("HOME tanimli degil");
+    }
     return 0;
 }
 ```
 
-### `string[] args()`
+## `string[] args()`
 
-Programa geçirilen komut satırı argümanlarını `string[]` olarak döndürür. Bu
-fonksiyon parametre almaz.
+Programa verilen argümanlar, sırasıyla.
 
 ```c
 import { args } from sys;
 
 int main() {
     string[] a = args();
-    for (int i = 0; i < a.length; i = i + 1) {
+    int i = 0;
+    while (i < a.length()) {
         print(a[i]);
+        print("\n");
+        i = i + 1;
     }
     return 0;
 }
 ```
 
-İlk eleman (`a[0]`) program adıdır; sonraki elemanlar argümanlardır.
+Programa gidecek argümanlar `--` işaretinden sonra yazılır; bu işaret onları
+derleyicinin kendi bayraklarından ayırır:
 
 ```bash
-saqut run --allow sys prog.sqt merhaba dunya
-# a[0] = "prog.sqt"
-# a[1] = "merhaba"
-# a[2] = "dunya"
+saqut run prog.sqt -- merhaba dunya
 ```
 
-### `void sleep(int millis)`
+```
+a[0] = "merhaba"
+a[1] = "dunya"
+```
 
-Programı `millis` milisaniye boyunca duraklatır. Parametre `int` türündedir;
-ondalıklı saniye değeri kabul edilmez.
+`a[0]` program adı değil, **ilk argümandır**. Dizi yalnızca `--` işaretinden
+sonrasını tutar; argümansız çalıştırılan bir program boş dizi alır ve
+`a.length()` `0` olur.
+
+## `void sleep(int millis)`
+
+Programı verilen milisaniye kadar bekletir. Parametre `int`'tir:
+`sleep(1500)` bir buçuk saniye bekler, `sleep(1.5)` ise derleme hatası verir,
+çünkü `int` beklenen yerde ondalık sabit kullanılamaz.
 
 ```c
 import { sleep } from sys;
 
 int main() {
-    print("bekleniyor...");
-    sleep(1.5);
-    print("tamam");
+    print("bekleniyor...\n");
+    sleep(1500);
+    print("bitti\n");
     return 0;
 }
 ```
 
-## sys erişimiyle çalıştırma
+## Belirlenimcilik
 
-```bash
-saqut run --allow sys program.sqt
+`random()`, `randomInt()` ve `env()` programın dışındaki durumu okur; bu yüzden
+aynı kaynak iki koşuda farklı çıktı verebilir. saQut standart kütüphanesindeki
+geri kalan her şey, verdiğiniz değerler üzerinde saf hesap yapar. Bir programın
+tekrarlanabilir olması gerekiyorsa ilk bakılacak yer bu modüldür.
+
+## /tr/stdlib-utf8/
+
+`utf8` modülü, saQut'un metni gösterdiği iki biçim arasında dönüşüm yapar:
+karakter dizisi olan `string` ve bayt dizisi olan `byte[]`.
+
+```c
+import { encode, decode } from utf8;
 ```
+
+Bu ayrım önemlidir, çünkü dosyalar, standart girdi ve ağdan gelen veri
+bayttır. saQut onlar için bir kodlama varsaymaz.
+[`fs::readFile`](/tr/stdlib-fs/) size `byte[]` verir; onu metne çevirmek
+`decode` ile bilinçli olarak attığınız bir adımdır.
+
+## `byte[] encode(string text)`
+
+Metni UTF-8 baytlarına kodlar.
+
+```c
+import { encode } from utf8;
+
+int main() {
+    byte[] veri = encode("merhaba");
+    print(veri.length());     // 7
+    return 0;
+}
+```
+
+## `string decode(byte[] data)`
+
+UTF-8 baytlarını metne geri çözer.
+
+```c
+import { encode, decode } from utf8;
+
+int main() {
+    byte[] veri = encode("merhaba");
+    print(decode(veri));      // merhaba
+    return 0;
+}
+```
+
+## Karakter bayt değildir
+
+ASCII dışındaki metinlerde iki sayım birbirinden ayrılır. saQut bir `string`'i
+Unicode kod noktası olarak sayar, `byte[]` ise bayt sayar:
+
+```c
+import { encode } from utf8;
+
+int main() {
+    string kelime = "çğüş";
+    print(kelime.length());              // 4  karakter
+    print(encode(kelime).length());      // 8  bayt
+    return 0;
+}
+```
+
+Bu dört karakterin her biri UTF-8'de iki bayt tutar. Bir emoji ya da CJK
+karakteri daha fazlasını tutar. Bir `byte[]`'i rastgele bir konumdan kesmenin
+karakteri ortadan bölebilmesinin, `string` üzerindeki `substring` metodunun ise
+bölememesinin nedeni budur.
+
+Metin demek istediğinizde `string`, dosya içeriği ya da hat verisi demek
+istediğinizde `byte[]` ile çalışın. Dönüşümü sınırda, bir kez yapın.
+
+## Gidiş dönüş
+
+```c
+import { readFile, writeFile } from fs;
+import { encode, decode } from utf8;
+
+int main() {
+    writeFile("not.txt", encode("merhaba"));
+
+    byte[] ham = readFile("not.txt");
+    string metin = decode(ham);
+
+    print(metin);        // merhaba
+    return 0;
+}
+```
+
+## Fonksiyonların tam listesi
+
+| Fonksiyon | Döndürür | İşlevi |
+|---|---|---|
+| `encode(text)` | `byte[]` | Metinden UTF-8 baytlarına |
+| `decode(data)` | `string` | UTF-8 baytlarından metne |
+
+İkisi de saf hesaptır: aynı girdi her zaman aynı çıktıyı üretir.
 
 ## /tr/strings/
 
@@ -11680,12 +13169,14 @@ struct Product {
     string title;
     float price;
     int stock;
+    string[] tags;
 }
 
 Product item;
 print(item.title);       // "" (boş string)
 print(item.price);       // 0.0
 print(item.stock);       // 0
+print(item.tags.length()); // 0 (dizi tipli alanlar boş başlar)
 ```
 
 ## Referans Anlamsallığı
@@ -12145,7 +13636,7 @@ Görevleri bir dizide tutacağız. Kaç görev olacağını bilmediğimiz için 
 bir diziyle başlayıp sonuna ekleyeceğiz:
 
 ```c
-Gorev[] gorevler;
+Gorev[] gorevler = [];
 ```
 
 Görev oluşturup ekleyen bir fonksiyon yaz:
@@ -12156,11 +13647,11 @@ void gorevEkle(string baslik, Oncelik oncelik) {
     g.baslik     = baslik;
     g.oncelik    = oncelik;
     g.tamamlandi = false;
-    gorevler.append(g);
+    gorevler.push(g);
 }
 ```
 
-`gorevler.append(g)`, `g`'yi dizinin sonuna koyar ve diziyi bir büyütür.
+`gorevler.push(g)`, `g`'yi dizinin sonuna koyar ve diziyi bir büyütür.
 
 ## Adım 3: Görevi tamamlandı olarak işaretle
 
@@ -12168,7 +13659,7 @@ Bir görevi konumuna göre bulup işaretlemenin yolunu yazalım:
 
 ```c
 void tamamlandiIsaretle(int indeks) {
-    if (indeks >= 0 && indeks < gorevler.length) {
+    if (indeks >= 0 && indeks < gorevler.length()) {
         gorevler[indeks].tamamlandi = true;
     }
 }
@@ -12191,19 +13682,19 @@ string oncelikEtiketi(Oncelik o) {
 }
 
 void gorevleriYazdir() {
-    print("--- Görevler ---");
+    print("--- Görevler ---\n");
     int tamamSayisi = 0;
-    for (int i = 0; i < gorevler.length; i = i + 1) {
+    for (int i = 0; i < gorevler.length(); i = i + 1) {
         string kutu = "[ ]";
         if (gorevler[i].tamamlandi) {
             kutu = "[x]";
             tamamSayisi = tamamSayisi + 1;
         }
         print(kutu + " " + gorevler[i].baslik +
-              " (" + oncelikEtiketi(gorevler[i].oncelik) + ")");
+              " (" + oncelikEtiketi(gorevler[i].oncelik) + ")\n");
     }
     print("Tamamlanan: " + (tamamSayisi as string) + " / " +
-          (gorevler.length as string));
+          (gorevler.length() as string) + "\n");
 }
 ```
 
@@ -12237,18 +13728,18 @@ struct Gorev {
     bool   tamamlandi;
 }
 
-Gorev[] gorevler;
+Gorev[] gorevler = [];
 
 void gorevEkle(string baslik, Oncelik oncelik) {
     Gorev g;
     g.baslik     = baslik;
     g.oncelik    = oncelik;
     g.tamamlandi = false;
-    gorevler.append(g);
+    gorevler.push(g);
 }
 
 void tamamlandiIsaretle(int indeks) {
-    if (indeks >= 0 && indeks < gorevler.length) {
+    if (indeks >= 0 && indeks < gorevler.length()) {
         gorevler[indeks].tamamlandi = true;
     }
 }
@@ -12263,19 +13754,19 @@ string oncelikEtiketi(Oncelik o) {
 }
 
 void gorevleriYazdir() {
-    print("--- Görevler ---");
+    print("--- Görevler ---\n");
     int tamamSayisi = 0;
-    for (int i = 0; i < gorevler.length; i = i + 1) {
+    for (int i = 0; i < gorevler.length(); i = i + 1) {
         string kutu = "[ ]";
         if (gorevler[i].tamamlandi) {
             kutu = "[x]";
             tamamSayisi = tamamSayisi + 1;
         }
         print(kutu + " " + gorevler[i].baslik +
-              " (" + oncelikEtiketi(gorevler[i].oncelik) + ")");
+              " (" + oncelikEtiketi(gorevler[i].oncelik) + ")\n");
     }
     print("Tamamlanan: " + (tamamSayisi as string) + " / " +
-          (gorevler.length as string));
+          (gorevler.length() as string) + "\n");
 }
 
 int main() {
@@ -12319,8 +13810,8 @@ Tamamlanan: 1 / 3
 | `switch` | Öncelik etiketi |
 | `as` (dönüşüm) | `int`'i `string`'e çıktı için |
 | String birleştirme | `print()` içinde `+` |
-| `.length` | Dizi boyutu |
-| `.append()` | Diziye ekleme |
+| `.length()` | Dizi boyutu |
+| `.push()` | Diziye ekleme |
 
 ## Kendi başına dene
 
@@ -12771,7 +14262,7 @@ int kare(int x) {
 // Diziler ve donguler
 int toplam(int[] sayilar) {
     int sonuc = 0;
-    for (int i = 0; i < sayilar.length; i = i + 1) {
+    for (int i = 0; i < sayilar.length(); i = i + 1) {
         sonuc = sonuc + sayilar[i];
     }
     return sonuc;

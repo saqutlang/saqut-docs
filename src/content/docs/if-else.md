@@ -188,7 +188,7 @@ proven at compile time with zero runtime cost. (See
 
 ## Picking a Value
 
-saQut has **no** `?:` ternary operator — `?` is only the nullable type marker
+saQut has **no** `?:` ternary operator; `?` is only the nullable type marker
 (`int?`). To choose between two values, declare the variable and assign it in
 each branch:
 

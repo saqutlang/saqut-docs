@@ -86,7 +86,7 @@ export struct Vec { int x; int y; }              // ok
 
 export enum State { Idle, Running, Done }         // ok
 
-export int counter = 0;   // ok — global variables can be exported
+export int counter = 0;   // ok: global variables can be exported
 ```
 
 Like all globals, an exported global is initialized once, before `main`, and

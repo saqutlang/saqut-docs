@@ -7,7 +7,6 @@
 
 - [Arrays](https://saqut.com/arrays/): Store a sequence of values of the same type.
 - [Built-in Functions (UFCS)](https://saqut.com/builtin-functions/): The complete reference for saQut's built-in methods on strings, arrays, and structs, each one explained from scratch with runnable examples.
-- [Capabilities & Permissions](https://saqut.com/capabilities/): How --allow works, the three capability categories, and runtime capability enforcement.
 - [CLI Reference](https://saqut.com/cli-reference/): Complete reference for the saqut command-line interface: run, compile, debug, and diagnostic flags.
 - [Compiler Errors & Warnings](https://saqut.com/compiler-errors/): Every diagnostic saQut can produce, what triggers it, what it means, and how to fix it. From "undefined variable" to circular modules.
 - [Compiler Tools, Tokens, AST, Symbols & IR](https://saqut.com/compiler-tools/): What are these things, why do they exist, and when would you use them?
@@ -27,10 +26,15 @@
 - [Operators](https://saqut.com/operators/): Arithmetic, comparison, logical, bitwise, and assignment operators in saQut.
 - [Optimization](https://saqut.com/optimization/): What saQut's optimizer does and what it deliberately does not do. Constant folding, dead-code elimination, and how to inspect both.
 - [date](https://saqut.com/stdlib-date/): Date values and the exact signatures of saQut's date functions.
-- [fs (File System)](https://saqut.com/stdlib-fs/): Read, write, and list files with saQut's fs module.
+- [fs (File System)](https://saqut.com/stdlib-fs/): Read, write, copy, and list files and directories with saQut's fs module.
+- [stdin / stdout / stderr](https://saqut.com/stdlib-io/): Read standard input and write to standard output and standard error in saQut.
 - [math](https://saqut.com/stdlib-math/): Exact signatures for saQut's capability-free math functions.
-- [Standard Library](https://saqut.com/stdlib-overview/): An overview of saQut's standard library modules, import model, and capability system.
+- [os / terminal (Environment)](https://saqut.com/stdlib-os/): Read the platform, architecture, host name, CPU count, and whether output is a terminal.
+- [Standard Library](https://saqut.com/stdlib-overview/): An overview of saQut's standard library modules and how importing works.
+- [path (Paths)](https://saqut.com/stdlib-path/): Build and split file path strings with saQut's path module, without touching the disk.
+- [process (Process Control)](https://saqut.com/stdlib-process/): Exit codes, the working directory, and the process id with saQut's process module.
 - [sys (System)](https://saqut.com/stdlib-sys/): Random numbers, environment variables, command-line arguments, and sleep with saQut's sys module.
+- [utf8 (Text Encoding)](https://saqut.com/stdlib-utf8/): Convert between byte[] and string with saQut's utf8 module.
 - [Strings](https://saqut.com/strings/): Working with text in saQut using immutable UTF-8 strings.
 - [Structs](https://saqut.com/structs/): Group multiple values into a single named type.
 - [switch / case](https://saqut.com/switch/): Compare one value against many cases, with automatic break, no fall-through, and support for int, float, bool, string, and enum.
@@ -47,7 +51,6 @@
 
 - [Diziler](https://saqut.com/tr/arrays/): Aynı tipteki değerleri sıralı olarak saklayın.
 - [Yerleşik Fonksiyonlar (UFCS)](https://saqut.com/tr/builtin-functions/): saQut'un string, dizi ve struct tipleri için sunduğu yerleşik metotların tam referansı; her biri sıfırdan, çalıştırılabilir örneklerle anlatılıyor.
-- [Capability & İzinler](https://saqut.com/tr/capabilities/): --allow nasıl çalışır, üç capability kategorisi ve çalışma zamanı denetimi.
 - [CLI Referansı](https://saqut.com/tr/cli-reference/): saQut komut satırı arayüzünün tam referansı: çalıştırma, derleme, hata ayıklama ve teşhis bayrakları.
 - [Derleyici Hataları ve Uyarıları](https://saqut.com/tr/compiler-errors/): saQut'un üretebileceği her tanı; neyin tetiklediği, anlamı ve nasıl düzeltileceği. "Tanımsız değişken"den döngüsel modüllere kadar.
 - [Derleyici Araçları, Token'lar, AST, Semboller ve IR](https://saqut.com/tr/compiler-tools/): Bunlar nedir, neden varlar ve ne zaman kullanırsınız?
@@ -67,10 +70,15 @@
 - [İşleçler](https://saqut.com/tr/operators/): saQut'taki aritmetik, karşılaştırma, mantıksal, bitsel ve atama işleçleri.
 - [Optimizasyon](https://saqut.com/tr/optimization/): saQut'un optimize edicisinin yaptıkları ve bilinçli olarak yapmadıkları. Sabit katlama, ölü kod temizliği ve her ikisini de nasıl inceleyeceğiniz.
 - [date (Tarih)](https://saqut.com/tr/stdlib-date/): saQut date fonksiyonlarının türleri, parametreleri ve tarih hesapları.
-- [fs (Dosya Sistemi)](https://saqut.com/tr/stdlib-fs/): saQut'un fs modülü ile dosya okuma, yazma ve listeleme.
+- [fs (Dosya Sistemi)](https://saqut.com/tr/stdlib-fs/): saQut'un fs modülüyle dosya ve dizin okuma, yazma, kopyalama ve listeleme.
+- [stdin / stdout / stderr](https://saqut.com/tr/stdlib-io/): saQut'ta standart girdiyi okuma, standart çıktı ve standart hataya yazma.
 - [math (Matematik)](https://saqut.com/tr/stdlib-math/): saQut math fonksiyonlarının türleri, parametreleri ve hesaplama davranışları.
-- [Standart Kütüphane](https://saqut.com/tr/stdlib-overview/): saQut standart kütüphane modüllerine genel bakış, import modeli ve capability sistemi.
-- [sys (Sistem)](https://saqut.com/tr/stdlib-sys/): Rastgele sayı, ortam değişkenleri, komut satırı argümanları ve bekleme; saQut'un sys modülü.
+- [os / terminal (Ortam)](https://saqut.com/tr/stdlib-os/): Platform, mimari, makine adı, çekirdek sayısı ve çıktının terminale gidip gitmediği.
+- [Standart Kütüphane](https://saqut.com/tr/stdlib-overview/): saQut standart kütüphane modüllerine genel bakış ve içe aktarmanın nasıl çalıştığı.
+- [path (Yollar)](https://saqut.com/tr/stdlib-path/): saQut'un path modülüyle dosya yolu metinlerini diske dokunmadan birleştirme ve ayırma.
+- [process (Süreç Kontrolü)](https://saqut.com/tr/stdlib-process/): saQut'un process modülüyle çıkış kodu, çalışma dizini ve süreç kimliği.
+- [sys (Sistem)](https://saqut.com/tr/stdlib-sys/): saQut'un sys modülüyle rastgele sayılar, ortam değişkenleri, komut satırı argümanları ve bekleme.
+- [utf8 (Metin Kodlama)](https://saqut.com/tr/stdlib-utf8/): saQut'un utf8 modülüyle byte[] ile string arasında dönüşüm.
 - [String'ler (Metinler)](https://saqut.com/tr/strings/): Değişmez UTF-8 string'ler ile saQut'ta metinlerle çalışma.
 - [Struct'lar (Yapılar)](https://saqut.com/tr/structs/): Birden fazla değeri tek bir isimli tipte gruplandırın.
 - [switch / case](https://saqut.com/tr/switch/): Bir değeri çok sayıda durumla karşılaştırın; otomatik break, fall-through yok; int, float, bool, string ve enum desteklenir.

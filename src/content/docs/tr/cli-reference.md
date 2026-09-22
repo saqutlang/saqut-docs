@@ -19,18 +19,26 @@ saqut run program.sqt
 
 | Bayrak | Amacı |
 |---|---|
-| `--allow fs,net,sys` | Çalışma zamanı capability'lerini whitelist olarak verir; verilmezse tümü açıktır |
 | `--jit` | Programı VM yerine deneysel MIR JIT ile çalıştırır |
-| `--optimized` | Sabit katlama ve ölü kod eleme uygular |
-| `--gc-threshold N` | N tahsis sonrası GC'yi tetikler |
-| `--gc-stats` | Çalışma sonrası GC istatistiklerini yazar |
-| `--profile` | Aşama başına profil çıkarır (tokenleme, ayrıştırma, IR üretimi, çalıştırma) ve her aşamanın iş miktarını gösterir |
+| `--dont-optimize` | Sabit katlama ve ölü kod elemeyi kapatır |
+| `--gc-threshold=N` | Bayt cinsinden GC eşiği; `0` varsayılanı kullanır, negatif değer toplamayı kapatır |
+| `--gc-stats` | Çıkışta GC istatistiklerini yazar |
+| `--profile` | Aşama başına süreleri raporlar |
+| `--verbose` | Aşama ilerlemesini yazar |
+| `-- args` | `--` işaretinden sonrasını programa geçirir; `sys::args()` ile okunur |
 
-Varsayılan ve referans arka uç bytecode VM'dir. `--jit` bayrağı programı
-deneysel MIR JIT ile çalıştırır; bu şu anda yalnızca tam sayı ve float skaler
-koddan oluşan programları işler. Başka bir şey kullanan program kısmen
-çalışmak yerine açık bir hatayla durur. Gömülü çalışma zamanlı AOT (`--output`
-ikilisi) hâlâ planlanmaktadır.
+Optimizasyon **varsayılan olarak açıktır**. `--dont-optimize` kapatır;
+`--optimized` eski komutların çalışmaya devam etmesi için no-op olarak hâlâ
+kabul edilir.
+
+Varsayılan ve referans arka uç bytecode VM'dir. `--jit`, programı deneysel MIR
+JIT ile çalıştırır; JIT'in VM ile aynı çıktıyı ve aynı çıkış kodunu üretmesi
+zorunludur. Gömülü çalışma zamanlı AOT (`--output` ikilisi) hâlâ
+planlanmaktadır.
+
+```bash
+saqut run program.sqt -- girdi.txt 42
+```
 
 ### tokens
 
@@ -72,11 +80,16 @@ Ara kodu (üç adresli kod) yazar.
 
 ```bash
 saqut ir program.sqt
-saqut ir --capabilities program.sqt
+saqut ir --cfg program.sqt
+saqut ir --dont-optimize program.sqt
 ```
 
-`--capabilities` bayrağı IR'yi tarar ve programın hangi capability'lere
-(`fs`, `net`, `sys`) ihtiyaç duyduğunu çalıştırmadan raporlar.
+`--cfg`, düz talimat listesi yerine kontrol akış çizgesini yazar: her temel
+blok, öncülleri, ardılları ve sonlandırıcısıyla birlikte. Dallanmaların ve
+döngülerin nasıl yerleştiğini görmek için kullanılır.
+
+`--dont-optimize`, IR'yi sabit katlama ve ölü kod elemeden önceki haliyle
+gösterir; optimize edicinin tam olarak neyi değiştirdiğini görmenin yolu budur.
 
 ### check
 
@@ -139,14 +152,18 @@ saqut dap
 
 ```bash
 # Tam içgözlemle çalıştır
-saqut run --allow fs --gc-stats --profile program.sqt
+saqut run --gc-stats --profile program.sqt
 
 # Çalıştırmadan önce kontrol et
 saqut check program.sqt && saqut run program.sqt
 
-# Programın neye ihtiyacı var gör
-saqut ir --capabilities program.sqt
+# İki arka ucu aynı programda karşılaştır
+saqut run program.sqt > vm.txt
+saqut run --jit program.sqt > jit.txt
+diff vm.txt jit.txt
 
-# Optimize edilmiş AST'yi gör
-saqut ast program.sqt --optimized
+# Optimizasyonun neyi değiştirdiğini gör
+saqut ast program.sqt --json > optimize.json
+saqut ast program.sqt --dont-optimize --json > ozgun.json
+diff ozgun.json optimize.json
 ```

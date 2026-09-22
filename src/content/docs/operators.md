@@ -16,7 +16,6 @@ Higher number = evaluated first.
 | 18 | Member access / call | `.` `[ ]` `( )` | Left |
 | 17 | Postfix | `++` `--` | Left |
 | 16 | Unary prefix | `+` `-` `!` `~` | Right |
-| 15 | Exponentiation | `**` `^` | **Right** |
 | 14 | Multiply / Divide / Modulo | `*` `/` `%` | Left |
 | 13 | Add / Subtract | `+` `-` | Left |
 | 12 | Bitwise shift | `<<` `>>` | Left |
@@ -28,12 +27,18 @@ Higher number = evaluated first.
 | 6 | Logical AND | `&&` | Left |
 | 5 | Logical OR | `\|\|` | Left |
 | 2 | Assignment | `=` `+=` `-=` `*=` etc. | **Right** |
-| 1 | Comma | `,` | Left |
 
 > **Right-associative:** `a = b = 5` → `a = (b = 5)`
 >
 > **No ternary:** saQut has no `?:` conditional operator. `?` appears only in
-> type positions as the nullable marker (`int?`, `Point?`) — never in expressions.
+> type positions as the nullable marker (`int?`, `Point?`), never in expressions.
+>
+> **No comma operator:** `,` separates arguments, parameters, and array
+> elements. It is not an expression operator; `(a, b)` is a syntax error.
+>
+> **No exponentiation operator:** there is no `**` or `^` power operator. Use
+> `pow()` from the `math` module. `^` is bitwise XOR.
+>
 > **Left-associative:** `10 - 4 - 3` → `(10 - 4) - 3` = 3
 
 ## Arithmetic Operators
@@ -51,23 +56,45 @@ int pos = +10;          // unary plus
 
 ### Exponentiation
 
+saQut has no exponentiation operator. Use `pow()` from the `math` module,
+which takes and returns `double`:
+
 ```c
-int a = 2 ** 3;         // 8  (2³)
-int b = 2 ^ 3;          // also 8
+import { pow } from math;
+
+int main() {
+    double cube = pow(2.0, 3.0);     // 8.0
+    int nine = pow(2.0, 9.0) as int; // 512
+    return 0;
+}
 ```
 
-Both `**` and `^` mean exponentiation. They are **right-associative**:
-`2 ^ 3 ^ 2` → `2 ^ (3 ^ 2)` = `2 ^ 9` = 512
+`^` is bitwise XOR, not a power operator: `2 ^ 3` is `1`, not `8`.
 
 ### Increment & Decrement
 
+Only the **postfix** forms exist:
+
 ```c
 int x = 5;
-x++;                    // x = 6  (postfix, returns old value)
-++x;                    // x = 7  (prefix, returns new value)
-x--;                    // x = 6
---x;                    // x = 5
+x++;                    // x = 6
+x--;                    // x = 5
 ```
+
+Used as an expression, postfix returns the value from **before** the change:
+
+```c
+int x = 5;
+int y = x++;            // y = 5, x = 6
+```
+
+There is no prefix `++x` or `--x`. Where you would reach for one, write
+`x = x + 1` as its own statement.
+
+> `++` and `--` are currently reliable only on integer variables; on a
+> floating-point variable they do not produce the expected result
+> ([#238](https://github.com/saqutlang/saqut/issues/238)). Use `f = f + 1.0;`
+> for those.
 
 > Note: `++` and `--` work on `int` and `float` types. They are statements,
 > not just expressions: you cannot write `foo(x++)` yet.

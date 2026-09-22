@@ -128,18 +128,18 @@ int main() {
 ### Module scope is declaration-only (E013)
 
 The top level of a file is **module scope**. Only *declarations* are allowed
-there — global variables, functions, structs, enums. You **cannot** run
+there: global variables, functions, structs, enums. You **cannot** run
 statements (assignments, increments, method calls, `if`, loops, …) at module
 scope; the compiler rejects them with error **E013**:
 
 ```c
-int counter = 5;          // OK — declaration
+int counter = 5;          // OK: declaration
 counter = 10;             // ERROR E013: statements are not allowed at module scope
 counter++;                // ERROR E013
 arr.push(1);              // ERROR E013
 
 int main() {
-    counter = 10;         // OK — inside a function
+    counter = 10;         // OK: inside a function
     counter++;            // OK
     return 0;
 }

@@ -88,7 +88,7 @@ export struct Vec { int x; int y; }              // tamam
 
 export enum State { Idle, Running, Done }         // tamam
 
-export int counter = 0;   // tamam — global değişkenler dışa aktarılabilir
+export int counter = 0;   // tamam: global değişkenler dışa aktarılabilir
 ```
 
 Tüm globaller gibi, dışa aktarılan bir global de `main`'den önce bir kez

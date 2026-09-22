@@ -191,7 +191,7 @@ zamanı maliyetiyle derleme zamanında kanıtlanır. (Bkz.
 
 ## Değer Seçme
 
-saQut'ta `?:` üçlü operatörü **yoktur** — `?` yalnızca nullable tip işaretidir
+saQut'ta `?:` üçlü operatörü **yoktur**; `?` yalnızca nullable tip işaretidir
 (`int?`). İki değer arasında seçim yapmak için değişkeni tanımlayıp her dalda
 atayın:
 

@@ -36,16 +36,56 @@ import { fromEpochMillis, parse, format, year, addDays } from date;
 
 int main() {
     date epoch = fromEpochMillis(0);
-    date? parsed = parse("2026-05-01");
+    date? parsed = parse("2026-05-01T14:30:00Z");
     if (parsed != null) {
         print(year(parsed));
-        print(format(parsed, "%Y-%m-%d"));
-        print(addDays(parsed, 1));
+        print(format(parsed, "yyyy-MM-dd"));
+        print(format(addDays(parsed, 1), "yyyy-MM-dd"));
     }
     print(epoch);
     return 0;
 }
 ```
 
-`now()` sistem saatini okuduğu için `--allow sys` gerektirir. Diğer date
-fonksiyonları saf hesap yapar ve capability istemez.
+`now()` dışındaki bütün fonksiyonlar, verdiğiniz değer üzerinde saf hesap
+yapar. Sistem saatini yalnızca `now()` okur; bu yüzden aynı programın iki
+çalıştırmasında sonucu değişebilen tek fonksiyon odur.
+
+## parse
+
+`parse` tek bir biçim kabul eder: tam ISO-8601 UTC damgası, tam 20 karakter,
+sonu `Z` ile biten.
+
+```c
+parse("2026-05-01T14:30:00Z")   // date döner
+parse("2026-05-01")             // null, saat bölümü yok
+parse("2026-05-01T14:30:00")    // null, sonunda Z yok
+```
+
+Bunun dışındaki her girdi hata fırlatmak yerine `null` döner; dönüş tipi
+`date?` olduğu için kullanmadan önce null denetiminden geçmek zorundadır.
+Takvimde var olmayan bir tarih (örneğin 13. ay) da `null` döner.
+
+## format
+
+`format` aşağıdaki simgeleri değiştirir, geri kalan her karakteri olduğu gibi
+kopyalar. Dikkat: ay büyük harf `MM`, dakika küçük harf `mm`.
+
+| Simge | Anlamı | Örnek |
+|---|---|---|
+| `yyyy` | Yıl, 4 hane | `2026` |
+| `MM` | Ay, 01-12 | `05` |
+| `dd` | Gün, 01-31 | `01` |
+| `HH` | Saat, 00-23 | `14` |
+| `mm` | Dakika, 00-59 | `30` |
+| `ss` | Saniye, 00-59 | `00` |
+
+```c
+format(d, "yyyy-MM-dd")            // 2026-05-01
+format(d, "dd.MM.yyyy HH:mm")      // 01.05.2026 14:30
+format(d, "yyyy-MM-ddTHH:mm:ssZ")  // 2026-05-01T14:30:00Z
+```
+
+Ay adı, gün adı ya da 12 saatlik biçim için simge yoktur. Tanınmayan bir simge
+metinde olduğu gibi kalır: `format(d, "YYYY")` sonucu harfi harfine `YYYY`
+olur, çünkü yıl simgesi küçük harflidir.

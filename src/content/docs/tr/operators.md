@@ -17,7 +17,6 @@ Yüksek sayı = önce değerlendirilir.
 | 18 | Üye erişimi / çağrı | `.` `[ ]` `( )` | Sol |
 | 17 | Sonek | `++` `--` | Sol |
 | 16 | Tekil önek | `+` `-` `!` `~` | Sağ |
-| 15 | Üs alma | `**` `^` | **Sağ** |
 | 14 | Çarpma / Bölme / Modül | `*` `/` `%` | Sol |
 | 13 | Toplama / Çıkarma | `+` `-` | Sol |
 | 12 | Bitsel kaydırma | `<<` `>>` | Sol |
@@ -29,12 +28,18 @@ Yüksek sayı = önce değerlendirilir.
 | 6 | Mantıksal VE | `&&` | Sol |
 | 5 | Mantıksal VEYA | `\|\|` | Sol |
 | 2 | Atama | `=` `+=` `-=` `*=` vb. | **Sağ** |
-| 1 | Virgül | `,` | Sol |
 
 > **Sağ-birleşmeli:** `a = b = 5` → `a = (b = 5)`
 >
 > **Üçlü işleç yok:** saQut'ta `?:` koşul operatörü yoktur. `?` yalnızca tip
-> konumunda nullable işareti olarak görünür (`int?`, `Point?`) — ifadelerde asla.
+> konumunda nullable işareti olarak görünür (`int?`, `Point?`), ifadelerde asla.
+>
+> **Virgül işleci yok:** `,` yalnızca argümanları, parametreleri ve dizi
+> elemanlarını ayırır. Bir ifade işleci değildir; `(a, b)` sözdizimi hatasıdır.
+>
+> **Üs alma işleci yok:** dilde `**` ya da `^` üs işleci bulunmaz. `math`
+> modülündeki `pow()` kullanılır. `^` bitsel XOR'dur.
+>
 > **Sol-birleşmeli:** `10 - 4 - 3` → `(10 - 4) - 3` = 3
 
 ## Aritmetik İşleçler
@@ -52,27 +57,44 @@ int pos = +10;          // tekil artı
 
 ### Üs Alma
 
+saQut'ta üs alma işleci yoktur. `math` modülündeki `pow()` kullanılır; aldığı
+ve döndürdüğü tip `double`'dır:
+
 ```c
-int a = 2 ** 3;         // 8  (2³)
-int b = 2 ^ 3;          // yine 8
+import { pow } from math;
+
+int main() {
+    double kup = pow(2.0, 3.0);      // 8.0
+    int dokuz = pow(2.0, 9.0) as int; // 512
+    return 0;
+}
 ```
 
-Hem `**` hem `^` üs alma anlamına gelir. **Sağ-birleşmelidir**:
-`2 ^ 3 ^ 2` → `2 ^ (3 ^ 2)` = `2 ^ 9` = 512
+`^` bir üs işleci değil, bitsel XOR'dur: `2 ^ 3` sonucu `8` değil `1`'dir.
 
 ### Artırma ve Azaltma
 
+Yalnızca **sonek** biçimleri vardır:
+
 ```c
 int x = 5;
-x++;                    // x = 6  (sonek, eski değeri döndürür)
-++x;                    // x = 7  (önek, yeni değeri döndürür)
-x--;                    // x = 6
---x;                    // x = 5
+x++;                    // x = 6
+x--;                    // x = 5
 ```
 
-> Not: `++` ve `--`, `int` ve `float` türlerinde çalışır. Bunlar yalnızca birer
-> ifade değil, aynı zamanda birer deyimdir (statement): şimdilik `foo(x++)`
-> yazamazsınız.
+İfade olarak kullanıldığında sonek biçimi **değişiklikten önceki** değeri
+döndürür:
+
+```c
+int x = 5;
+int y = x++;            // y = 5, x = 6
+```
+
+Önek biçimi (`++x`, `--x`) yoktur. Gerektiği yerde `x = x + 1` yazın.
+
+> `++` ve `--` şu an yalnızca tamsayı değişkenlerde güvenilirdir; ondalık bir
+> değişkende beklenen sonucu vermez ([#238](https://github.com/saqutlang/saqut/issues/238)).
+> Ondalık için `f = f + 1.0;` kullanın.
 
 ## Karşılaştırma İşleçleri
 

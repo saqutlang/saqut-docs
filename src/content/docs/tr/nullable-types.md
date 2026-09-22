@@ -72,7 +72,7 @@ Sonuç üretemeyebilecek bir fonksiyon nullable tip döndürmelidir:
 
 ```c
 int? indeksBul(int[] dizi, int hedef) {
-    for (int i = 0; i < dizi.length; i = i + 1) {
+    for (int i = 0; i < dizi.length(); i = i + 1) {
         if (dizi[i] == hedef) {
             return i;
         }

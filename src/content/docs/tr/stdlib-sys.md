@@ -1,111 +1,131 @@
 ---
 title: sys (Sistem)
-description: Rastgele sayı, ortam değişkenleri, komut satırı argümanları ve bekleme; saQut'un sys modülü.
+description: saQut'un sys modülüyle rastgele sayılar, ortam değişkenleri, komut satırı argümanları ve bekleme.
 ---
 
-`sys` modülü sistem seviyesindeki özelliklere erişim sağlar. Tüm fonksiyonlar
-çalışma zamanında `--allow sys` gerektirir.
+`sys` modülü programın dışına uzanır: işletim sisteminin rastgelelik
+kaynağına, ortam değişkenlerine, komut satırına ve saate. Sonucunu derleyicinin
+önceden bilemeyeceği fonksiyonlar bunlardır; tek bir modülde toplanmalarının
+nedeni de budur.
 
-## Import
+## İçe aktarma
 
 ```c
-import { random, randomRange, env, args, sleep } from sys;
+import { random, randomInt, env, args, sleep } from sys;
 ```
 
-## Fonksiyonlar
+## `double random()`
 
-### `float random()`
-
-`[0.0, 1.0)` aralığında rastgele bir `float` döndürür. `0.0` dönebilir,
-ancak `1.0` dönmez. Bu fonksiyon parametre almaz.
+`[0.0, 1.0)` aralığında sözde rastgele bir `double` döndürür. Sıfır gelebilir,
+`1.0` gelemez. Parametre almaz.
 
 ```c
 import { random } from sys;
 
 int main() {
-    float r = random();
-    print(r);     // örn. 1634872934
+    double r = random();
+    print(r);     // örneğin 0.8846772796
     return 0;
 }
 ```
 
-Sonuç genel amaçlı bir CSPRNG'den gelir. Kriptografik rastgelelik için
-planlanan `crypto` modülünü kullan.
+Baytlar C'nin `rand()` fonksiyonundan değil, işletim sisteminin CSPRNG'sinden
+gelir. Bu diziyi öngörülemez kılar; ayrıca **aynı programın iki çalıştırması
+farklı değerler üretir** demektir. Tekrarlanabilir bir koşu gerekiyorsa
+`random()` çağırmayın.
 
-### `int randomInt(int min, int max)`
+## `int randomInt(int lo, int hi)`
 
-`min` dahil ve `max` hariç olacak şekilde `[min, max)` aralığında rastgele bir
-32-bit `int` döndürür. `min`, `max` değerinden küçük olmalıdır.
+`[lo, hi)` yarı açık aralığında rastgele bir `int`: `lo` gelebilir, `hi`
+gelemez.
 
 ```c
-import { randomRange } from sys;
+import { randomInt } from sys;
 
 int main() {
-    int zar = randomRange(1, 7);   // 1 ile 6 arası
+    int zar = randomInt(1, 7);   // 1 ile 6 arası
     print(zar);
     return 0;
 }
 ```
 
-### `string? env(string name)`
+Üst sınırın dışarıda kalması, `randomInt(0, dizi.length())` çağrısını her
+zaman geçerli bir indeks yapan şeydir.
 
-`name` ile belirtilen ortam değişkeninin değerini döndürür. Değişken yoksa
-boş string yerine `null` döndürür.
+## `string? env(string name)`
+
+Bir ortam değişkeninin değeri; tanımlı değilse `null`. Dönüş tipi `string?`
+olduğu için kullanmadan önce null durumunun ele alınması gerekir.
 
 ```c
 import { env } from sys;
 
 int main() {
-    string ev = env("HOME");
-    print(ev);     // örn. "/home/saqut"
+    string? home = env("HOME");
+    if (home != null) {
+        print(home);
+    } else {
+        print("HOME tanimli degil");
+    }
     return 0;
 }
 ```
 
-### `string[] args()`
+## `string[] args()`
 
-Programa geçirilen komut satırı argümanlarını `string[]` olarak döndürür. Bu
-fonksiyon parametre almaz.
+Programa verilen argümanlar, sırasıyla.
 
 ```c
 import { args } from sys;
 
 int main() {
     string[] a = args();
-    for (int i = 0; i < a.length; i = i + 1) {
+    int i = 0;
+    while (i < a.length()) {
         print(a[i]);
+        print("\n");
+        i = i + 1;
     }
     return 0;
 }
 ```
 
-İlk eleman (`a[0]`) program adıdır; sonraki elemanlar argümanlardır.
+Programa gidecek argümanlar `--` işaretinden sonra yazılır; bu işaret onları
+derleyicinin kendi bayraklarından ayırır:
 
 ```bash
-saqut run --allow sys prog.sqt merhaba dunya
-# a[0] = "prog.sqt"
-# a[1] = "merhaba"
-# a[2] = "dunya"
+saqut run prog.sqt -- merhaba dunya
 ```
 
-### `void sleep(int millis)`
+```
+a[0] = "merhaba"
+a[1] = "dunya"
+```
 
-Programı `millis` milisaniye boyunca duraklatır. Parametre `int` türündedir;
-ondalıklı saniye değeri kabul edilmez.
+`a[0]` program adı değil, **ilk argümandır**. Dizi yalnızca `--` işaretinden
+sonrasını tutar; argümansız çalıştırılan bir program boş dizi alır ve
+`a.length()` `0` olur.
+
+## `void sleep(int millis)`
+
+Programı verilen milisaniye kadar bekletir. Parametre `int`'tir:
+`sleep(1500)` bir buçuk saniye bekler, `sleep(1.5)` ise derleme hatası verir,
+çünkü `int` beklenen yerde ondalık sabit kullanılamaz.
 
 ```c
 import { sleep } from sys;
 
 int main() {
-    print("bekleniyor...");
-    sleep(1.5);
-    print("tamam");
+    print("bekleniyor...\n");
+    sleep(1500);
+    print("bitti\n");
     return 0;
 }
 ```
 
-## sys erişimiyle çalıştırma
+## Belirlenimcilik
 
-```bash
-saqut run --allow sys program.sqt
-```
+`random()`, `randomInt()` ve `env()` programın dışındaki durumu okur; bu yüzden
+aynı kaynak iki koşuda farklı çıktı verebilir. saQut standart kütüphanesindeki
+geri kalan her şey, verdiğiniz değerler üzerinde saf hesap yapar. Bir programın
+tekrarlanabilir olması gerekiyorsa ilk bakılacak yer bu modüldür.

@@ -87,21 +87,42 @@ programlar yazmayı anlatır.
 
 ## Kısa bir bakış
 
+Sıralı bir dizide ikili arama. Her adım arama aralığını yarıya indirir; bu
+yüzden 10.000 elemanlı bir dizi en fazla 14 karşılaştırmada sonuçlanır.
+
 ```c
-int fibonacci(int n) {
-    if (n <= 1) {
-        return n;
+int binarySearch(int[] values, int target) {
+    int low = 0;
+    int high = values.length() - 1;
+
+    while (low <= high) {
+        // (low + high) / 2 yerine (high - low) / 2:
+        // ilk biçim büyük dizilerde int taşmasına yol açabilir.
+        int mid = low + (high - low) / 2;
+
+        if (values[mid] == target) {
+            return mid;
+        }
+        if (values[mid] < target) {
+            low = mid + 1;
+        } else {
+            high = mid - 1;
+        }
     }
-    return fibonacci(n - 1) + fibonacci(n - 2);
+    return -1;   // bulunamadı
 }
 
 int main() {
-    print(fibonacci(10));   // 55
+    int[] sorted = [2, 5, 8, 12, 16, 23, 38, 56, 72, 91];
+
+    print(binarySearch(sorted, 23));   // 5
+    print(binarySearch(sorted, 7));    // -1
     return 0;
 }
 ```
 
-Fonksiyonlar, kontrol akışı ve `print()`. Zorunlu tören kodu yok.
+Fonksiyonlar, diziler, kontrol akışı ve `print()`. Zorunlu tören kodu yok. Aynı
+program VM'de ve JIT'te aynı çıktıyı üretir.
 
 ---
 
@@ -132,7 +153,8 @@ Fonksiyonlar, kontrol akışı ve `print()`. Zorunlu tören kodu yok.
   <Card title="Belirlenimci sanal makine" icon="random">
     Referans arka uç bir bytecode sanal makinesidir: aynı girdi her çalıştırmada
     aynı çıktıyı üretir. LLVM bilinçli olarak kullanılmaz. Deneysel bir MIR JIT
-    <code>--jit</code> ile çalışır; sırada gömülü çalışma zamanlı AOT var.
+    <code>--jit</code> ile çalışır ve VM ile bayt bayt eşleşmek zorundadır;
+    sırada gömülü çalışma zamanlı AOT var.
   </Card>
   <Card title="Yakalanabilir hatalar" icon="error">
     <code>try</code> / <code>catch</code> / <code>throw</code> ile struct tabanlı
@@ -171,7 +193,7 @@ Her ok, çalıştırıp inceleyebileceğiniz bir CLI komutuna karşılık gelir.
 
 ### 24 Ağustos 2026 · 0.9.4 · Hatalar Artık Yakalanıyor
 
-- `a08c756` | `try` / `catch` / `throw` artık JIT tarafında da çalışıyor —
+- `a08c756` | `try` / `catch` / `throw` artık JIT tarafında da çalışıyor:
   VM ile aynı çıktı ve çıkış koduyla; sıfıra bölme, başarısız dönüşüm ve
   dizi sınır aşımı gibi yakalanabilir çalışma zamanı hataları dahil.
   (Planlanan setjmp/longjmp tasarımının bir JIT'te tanımsız davranış
@@ -182,7 +204,7 @@ Her ok, çalıştırıp inceleyebileceğiniz bir CLI komutuna karşılık gelir.
   yeniden kullanılabiliyordu. Gölge-yığın çerçeveleri artık çağrı başına
   düzgün geri sarılıyor.
 - `2095564` | Daha önce "JIT'te bilinçli bozuk" işaretli altı test
-  programı artık VM ile bayt bayt eşleşmek zorunda — bu alanda parite
+  programı artık VM ile bayt bayt eşleşmek zorunda; bu alanda parite
   yeniden ve istisnasız zorunlu.
 - `4568aac` | Capability (izin) sistemi kaldırıldı (ADR-043): host
   çağrıları varsayılan olarak açık ve dosya işlemleri JIT'te de aynı
@@ -194,12 +216,12 @@ Her ok, çalıştırıp inceleyebileceğiniz bir CLI komutuna karşılık gelir.
 - `4bc1b2b` | Dosya içerikleri uçtan uca `byte[]` olarak işlenebiliyor.
 - `b2ed2f8` | 64-bit hex sabitleri `longint` olarak tam bit desenini
   koruyor.
-- `ec4174c` | Init'siz `string` artık `0` yerine `""` ile başlıyor — local
+- `ec4174c` | Init'siz `string` artık `0` yerine `""` ile başlıyor; local
   değişkenler, struct alanları ve globaller dahil.
-- `b9f5c62` | Dizi tipli struct alanları artık boş diziyle başlıyor —
+- `b9f5c62` | Dizi tipli struct alanları artık boş diziyle başlıyor:
   önce değer atamaya gerek olmadan `record.items.push(x)` çalışıyor.
 - `690025b` | Hiç değer atanmamış modül-düzeyi `int?`, `string?` veya
-  `longint?` artık gerçekten `null` okunuyor — önce `x == null` slot
+  `longint?` artık gerçekten `null` okunuyor. Önce `x == null` slot
   sessizce `0` tuttuğu için false yanıtı veriyordu.
 - `2469bbf` | Nullable değerle sıralama karşılaştırmaları (`<`, `>`,
   `<=`, `>=`) artık aritmetikteki gibi derleme hatası: önce null kapısından
@@ -208,18 +230,18 @@ Her ok, çalıştırıp inceleyebileceğiniz bir CLI komutuna karşılık gelir.
   `s.length`) artık sessizce `0` üretmek yerine derleme hatası.
 - `dd8a493` | Modül kapsamında statement'lar (`x = 5;` gibi, herhangi
   bir fonksiyonun dışında) artık C++'daki gibi net bir hatayla
-  reddediliyor — en üst düzey yalnızca bildirim kabul ediyor.
+  reddediliyor; en üst düzey yalnızca bildirim kabul ediyor.
 - `030f4bd` | Fonksiyonu zorunlu argümanları olmadan çağırmak artık
   derleme hatası; dil sunucusu da bu girdiyi zarifçe atlatıyor.
 - `907d904` | JIT sıcak dizi erişimlerini doğrudan bellek işlemine
-  indiriyor ve derlenmiş kodu yeniden kullanıyor — dizi ağırlıklı
+  indiriyor ve derlenmiş kodu yeniden kullanıyor; dizi ağırlıklı
   döngüler daha hızlı.
 - `2645978` | Belgeler, dilde hiç var olmamış `?:` üçlü operatörünü
   artık varmış gibi tanıtmıyor.
 - `2d6395c` | `--help` artık standart bir kılavuz sayfası gibi okunuyor
   ve uygulanmayan komutlar CLI'dan tamamen çıkarıldı.
 - `ee102a3` | Kağıt üzerinde var olup hiç koşulmayan on beş hata
-  fixture'ı test koşucusuna bağlandı — sessiz hata sınıfları artık
+  fixture'ı test koşucusuna bağlandı; sessiz hata sınıfları artık
   yakalanıyor.
 
 ### 1 Ağustos 2026 · 0.9.2 · Kendini Ölçmeyi Öğreniyor
@@ -227,12 +249,12 @@ Her ok, çalıştırıp inceleyebileceğiniz bir CLI komutuna karşılık gelir.
 - `c2266ad` | Tipine sığmayan bir `int` ya da `longint` sabiti artık
   sessizce başka bir değere dönüşmek yerine derleme zamanında yakalanıyor.
 - `d85c7ee` | `decimal` karşılaştırmaları artık `decimal` aritmetiğiyle
-  aynı fikirde — para hesabı nihayet tutuyor.
+  aynı fikirde; para hesabı nihayet tutuyor.
 - `fd7d082` | `Node { Node? next; }` gibi kendine referans veren
   struct'lar artık derleniyor ve `T?` alanlar `null` başlıyor.
 - `7c8f678` | JIT ve VM artık `decimal` değerlerde aynı cevabı, çalışma
   zamanı hatalarında aynı mesajı veriyor.
-- `3261321` | VM her talimatta debugger defteri tutmayı bıraktı —
+- `3261321` | VM her talimatta debugger defteri tutmayı bıraktı:
   programlar yaklaşık 1.9 kat daha hızlı çalışıyor.
 - `f4a60c8` | Parser her token'ı altı kez yerine bir kez okuyor.
 - `1a096ee` | Kaynak konumları üçte bir boyutuna indi; uzun dosya yolları

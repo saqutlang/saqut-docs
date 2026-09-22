@@ -177,7 +177,7 @@ saqut ast examples/algorithm/03_insertion_sort.sqt --json
 ```
 
 `--json` olmadan `saqut ast` aynı ağacı girintili, insan-okunur bir metin
-dökümü olarak basar — terminalde okumak için kullanışlıdır, ayrıştırmak için
+dökümü olarak basar; terminalde okumak için kullanışlıdır, ayrıştırmak için
 değil.
 
 `--optimized` bayrağı, sabit katlama ve ölü kod temizliği **sonrası** AST'yi

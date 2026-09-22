@@ -47,13 +47,13 @@ put this at the top.
 ## Step 2: Store the task list
 
 We will keep tasks in an array. Since we don't know how many tasks there will
-be, we start with an empty array and append to it:
+be, we start with an empty array and push onto it:
 
 ```c
-Task[] tasks;
+Task[] tasks = [];
 ```
 
-Add a function to create and append a task:
+Add a function to create and store a task:
 
 ```c
 void addTask(string title, Priority prio) {
@@ -61,11 +61,11 @@ void addTask(string title, Priority prio) {
     t.title    = title;
     t.priority = prio;
     t.done     = false;
-    tasks.append(t);
+    tasks.push(t);
 }
 ```
 
-`tasks.append(t)` puts `t` at the end of the array and grows it by one.
+`tasks.push(t)` puts `t` at the end of the array and grows it by one.
 
 ## Step 3: Mark a task as done
 
@@ -73,7 +73,7 @@ We need a way to find a task by its position and mark it:
 
 ```c
 void markDone(int index) {
-    if (index >= 0 && index < tasks.length) {
+    if (index >= 0 && index < tasks.length()) {
         tasks[index].done = true;
     }
 }
@@ -96,19 +96,19 @@ string prioLabel(Priority p) {
 }
 
 void printTasks() {
-    print("--- Tasks ---");
+    print("--- Tasks ---\n");
     int doneCount = 0;
-    for (int i = 0; i < tasks.length; i = i + 1) {
+    for (int i = 0; i < tasks.length(); i = i + 1) {
         string checkbox = "[ ]";
         if (tasks[i].done) {
             checkbox = "[x]";
             doneCount = doneCount + 1;
         }
         print(checkbox + " " + tasks[i].title +
-              " (" + prioLabel(tasks[i].priority) + ")");
+              " (" + prioLabel(tasks[i].priority) + ")\n");
     }
     print("Done: " + (doneCount as string) + " / " +
-          (tasks.length as string));
+          (tasks.length() as string) + "\n");
 }
 ```
 
@@ -142,18 +142,18 @@ struct Task {
     bool   done;
 }
 
-Task[] tasks;
+Task[] tasks = [];
 
 void addTask(string title, Priority prio) {
     Task t;
     t.title    = title;
     t.priority = prio;
     t.done     = false;
-    tasks.append(t);
+    tasks.push(t);
 }
 
 void markDone(int index) {
-    if (index >= 0 && index < tasks.length) {
+    if (index >= 0 && index < tasks.length()) {
         tasks[index].done = true;
     }
 }
@@ -168,19 +168,19 @@ string prioLabel(Priority p) {
 }
 
 void printTasks() {
-    print("--- Tasks ---");
+    print("--- Tasks ---\n");
     int doneCount = 0;
-    for (int i = 0; i < tasks.length; i = i + 1) {
+    for (int i = 0; i < tasks.length(); i = i + 1) {
         string checkbox = "[ ]";
         if (tasks[i].done) {
             checkbox = "[x]";
             doneCount = doneCount + 1;
         }
         print(checkbox + " " + tasks[i].title +
-              " (" + prioLabel(tasks[i].priority) + ")");
+              " (" + prioLabel(tasks[i].priority) + ")\n");
     }
     print("Done: " + (doneCount as string) + " / " +
-          (tasks.length as string));
+          (tasks.length() as string) + "\n");
 }
 
 int main() {
@@ -224,8 +224,8 @@ Done: 1 / 3
 | `switch` | Priority label |
 | `as` (cast) | `int` to `string` for output |
 | String concat | `+` in `print()` |
-| `.length` | Array size |
-| `.append()` | Adding to array |
+| `.length()` | Array size |
+| `.push()` | Adding to array |
 
 ## Try these on your own
 

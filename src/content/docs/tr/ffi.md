@@ -24,13 +24,19 @@ Host fonksiyonlar derleyicinin gömülü `root.sqt` dosyasında `ffi` anahtar
 kelimesiyle bildirilir:
 
 ```
-ffi float sqrt(float x) : MATH_SQRT from math;
-ffi string readFile(string path) : FS_READFILE from fs requires fs;
+ffi double sqrt(double x) : MATH_SQRT from math;
+ffi byte[] readFile(string path, int? seek, int? size) : FS_READ_FILE from fs;
 ```
 
-Her bildirim şunları belirtir: **imza** (tip denetimi için), **sembolik host
-kimliği** (C++ `HostFnId` enum'una eşlenir), **modül** (import-kapısı için)
-ve isteğe bağlı olarak **capability** ve kararlılık bayrağı.
+Her bildirim üç şeyi belirtir: **imza** (tip denetleyicinin kullandığı tipler),
+**sembolik host kimliği** (C++ tarafındaki gerçeklemeye eşlenir) ve **modül**
+(adı kapsama hangi import'un getirdiği).
+
+Bu bildirimler derleyicinin C++ kaynağının içinde gizli değildir.
+`src/internal/ffi.sqt` dosyasında dururlar; bu gerçek bir saQut dosyasıdır ve
+derleme sırasında binary'ye gömülür. Yani editörde sözdizimi vurgulamasıyla
+açılır, dil sunucusu da görür. Derleyicinin sağladığı bütün host
+fonksiyonlarını tam imzalarıyla görmenin yetkili yolu o dosyayı okumaktır.
 
 Sen şunu yazdığında:
 
@@ -50,19 +56,23 @@ int main() {
 
 String eşleştirme yok. Çalışma zamanı yansıması yok. Tek bir sayısal dağıtım.
 
-## Capability ve FFI
+## Capability kapısı yok
 
-VM dışına çıkan host fonksiyonlar (dosya I/O, ağ, sistem çağrıları)
-`requires fs` (veya `net`, `sys`) bildirmek zorundadır. Derleyici ve çalışma
-zamanı bunu denetler. `requires` olmayan bir host fonksiyonu saftır ve
-`--allow` bayrağı gerektirmez.
+Önceki sürümlerde host fonksiyonları bir capability sisteminin arkasındaydı:
+bildirim `requires fs` yan tümcesi taşır, programı çalıştırmak da eşleşen bir
+`--allow` bayrağı gerektirirdi. Bu sistem 0.9.4'te kaldırıldı (ADR-043). Host
+çağrıları varsayılan olarak açıktır, `requires` yan tümcesi yoktur ve `--allow`
+diye bir bayrak bulunmaz.
+
+Host fonksiyonunu hâlâ kapı arkasında tutan şey import'tur: içe aktarmadığınız
+bir ad kapsamda değildir, dolayısıyla bir dosyanın erişebileceği dış
+fonksiyonlar kümesi o dosyanın en üstünde görünür.
 
 ## print() de bir FFI'dır
 
 Hello World'den beri kullandığın `print()` fonksiyonu da bir host
-fonksiyondur (`: PRINT from core`). Her zaman kullanılabilir olmasının nedeni,
-import gerektirmeyen ve capability istemeyen `core` modülünde bildirilmiş
-olmasıdır.
+fonksiyondur. Her zaman kullanılabilir olmasının nedeni, import gerektirmeyen
+`core` modülüne ait olmasıdır.
 
 ## Kendi host fonksiyonunu yazmak
 
@@ -73,11 +83,11 @@ rehberine](https://github.com/saqutlang/saqut/blob/main/CONTRIBUTING.md) bak.
 
 ## FFI vs. standart kütüphane
 
-| Ne | Mekanizma | Import gerekir | Capability gerekir |
-|---|---|---|---|
-| `s.upper()`, `dizi.append()` | UFCS yerleşik | Hayır | Hayır |
-| `readFile()`, `sqrt()` | FFI (stdlib) | Evet | Fonksiyona bağlı |
-| `print()` | FFI (core) | Hayır | Hayır |
+| Ne | Mekanizma | Import gerekir |
+|---|---|---|
+| `s.upper()`, `dizi.push()` | UFCS yerleşik | Hayır |
+| `readFile()`, `sqrt()` | FFI (stdlib) | Evet |
+| `print()` | FFI (core) | Hayır |
 
 Standart kütüphane, derleyiciyle birlikte gelen bir FFI bildirimleri
 kümesidir. `import { readFile } from fs` yazarken FFI mekanizmasını görmezsin

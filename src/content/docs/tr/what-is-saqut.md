@@ -86,7 +86,7 @@ int kare(int x) {
 // Diziler ve donguler
 int toplam(int[] sayilar) {
     int sonuc = 0;
-    for (int i = 0; i < sayilar.length; i = i + 1) {
+    for (int i = 0; i < sayilar.length(); i = i + 1) {
         sonuc = sonuc + sayilar[i];
     }
     return sonuc;

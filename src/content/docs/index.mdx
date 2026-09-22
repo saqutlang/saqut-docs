@@ -87,21 +87,42 @@ and writing longer programs.
 
 ## A glimpse of the language
 
+Binary search over a sorted array. Each step halves the search range, so a
+10,000-element array is decided in at most 14 comparisons.
+
 ```c
-int fibonacci(int n) {
-    if (n <= 1) {
-        return n;
+int binarySearch(int[] values, int target) {
+    int low = 0;
+    int high = values.length() - 1;
+
+    while (low <= high) {
+        // (high - low) / 2 instead of (low + high) / 2:
+        // the second form can overflow int on a large array.
+        int mid = low + (high - low) / 2;
+
+        if (values[mid] == target) {
+            return mid;
+        }
+        if (values[mid] < target) {
+            low = mid + 1;
+        } else {
+            high = mid - 1;
+        }
     }
-    return fibonacci(n - 1) + fibonacci(n - 2);
+    return -1;   // not found
 }
 
 int main() {
-    print(fibonacci(10));   // 55
+    int[] sorted = [2, 5, 8, 12, 16, 23, 38, 56, 72, 91];
+
+    print(binarySearch(sorted, 23));   // 5
+    print(binarySearch(sorted, 7));    // -1
     return 0;
 }
 ```
 
-Functions, control flow, and `print()`. No mandatory scaffolding.
+Functions, arrays, control flow, and `print()`. No mandatory scaffolding. The
+same program produces the same output on the VM and on the JIT.
 
 ---
 
@@ -129,7 +150,8 @@ Functions, control flow, and `print()`. No mandatory scaffolding.
   <Card title="Deterministic VM" icon="random">
     The bytecode VM is the reference backend: the same input produces the same
     output on every run. LLVM is intentionally not used. An experimental MIR JIT
-    runs via <code>--jit</code>; embedded-runtime AOT is planned next.
+    runs via <code>--jit</code> and is required to match the VM byte for byte;
+    embedded-runtime AOT is planned next.
   </Card>
   <Card title="Catchable errors" icon="error">
     <code>try</code> / <code>catch</code> / <code>throw</code> with struct-based
@@ -169,7 +191,7 @@ Each arrow corresponds to a CLI command you can run and inspect.
 ### August 24, 2026 · 0.9.4 · Errors Get Caught Now
 
 - `a08c756` | `try` / `catch` / `throw` now work in the JIT backend with
-  the same output and exit code as the VM — including catchable runtime
+  the same output and exit code as the VM, including catchable runtime
   errors like division by zero, failed casts, and out-of-range array
   indexing. (The planned setjmp/longjmp design turned out to be
   undefined behavior in a JIT; a per-instruction pending-error check is
@@ -178,7 +200,7 @@ Each arrow corresponds to a CLI command you can run and inspect.
   allocate, a live object could be swept and reused while still in use.
   Shadow-stack frames now unwind properly per call.
 - `2095564` | The six test programs previously marked "JIT known broken"
-  are now required to match the VM byte for byte — parity is enforced
+  are now required to match the VM byte for byte; parity is enforced
   again in this area, with no exceptions.
 - `4568aac` | The capability (permission) system has been removed
   (ADR-043): host calls are open by default, and file operations now
@@ -189,12 +211,12 @@ Each arrow corresponds to a CLI command you can run and inspect.
 - `4bc1b2b` | File contents can be handled as `byte[]` end to end.
 - `b2ed2f8` | 64-bit hex literals keep their exact bit pattern as
   `longint` instead of being mangled.
-- `ec4174c` | An uninitialized `string` now starts as `""` instead of `0` —
+- `ec4174c` | An uninitialized `string` now starts as `""` instead of `0`:
   local variables, struct fields, and globals alike.
 - `b9f5c62` | A struct field with an array type now starts as an empty
-  array — `record.items.push(x)` works without assigning a value first.
+  array, so `record.items.push(x)` works without assigning a value first.
 - `690025b` | A module-level `int?`, `string?`, or `longint?` you never
-  assigned now really reads as `null` — before, `x == null` answered
+  assigned now really reads as `null`. Before, `x == null` answered
   false because the slot silently held `0`.
 - `2469bbf` | Ordering comparisons (`<`, `>`, `<=`, `>=`) on a nullable
   value are now a compile error, same as arithmetic: pass the null gate
@@ -203,12 +225,12 @@ Each arrow corresponds to a CLI command you can run and inspect.
   without parentheses) is now a compile error instead of silently
   producing `0`.
 - `dd8a493` | Statements at module scope (`x = 5;` outside any function)
-  are now rejected with a clear error, as in C++ — the top level only
+  are now rejected with a clear error, as in C++; the top level only
   accepts declarations.
 - `030f4bd` | Calling a function without its required arguments is now a
   compile error; the language server also survives that input gracefully.
 - `907d904` | The JIT lowers hot array accesses to direct memory
-  operations and reuses compiled code — array-heavy loops run faster.
+  operations and reuses compiled code, so array-heavy loops run faster.
 - `2645978` | The docs no longer advertise a `?:` ternary operator the
   language never had.
 - `2d6395c` | `--help` now reads like a standard manual page, and
@@ -229,7 +251,7 @@ Each arrow corresponds to a CLI command you can run and inspect.
 - `7c8f678` | The JIT and the VM now give the same answer for `decimal`
   values and the same message for runtime errors.
 - `3261321` | The VM stopped doing debugger bookkeeping on every single
-  instruction — programs run about 1.9x faster.
+  instruction, so programs run about 1.9x faster.
 - `f4a60c8` | The parser reads each token once instead of six times.
 - `1a096ee` | Source positions got three times smaller, so long file
   paths no longer cost memory.

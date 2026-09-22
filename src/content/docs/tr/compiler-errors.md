@@ -200,11 +200,11 @@ int main() {
 
 Dosyanın en üst düzeyi **modül kapsamıdır**: burada yalnızca bildirimlere
 (global değişken, fonksiyon, struct, enum) izin verilir. Modül kapsamında
-*statement* çalıştırmak — atama, artırım, metod çağrısı, `if`, döngü vb. —
+*statement* çalıştırmak (atama, artırım, metod çağrısı, `if`, döngü vb.)
 reddedilir:
 
 ```c
-int counter = 5;    // OK — bildirim
+int counter = 5;    // OK: bildirim
 
 counter = 10;       // E013, statements are not allowed at module scope
 counter++;          // E013
@@ -212,7 +212,7 @@ arr.push(1);        // E013
 print(counter);     // E013
 
 int main() {
-    counter = 10;   // OK — fonksiyon içinde
+    counter = 10;   // OK: fonksiyon içinde
     return 0;
 }
 ```

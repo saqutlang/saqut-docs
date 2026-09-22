@@ -3,110 +3,130 @@ title: sys (System)
 description: Random numbers, environment variables, command-line arguments, and sleep with saQut's sys module.
 ---
 
-The `sys` module provides access to system-level features. All functions
-require `--allow sys` at runtime.
+The `sys` module reaches outside the program: to the operating system's random
+source, its environment, the command line, and the clock. These are the
+functions whose results the compiler cannot predict, which is why they live
+together in one module.
 
 ## Import
 
 ```c
-import { random, randomRange, env, args, sleep } from sys;
+import { random, randomInt, env, args, sleep } from sys;
 ```
 
-## Functions
+## `double random()`
 
-### `float random()`
-
-Returns a pseudo-random `float` in the interval `[0.0, 1.0)`: zero can be
-returned, but `1.0` cannot. This function does not accept parameters.
+Returns a pseudo-random `double` in `[0.0, 1.0)`. Zero is possible, `1.0` is
+not. Takes no parameters.
 
 ```c
 import { random } from sys;
 
 int main() {
-    float r = random();
-    print(r);     // e.g. 1634872934
+    double r = random();
+    print(r);     // e.g. 0.8846772796
     return 0;
 }
 ```
 
-The result comes from a general-purpose CSPRNG. For cryptographic randomness
-use the planned `crypto` module.
+The bytes come from the operating system's CSPRNG, not from C's `rand()`. That
+makes the sequence unpredictable, and it also means **two runs of the same
+program produce different values**. Where you need a repeatable run, do not
+call `random()`.
 
-### `int randomInt(int min, int max)`
+## `int randomInt(int lo, int hi)`
 
-Returns a random 32-bit `int` in the half-open interval `[min, max)`. `min` is
-included and `max` is excluded; `min` must be smaller than `max`.
+A random `int` in the half-open interval `[lo, hi)`: `lo` can come back,
+`hi` cannot.
 
 ```c
-import { randomRange } from sys;
+import { randomInt } from sys;
 
 int main() {
-    int dice = randomRange(1, 7);   // 1 to 6
+    int dice = randomInt(1, 7);   // 1 through 6
     print(dice);
     return 0;
 }
 ```
 
-### `string? env(string name)`
+The upper bound being excluded is what makes `randomInt(0, array.length())`
+always a valid index.
 
-Returns the value of the environment variable named by `name`. Returns `null`
-when the variable does not exist.
+## `string? env(string name)`
+
+The value of an environment variable, or `null` when it is not set. The return
+type is `string?`, so the null case has to be handled before use.
 
 ```c
 import { env } from sys;
 
 int main() {
-    string home = env("HOME");
-    print(home);     // e.g. "/home/saqut"
+    string? home = env("HOME");
+    if (home != null) {
+        print(home);
+    } else {
+        print("HOME is not set");
+    }
     return 0;
 }
 ```
 
-### `string[] args()`
+## `string[] args()`
 
-Returns the command-line arguments passed to the program as a `string[]`. This
-function has no parameters.
+The arguments passed to the program, in order.
 
 ```c
 import { args } from sys;
 
 int main() {
     string[] a = args();
-    for (int i = 0; i < a.length; i = i + 1) {
+    int i = 0;
+    while (i < a.length()) {
         print(a[i]);
+        print("\n");
+        i = i + 1;
     }
     return 0;
 }
 ```
 
-The first element (`a[0]`) is the program name; following elements are the
-arguments.
+Arguments intended for the program go after `--`, which separates them from
+the compiler's own flags:
 
 ```bash
-saqut run --allow sys prog.sqt hello world
-# a[0] = "prog.sqt"
-# a[1] = "hello"
-# a[2] = "world"
+saqut run prog.sqt -- hello world
 ```
 
-### `void sleep(int millis)`
+```
+a[0] = "hello"
+a[1] = "world"
+```
 
-Pauses the program for `millis` milliseconds. The parameter is an `int` and
-fractional seconds are not accepted.
+`a[0]` is the **first argument**, not the program name. The array holds only
+what follows `--`, so a program run with no arguments gets an empty array and
+`a.length()` is `0`.
+
+## `void sleep(int millis)`
+
+Pauses the program for the given number of milliseconds. The parameter is an
+`int`: `sleep(1500)` waits a second and a half, while `sleep(1.5)` is a
+compile error, because a float literal cannot be used where an `int` is
+expected.
 
 ```c
 import { sleep } from sys;
 
 int main() {
-    print("waiting...");
-    sleep(1.5);
-    print("done");
+    print("waiting...\n");
+    sleep(1500);
+    print("done\n");
     return 0;
 }
 ```
 
-## Run with sys access
+## Determinism
 
-```bash
-saqut run --allow sys program.sqt
-```
+`random()`, `randomInt()`, and `env()` read state from outside the program, so
+the same source can produce different output on two runs. Everything else in
+saQut's standard library is a pure calculation on the values you pass in. When
+a program has to be reproducible, this module is where to look first.

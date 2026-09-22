@@ -50,7 +50,7 @@ Görevleri bir dizide tutacağız. Kaç görev olacağını bilmediğimiz için 
 bir diziyle başlayıp sonuna ekleyeceğiz:
 
 ```c
-Gorev[] gorevler;
+Gorev[] gorevler = [];
 ```
 
 Görev oluşturup ekleyen bir fonksiyon yaz:
@@ -61,11 +61,11 @@ void gorevEkle(string baslik, Oncelik oncelik) {
     g.baslik     = baslik;
     g.oncelik    = oncelik;
     g.tamamlandi = false;
-    gorevler.append(g);
+    gorevler.push(g);
 }
 ```
 
-`gorevler.append(g)`, `g`'yi dizinin sonuna koyar ve diziyi bir büyütür.
+`gorevler.push(g)`, `g`'yi dizinin sonuna koyar ve diziyi bir büyütür.
 
 ## Adım 3: Görevi tamamlandı olarak işaretle
 
@@ -73,7 +73,7 @@ Bir görevi konumuna göre bulup işaretlemenin yolunu yazalım:
 
 ```c
 void tamamlandiIsaretle(int indeks) {
-    if (indeks >= 0 && indeks < gorevler.length) {
+    if (indeks >= 0 && indeks < gorevler.length()) {
         gorevler[indeks].tamamlandi = true;
     }
 }
@@ -96,19 +96,19 @@ string oncelikEtiketi(Oncelik o) {
 }
 
 void gorevleriYazdir() {
-    print("--- Görevler ---");
+    print("--- Görevler ---\n");
     int tamamSayisi = 0;
-    for (int i = 0; i < gorevler.length; i = i + 1) {
+    for (int i = 0; i < gorevler.length(); i = i + 1) {
         string kutu = "[ ]";
         if (gorevler[i].tamamlandi) {
             kutu = "[x]";
             tamamSayisi = tamamSayisi + 1;
         }
         print(kutu + " " + gorevler[i].baslik +
-              " (" + oncelikEtiketi(gorevler[i].oncelik) + ")");
+              " (" + oncelikEtiketi(gorevler[i].oncelik) + ")\n");
     }
     print("Tamamlanan: " + (tamamSayisi as string) + " / " +
-          (gorevler.length as string));
+          (gorevler.length() as string) + "\n");
 }
 ```
 
@@ -142,18 +142,18 @@ struct Gorev {
     bool   tamamlandi;
 }
 
-Gorev[] gorevler;
+Gorev[] gorevler = [];
 
 void gorevEkle(string baslik, Oncelik oncelik) {
     Gorev g;
     g.baslik     = baslik;
     g.oncelik    = oncelik;
     g.tamamlandi = false;
-    gorevler.append(g);
+    gorevler.push(g);
 }
 
 void tamamlandiIsaretle(int indeks) {
-    if (indeks >= 0 && indeks < gorevler.length) {
+    if (indeks >= 0 && indeks < gorevler.length()) {
         gorevler[indeks].tamamlandi = true;
     }
 }
@@ -168,19 +168,19 @@ string oncelikEtiketi(Oncelik o) {
 }
 
 void gorevleriYazdir() {
-    print("--- Görevler ---");
+    print("--- Görevler ---\n");
     int tamamSayisi = 0;
-    for (int i = 0; i < gorevler.length; i = i + 1) {
+    for (int i = 0; i < gorevler.length(); i = i + 1) {
         string kutu = "[ ]";
         if (gorevler[i].tamamlandi) {
             kutu = "[x]";
             tamamSayisi = tamamSayisi + 1;
         }
         print(kutu + " " + gorevler[i].baslik +
-              " (" + oncelikEtiketi(gorevler[i].oncelik) + ")");
+              " (" + oncelikEtiketi(gorevler[i].oncelik) + ")\n");
     }
     print("Tamamlanan: " + (tamamSayisi as string) + " / " +
-          (gorevler.length as string));
+          (gorevler.length() as string) + "\n");
 }
 
 int main() {
@@ -224,8 +224,8 @@ Tamamlanan: 1 / 3
 | `switch` | Öncelik etiketi |
 | `as` (dönüşüm) | `int`'i `string`'e çıktı için |
 | String birleştirme | `print()` içinde `+` |
-| `.length` | Dizi boyutu |
-| `.append()` | Diziye ekleme |
+| `.length()` | Dizi boyutu |
+| `.push()` | Diziye ekleme |
 
 ## Kendi başına dene
 

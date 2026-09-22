@@ -24,13 +24,19 @@ Host functions are declared in the compiler's embedded `root.sqt` using the
 `ffi` keyword:
 
 ```
-ffi float sqrt(float x) : MATH_SQRT from math;
-ffi string readFile(string path) : FS_READFILE from fs requires fs;
+ffi double sqrt(double x) : MATH_SQRT from math;
+ffi byte[] readFile(string path, int? seek, int? size) : FS_READ_FILE from fs;
 ```
 
-Each declaration specifies: the **signature** (types for type checking), a
-**symbolic host ID** (maps to C++ `HostFnId` enum), a **module** (for
-import-gating), and optionally a **capability** and stability flag.
+Each declaration specifies three things: the **signature** (the types the type
+checker uses), a **symbolic host ID** (which maps to the C++ implementation),
+and a **module** (which import brings the name into scope).
+
+These declarations are not hidden inside the compiler's C++ source. They live
+in `src/internal/ffi.sqt`, a real saQut file that is embedded into the binary
+at build time, so it opens in an editor with syntax highlighting and is visible
+to the language server. Reading that file is the authoritative way to see every
+host function the compiler provides, with exact signatures.
 
 When you write:
 
@@ -50,18 +56,23 @@ int main() {
 
 No string matching. No runtime reflection. A single numeric dispatch.
 
-## Capability and FFI
+## No capability gate
 
-Host functions that reach outside the VM (file I/O, network, system calls)
-must declare `requires fs` (or `net`, `sys`). The compiler and runtime both
-enforce this. A host function without a `requires` clause is pure and needs
-no `--allow` flag.
+Earlier versions gated host functions behind a capability system: a
+declaration carried a `requires fs` clause, and running the program needed a
+matching `--allow` flag. That system was removed in 0.9.4 (ADR-043). Host
+calls are open by default, there is no `requires` clause, and `--allow` is not
+a flag.
+
+What still gates a host function is the import: a name you have not imported
+is not in scope, so the set of outside functions a file can reach is visible
+at the top of that file.
 
 ## print() is also FFI
 
 The `print()` function you've been using since Hello World is itself a host
-function (`: PRINT from core`). It is always available because it is declared in
-the core module, which needs no import and no capability.
+function. It is always available because it belongs to the core module, which
+needs no import.
 
 ## Writing your own host function
 
@@ -72,11 +83,11 @@ root, implement the C++ body in `host_functions.hpp`, assign a new
 
 ## FFI vs. standard library
 
-| What | Mechanism | Import required | Capability required |
-|---|---|---|---|
-| `s.upper()`, `arr.append()` | UFCS built-in | No | No |
-| `readFile()`, `sqrt()` | FFI (stdlib) | Yes | Depends on function |
-| `print()` | FFI (core) | No | No |
+| What | Mechanism | Import required |
+|---|---|---|
+| `s.upper()`, `arr.push()` | UFCS built-in | No |
+| `readFile()`, `sqrt()` | FFI (stdlib) | Yes |
+| `print()` | FFI (core) | No |
 
 The standard library is a set of FFI declarations shipped with the compiler.
 You don't see the FFI machinery when using `import { readFile } from fs`

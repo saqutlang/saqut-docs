@@ -199,11 +199,11 @@ int main() {
 
 The top level of a file is **module scope**: only declarations (global
 variables, functions, structs, enums) are allowed there. Running a *statement*
-at module scope — an assignment, increment, method call, `if`, loop, … — is
+at module scope (an assignment, increment, method call, `if`, loop, and so on) is
 rejected:
 
 ```c
-int counter = 5;    // OK — declaration
+int counter = 5;    // OK: declaration
 
 counter = 10;       // E013, statements are not allowed at module scope
 counter++;          // E013
@@ -211,7 +211,7 @@ arr.push(1);        // E013
 print(counter);     // E013
 
 int main() {
-    counter = 10;   // OK — inside a function
+    counter = 10;   // OK: inside a function
     return 0;
 }
 ```

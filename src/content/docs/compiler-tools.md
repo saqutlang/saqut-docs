@@ -174,7 +174,7 @@ saqut ast examples/algorithm/03_insertion_sort.sqt --json
 ```
 
 Without `--json`, `saqut ast` prints the same tree as an indented,
-human-readable text dump instead — useful at a terminal, not meant for
+human-readable text dump instead, which is useful at a terminal, not meant for
 parsing.
 
 The `--optimized` flag shows the AST **after** constant folding and dead code
