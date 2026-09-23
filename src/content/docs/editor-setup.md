@@ -12,12 +12,12 @@ each feature does.
 The saQut extension is distributed as a `.vsix` file. Install it in one of two
 ways.
 
-**From a downloaded release (most users).** Download `saqut-0.4.0.vsix` from
+**From a downloaded release (most users).** Download `saqut-1.0.0.vsix` from
 [GitHub Releases](https://github.com/saqutlang/saqut/releases), then install it
 by its full path:
 
 ```bash
-code --install-extension /path/to/saqut-0.4.0.vsix
+code --install-extension /path/to/saqut-1.0.0.vsix
 ```
 
 Or through VS Code: open the Extensions panel (`Ctrl+Shift+X`), click the `...`
@@ -28,7 +28,7 @@ downloaded.
 already sits in `editor/vscode/`, so you can install it from the repo root:
 
 ```bash
-code --install-extension editor/vscode/saqut-0.4.0.vsix
+code --install-extension editor/vscode/saqut-1.0.0.vsix
 ```
 
 Once installed, `.sqt` files get automatic syntax highlighting.

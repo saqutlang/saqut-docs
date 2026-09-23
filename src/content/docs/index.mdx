@@ -9,7 +9,7 @@ head:
       content: website
 hero:
   title: saQut
-  tagline: A small, procedural language whose compiler is a <em>glass box</em>. Every phase (tokens, AST, symbols, IR) is a named, inspectable, machine-readable output.
+  tagline: "Write a program, then watch the compiler think. saQut is a procedural language whose compiler hides nothing: <em>every step from source to running code</em> is a command you can run, read and feed to your own tools."
   image:
     file: ../../assets/hero.png
     alt: An illustration of a developer handing a flowchart to the saQut mascot, a smiling rounded-square character labeled "sqt", next to icons for memory, storage, and network.
@@ -50,6 +50,31 @@ saqut run     hello.sqt     # compile & execute
 
 The language is deliberately small and C-flavoured. It exists to give the
 inspectable pipeline something to compile.
+
+### What ships in 1.0
+
+- **Bytecode VM:** the reference runtime. Your program is compiled to simple
+  instructions and run by a loop inside saQut. It is the backend every other
+  part is checked against: same input, same output, every time.
+- **JIT compiler (`--jit`):** translates the same instructions into native
+  machine code while the program starts. Loops and arithmetic run much faster.
+  It is experimental and must print exactly what the VM prints.
+- **Garbage collector (GC):** strings, arrays and structs are freed
+  automatically when nothing can reach them any more, cycles included. You
+  never write `free`; `--gc-stats` shows what was collected.
+- **LSP (Language Server):** the protocol editors use for "go to definition",
+  hover types, rename and live error squiggles. `saqut lsp` speaks it directly.
+- **DAP (Debug Adapter):** the protocol editors use for breakpoints and
+  step-by-step execution. `saqut dap` lets you pause a program and inspect its
+  variables.
+- **Catchable runtime errors:** division by zero, out-of-range index, null
+  access and stack overflow raise an error you can `catch`, with a code, a
+  message and a source location.
+- **Modules and a standard library:** split code across files with
+  `import` / `export`; reach files, paths, text encoding, dates, the terminal
+  and the process through `fs`, `path`, `utf8`, `date`, `sys` and friends.
+- **Machine-readable everything:** tokens, AST, symbols, IR and diagnostics
+  come out as JSON or JSONL, so scripts and CI can read what the compiler saw.
 
 ---
 
@@ -187,6 +212,42 @@ Each arrow corresponds to a CLI command you can run and inspect.
 ---
 
 ## Changelog
+
+### September 23, 2026 · 1.0.0 · Feedback MVP
+
+- `34c22b5` | Programs that used to run with a silently wrong result now
+  stop with a clear error: missing operands (`5 +`), missing `;`, unknown
+  escapes like `"\x41"`, and the non-existent `>>>` operator.
+- `34c22b5` | Variables declared without a value start at a typed zero on
+  every loop iteration, on the VM and the JIT alike.
+- `34c22b5` | `%` works on `float` and `double`; compound assignments like
+  `d *= k` widen an `int` right-hand side correctly.
+- `34c22b5` | Endless recursion raises a catchable `E_STACK_OVERFLOW` instead
+  of hanging or crashing; the limit is set with `--max-call-depth=N`.
+- `34c22b5` | Accessing a field of a null struct raises a catchable `E_NULL`.
+- `34c22b5` | Modules have their own namespace: private names no longer clash
+  across files, `import { x as y }` works for source files, and a standard
+  library import is only visible in the file that imports it.
+- `34c22b5` | A decimal literal without context is a `double`, as documented.
+- `34c22b5` | The CLI rejects unknown options and stray arguments instead of
+  ignoring them; all runtime messages are in English.
+- `87068da` | `**` exponentiation, prefix `++x`, and `++`/`--` on every
+  numeric type, array element and struct field.
+- `100979f` | `byte` arithmetic wraps within 8 bits; an explicit `as byte`
+  cast still checks the range.
+- `1f4a119` | Optimization is on by default; `--dont-optimize` turns it off.
+- `b33d569` | One garbage collector shared by the VM and the JIT.
+- `2862123` | Strings use a single garbage-collected representation on both
+  backends.
+- `4ec9c2e` | Runtime values shrank from 112 to 40 bytes.
+- `0a0847d` | The JIT checks for errors only after instructions that can fail;
+  pure arithmetic became up to 57x faster than the VM.
+- `c54b157` | Array reads and writes in the JIT are direct memory accesses for
+  every packed element type.
+- `41efa5e` | New standard library modules: `path`, `utf8`, `process`,
+  `stdin`/`stdout`/`stderr`, `os` and `terminal`.
+- `651b04f` | `readFile` can read a slice of a file with `seek` and `size`.
+- `b7aa4d5` | Imports can be renamed: `import { readFile as load } from fs;`.
 
 ### August 24, 2026 · 0.9.4 · Errors Get Caught Now
 
@@ -419,4 +480,6 @@ Each arrow corresponds to a CLI command you can run and inspect.
 [0.5.0 → 0.6.0](https://github.com/saqutlang/saqut/compare/0.5.0...0.6.0) ·
 [0.6.0 → 0.7.0](https://github.com/saqutlang/saqut/compare/0.6.0...0.7.0) ·
 [0.7.0 → 0.8.0](https://github.com/saqutlang/saqut/compare/0.7.0...0.8.0) ·
-[0.8.0 → 0.9.0](https://github.com/saqutlang/saqut/compare/0.8.0...v0.9.0)
+[0.8.0 → 0.9.0](https://github.com/saqutlang/saqut/compare/0.8.0...v0.9.0) ·
+[0.9.0 → 0.9.4](https://github.com/saqutlang/saqut/compare/v0.9.0...v0.9.4) ·
+[0.9.4 → 1.0.0](https://github.com/saqutlang/saqut/compare/v0.9.4...v1.0.0)

@@ -12,12 +12,12 @@ yaptığını anlatır.
 saQut eklentisi bir `.vsix` dosyası olarak dağıtılır. İki yoldan biriyle
 yükleyebilirsin.
 
-**İndirilen sürümden (çoğu kullanıcı).** `saqut-0.4.0.vsix` dosyasını
+**İndirilen sürümden (çoğu kullanıcı).** `saqut-1.0.0.vsix` dosyasını
 [GitHub Releases](https://github.com/saqutlang/saqut/releases) sayfasından
 indir, sonra tam yolunu vererek yükle:
 
 ```bash
-code --install-extension /indirilen/yol/saqut-0.4.0.vsix
+code --install-extension /indirilen/yol/saqut-1.0.0.vsix
 ```
 
 Veya VS Code üzerinden: Eklentiler panelini aç (`Ctrl+Shift+X`), sağ üstteki
@@ -27,7 +27,7 @@ Veya VS Code üzerinden: Eklentiler panelini aç (`Ctrl+Shift+X`), sağ üstteki
 `editor/vscode/` içinde olur, depo kökünden yükleyebilirsin:
 
 ```bash
-code --install-extension editor/vscode/saqut-0.4.0.vsix
+code --install-extension editor/vscode/saqut-1.0.0.vsix
 ```
 
 Kurulumdan sonra `.sqt` dosyaları otomatik söz dizimi vurgulaması kazanır.

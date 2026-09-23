@@ -59,7 +59,7 @@ update the tables below and the sidebar in `astro.config.mjs` in the same
 change. A stale map here caused wrong assumptions about what exists.
 
 The sidebar has four groups (authoritative order lives in `astro.config.mjs`):
-Introduction, Learn the Language, Libraries & Real Programs, Under the Hood.
+Introduction, Learn the Language, Libraries, Under the Hood.
 Each `<slug>` below exists in English at `/<slug>/` and in Turkish at
 `/tr/<slug>/`.
 
@@ -96,7 +96,7 @@ Each `<slug>` below exists in English at `/<slug>/` and in Turkish at
 | modules | Modules (import/export) / Modüller |
 | tutorial-task-tracker | Build a Task Tracker / Görev Takip Programı |
 
-### Libraries & Real Programs
+### Libraries
 
 | Slug | Page |
 |------|------|
@@ -156,7 +156,7 @@ changes, and fix any page that disagrees with it.
   by default. Do not reintroduce capability language into any page.
 - **FFI:** a curated host-function seam (how `fs`, `sys`, `math`, `date` reach
   your program). It is not a mechanism for loading arbitrary C/C++ libraries.
-- **VS Code extension:** distributed as a `.vsix` (current: `saqut-0.4.0.vsix`).
+- **VS Code extension:** distributed as a `.vsix` (current: `saqut-1.0.0.vsix`).
   End users install the file downloaded from GitHub Releases by its full path;
   the `editor/vscode/...` repo-relative path only works from a source checkout.
 

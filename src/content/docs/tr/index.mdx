@@ -9,7 +9,7 @@ head:
       content: website
 hero:
   title: saQut
-  tagline: "Küçük, prosedürel bir dil. Ama asıl olay derleyicisinde: <em>her aşama şeffaf</em>. Token, AST, sembol tablosu, IR; hepsi isimlendirilmiş, okunabilir, makineye aktarılabilir."
+  tagline: "Programını yaz, sonra derleyicinin nasıl düşündüğünü izle. saQut, derleyicisi hiçbir şeyi saklamayan prosedürel bir dildir: <em>kaynaktan çalışan koda kadar her adım</em> çalıştırabileceğin, okuyabileceğin ve kendi araçlarına bağlayabileceğin bir komuttur."
   image:
     file: ../../../assets/hero.png
     alt: Bir geliştiricinin saQut maskotuna (gülümseyen, üzerinde "sqt" yazan yuvarlak köşeli bir kare karakter) bir akış şeması uzattığını, yanında bellek, depolama ve ağ simgelerinin bulunduğunu gösteren bir illüstrasyon.
@@ -50,6 +50,32 @@ saqut run     hello.sqt     # derle ve çalıştır
 
 Dil bilinçli olarak küçük ve C benzeri tutuldu. Amacı, incelenebilir işlem
 zincirine derlenecek bir kaynak sağlamaktır.
+
+### 1.0 ile gelenler
+
+- **Bytecode VM:** referans çalışma ortamı. Programın basit komutlara
+  derlenir ve saQut içindeki bir döngü tarafından çalıştırılır. Diğer her
+  parça buna göre doğrulanır: aynı girdi, her seferinde aynı çıktı.
+- **JIT derleyici (`--jit`):** aynı komutları program başlarken doğrudan
+  makine koduna çevirir. Döngüler ve hesaplar çok daha hızlı çalışır. Deneysel
+  durumdadır ve VM ile birebir aynı çıktıyı vermek zorundadır.
+- **Çöp toplayıcı (GC):** hiçbir yerden erişilemeyen string, dizi ve struct'lar
+  (birbirini gösteren döngüler dahil) kendiliğinden serbest bırakılır. `free`
+  yazmazsın; `--gc-stats` neyin toplandığını gösterir.
+- **LSP (Dil Sunucusu):** editörlerin "tanıma git", tip ipucu, yeniden
+  adlandırma ve anlık hata çizgileri için kullandığı protokol. `saqut lsp` bunu
+  doğrudan konuşur.
+- **DAP (Hata Ayıklama Adaptörü):** editörlerin kesme noktası ve adım adım
+  çalıştırma için kullandığı protokol. `saqut dap` ile programı durdurup
+  değişkenlerine bakabilirsin.
+- **Yakalanabilir çalışma zamanı hataları:** sıfıra bölme, dizi sınırı aşımı,
+  null erişimi ve yığın taşması, kodu, mesajı ve kaynak konumu olan ve `catch`
+  ile yakalanabilen bir hata üretir.
+- **Modüller ve standart kütüphane:** kodu `import` / `export` ile dosyalara
+  böl; dosyalara, yollara, metin kodlamaya, tarihe, terminale ve sürece `fs`,
+  `path`, `utf8`, `date`, `sys` gibi modüllerle ulaş.
+- **Her şey makinece okunabilir:** token, AST, sembol, IR ve tanılar JSON ya da
+  JSONL olarak çıkar; betikler ve CI derleyicinin ne gördüğünü okuyabilir.
 
 ---
 
@@ -190,6 +216,42 @@ Her ok, çalıştırıp inceleyebileceğiniz bir CLI komutuna karşılık gelir.
 ---
 
 ## Sürüm günlüğü
+
+### 23 Eylül 2026 · 1.0.0 · Geri Bildirim Sürümü
+
+- `34c22b5` | Eskiden sessizce yanlış sonuçla çalışan programlar artık açık
+  bir hatayla duruyor: eksik operand (`5 +`), eksik `;`, `"\x41"` gibi
+  bilinmeyen kaçışlar ve dilde olmayan `>>>` operatörü.
+- `34c22b5` | Değer verilmeden bildirilen değişkenler her döngü turunda tipine
+  uygun sıfırla başlıyor; VM'de ve JIT'te aynı.
+- `34c22b5` | `%` artık `float` ve `double` üzerinde çalışıyor; `d *= k` gibi
+  bileşik atamalar `int` sağ tarafı doğru genişletiyor.
+- `34c22b5` | Sonsuz özyineleme askıda kalmak ya da çökmek yerine
+  yakalanabilir `E_STACK_OVERFLOW` veriyor; sınır `--max-call-depth=N` ile
+  ayarlanıyor.
+- `34c22b5` | Null bir struct'ın alanına erişmek yakalanabilir `E_NULL` veriyor.
+- `34c22b5` | Modüllerin kendi ad alanı var: özel adlar dosyalar arasında
+  çakışmıyor, `import { x as y }` kaynak dosyalarda çalışıyor ve standart
+  kütüphane importu yalnız onu yapan dosyada görünüyor.
+- `34c22b5` | Bağlamsız ondalık literal, belgelendiği gibi `double`.
+- `34c22b5` | CLI bilinmeyen seçenekleri ve fazladan argümanları yok saymak
+  yerine reddediyor; tüm çalışma zamanı mesajları İngilizce.
+- `87068da` | `**` üs alma, önek `++x` ve her sayısal tipte, dizi elemanında
+  ve struct alanında `++`/`--`.
+- `100979f` | `byte` aritmetiği 8 bit içinde sarıyor; açık `as byte` dönüşümü
+  aralığı hâlâ denetliyor.
+- `1f4a119` | Optimizasyon varsayılan olarak açık; `--dont-optimize` kapatıyor.
+- `b33d569` | VM ve JIT tek bir çöp toplayıcıyı paylaşıyor.
+- `2862123` | String'ler iki arka uçta da tek bir GC'li gösterim kullanıyor.
+- `4ec9c2e` | Çalışma zamanı değerleri 112 bayttan 40 bayta küçüldü.
+- `0a0847d` | JIT hata denetimini yalnız hata verebilen komutlardan sonra
+  yapıyor; saf hesaplama VM'e göre 57 kata kadar hızlandı.
+- `c54b157` | JIT'te dizi okuma ve yazma, her paketli eleman tipinde
+  doğrudan bellek erişimi.
+- `41efa5e` | Yeni standart kütüphane modülleri: `path`, `utf8`, `process`,
+  `stdin`/`stdout`/`stderr`, `os` ve `terminal`.
+- `651b04f` | `readFile`, `seek` ve `size` ile dosyanın bir parçasını okuyabiliyor.
+- `b7aa4d5` | Importlar yeniden adlandırılabiliyor: `import { readFile as oku } from fs;`.
 
 ### 24 Ağustos 2026 · 0.9.4 · Hatalar Artık Yakalanıyor
 
@@ -433,4 +495,6 @@ Her ok, çalıştırıp inceleyebileceğiniz bir CLI komutuna karşılık gelir.
 [0.5.0 → 0.6.0](https://github.com/saqutlang/saqut/compare/0.5.0...0.6.0) ·
 [0.6.0 → 0.7.0](https://github.com/saqutlang/saqut/compare/0.6.0...0.7.0) ·
 [0.7.0 → 0.8.0](https://github.com/saqutlang/saqut/compare/0.7.0...0.8.0) ·
-[0.8.0 → 0.9.0](https://github.com/saqutlang/saqut/compare/0.8.0...v0.9.0)
+[0.8.0 → 0.9.0](https://github.com/saqutlang/saqut/compare/0.8.0...v0.9.0) ·
+[0.9.0 → 0.9.4](https://github.com/saqutlang/saqut/compare/v0.9.0...v0.9.4) ·
+[0.9.4 → 1.0.0](https://github.com/saqutlang/saqut/compare/v0.9.4...v1.0.0)
