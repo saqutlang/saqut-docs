@@ -164,11 +164,13 @@ if (name.startsWith("sa")) {
 - Strings are **immutable**: once created, they cannot be changed
 - `string` behaves like a value type: `==` compares content
 - Internally strings are stored inline when short, heap-allocated when long
-- UTF-8 encoding: a non-ASCII character may span 1-4 bytes. The current
-  built-ins (`length()`, `substring()`, `charAt()`, `indexOf()`) operate on
-  **bytes**, so for ASCII text one index = one character, but for accented or
-  non-Latin text a single character may occupy several byte positions. Keep this
-  in mind until code-point/grapheme-aware helpers are added
+- UTF-8 encoding: a non-ASCII character may span 1-4 bytes. The built-ins
+  (`length()`, `substring()`, `charAt()`, `indexOf()`) operate on **code
+  points**, not bytes, so `"café".length()` is `4`. Use `toBuffer()` (or
+  `encode()` from `utf8`) when you need the byte representation.
+- Indexing is by code point, not by grapheme cluster. A base letter plus a
+  combining accent is two code points, so grapheme-aware helpers remain a
+  separate, future concern
 
 ## What's Next?
 

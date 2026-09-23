@@ -65,20 +65,21 @@ print("hello".length());    // 5
 print("".length());         // 0
 ```
 
-String'deki **byte** sayısını sayar. Düz İngilizce/ASCII metin için bir byte =
-bir karakter olduğundan beklediğiniz sonucu verir.
+String'deki **karakter** (Unicode kod noktası) sayısını sayar. Metin UTF-8
+olarak saklanır, ama string metotları byte ile değil kod noktası ile indeksler,
+bu yüzden `length()` gördüğünüzle örtüşür:
 
-> **UTF-8 tuzağı.** saQut metni UTF-8 olarak saklar; ASCII olmayan karakterler
-> birden fazla byte tutar. `length()` **görünen karakter sayısını değil**, byte
-> sayısını döndürür:
->
-> ```c
-> print("café".length());   // 5, 4 değil; 'é' 2 byte
-> ```
->
-> Saf ASCII metin için bunu göz ardı edebilirsiniz. Uluslararası metinlerde
-> `length()`, `substring()` ve `charAt()` fonksiyonlarının hep **byte**
-> cinsinden çalıştığını unutmayın.
+```c
+print("café".length());            // 4   (kod noktası)
+print("café".toBuffer().length()); // 5   (byte)
+```
+
+`length()`, `substring()`, `charAt()` ve `indexOf()` aynı kod-noktası indeksini
+kullanır, yani birbirleriyle tutarlıdır. Gerçekten byte gerektiğinde
+`toBuffer()` (veya `utf8` modülünden `encode()`) ile dönüştürün.
+
+> **Grapheme notu.** Bir kod noktası her zaman görünen bir glif değildir. Taban
+> harf ardından gelen birleşik aksan iki kod noktasıdır, burada 2 sayılır.
 
 ### `upper()` / `lower()` (büyük/küçük harf)
 
@@ -169,8 +170,8 @@ döndürdüğü için soldan sağa sıralayabilirsiniz.
 
 ### `substring(baslangic, uzunluk)` (bir parça kes)
 
-String'in **`baslangic` byte indisinden başlayarak**, `uzunluk` byte'ını
-döndürür. İndisler **0**'dan başlar.
+String'in **`baslangic` kod-noktası indisinden başlayarak**, `uzunluk`
+karakterini döndürür. İndisler **0**'dan başlar.
 
 > **İkinci argümanı dikkatli okuyun.** Bu bir **uzunluktur (adet)**, *bitiş
 > konumu değildir*. `substring(2, 3)` "2. indisten başla ve 3 karakter al"
@@ -204,8 +205,9 @@ print("x".repeat(0));       // ""          (sıfır kopya = boş string)
 
 ### `charAt(indis)` (bir konumdaki karakter)
 
-`indis` byte konumundaki (0'dan başlar) **tek karakterlik bir string** döndürür.
-saQut'ta ayrı bir "tek karakter" tipi yoktur, sonuç 1 uzunluklu bir string'tir.
+`indis` kod-noktası konumundaki (0'dan başlar) **tek karakterlik bir string**
+döndürür. saQut'ta ayrı bir "tek karakter" tipi yoktur, sonuç 1 uzunluklu bir
+string'tir.
 
 ```c
 string s = "saqut";
@@ -225,7 +227,7 @@ for (int i = 0; i < word.length(); i = i + 1) {
 
 ### `indexOf(parca)` (nerede geçiyor?)
 
-`parca`'yı arar ve **ilk** geçtiği byte indisini döndürür. `parca`
+`parca`'yı arar ve **ilk** geçtiği kod-noktası indisini döndürür. `parca`
 bulunamazsa **`null`** döner; bu yüzden sonuç tipi `int?` (nullable)
 olur. Sayıyı kullanmadan önce `null` kontrolü yapmalısınız.
 
@@ -492,7 +494,7 @@ Hatayı **siz** kovalarken çıktıyı okuyacaksanız bunu kullanın.
 
 | Metot | Döndürdüğü | Yaptığı |
 |--------|---------|--------------|
-| `s.length()` | `int` | Byte sayısı (ASCII için = karakter) |
+| `s.length()` | `int` | Karakter sayısı (kod noktası) |
 | `s.upper()` | `string` | ASCII harfleri büyütür |
 | `s.lower()` | `string` | ASCII harfleri küçültür |
 | `s.trim()` | `string` | İki uçtaki boşlukları siler |

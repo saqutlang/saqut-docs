@@ -63,19 +63,21 @@ print("hello".length());    // 5
 print("".length());         // 0
 ```
 
-Counts the **bytes** in the string. For plain English/ASCII text one byte = one
-character, so the byte count and the character count are the same.
+Counts the **characters** (Unicode code points) in the string. Text is stored
+as UTF-8, but the string methods index by code point, not by byte, so
+`length()` matches what you see:
 
-> **UTF-8 gotcha.** saQut stores text as UTF-8, where non-ASCII characters take
-> more than one byte. `length()` returns the **byte count**, not the number of
-> visible characters:
->
-> ```c
-> print("café".length());   // 5, not 4, 'é' is 2 bytes
-> ```
->
-> For pure ASCII text you can ignore this. For international text, be aware that
-> `length()`, `substring()`, and `charAt()` all work in **bytes**.
+```c
+print("café".length());            // 4   (code points)
+print("café".toBuffer().length()); // 5   (bytes)
+```
+
+`length()`, `substring()`, `charAt()`, and `indexOf()` all use the same
+code-point index, so they agree with each other. When you really need bytes,
+convert with `toBuffer()` (or `encode()` from the `utf8` module).
+
+> **Grapheme note.** One code point is not always one visible glyph. A base
+> letter followed by a combining accent is two code points, so it counts as 2.
 
 ### `upper()` / `lower()` (change case)
 
@@ -164,8 +166,8 @@ can line them up left to right.
 
 ### `substring(start, length)` (cut out a piece)
 
-Returns a piece of the string **starting at byte index `start`**, taking
-`length` bytes. Indices start at **0**.
+Returns a piece of the string **starting at code-point index `start`**, taking
+`length` characters. Indices start at **0**.
 
 > **Read the second argument carefully.** It is a **length (a count)**, *not* an
 > end position. `substring(2, 3)` means "start at index 2 and take 3
@@ -199,8 +201,9 @@ print("x".repeat(0));       // ""          (zero copies = empty string)
 
 ### `charAt(index)` (the character at one position)
 
-Returns a **one-character string** at byte index `index` (starting at 0). saQut
-has no separate "single character" type here, so you get back a length-1 string.
+Returns a **one-character string** at code-point index `index` (starting at 0).
+saQut has no separate "single character" type here, so you get back a length-1
+string.
 
 ```c
 string s = "saqut";
@@ -220,7 +223,8 @@ for (int i = 0; i < word.length(); i = i + 1) {
 
 ### `indexOf(sub)` (where does it appear?)
 
-Searches for `sub` and returns the byte index of its **first** occurrence. If
+Searches for `sub` and returns the code-point index of its **first** occurrence.
+If
 `sub` is not found, it returns **`null`**, so the result type is `int?`
 (nullable). You must check for `null` before using the number.
 
@@ -487,7 +491,7 @@ Use this when *you* are the one reading the output while hunting a bug.
 
 | Method | Returns | What it does |
 |--------|---------|--------------|
-| `s.length()` | `int` | Number of bytes (= characters for ASCII) |
+| `s.length()` | `int` | Number of characters (code points) |
 | `s.upper()` | `string` | ASCII letters to uppercase |
 | `s.lower()` | `string` | ASCII letters to lowercase |
 | `s.trim()` | `string` | Remove whitespace from both ends |

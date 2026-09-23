@@ -168,11 +168,13 @@ if (name.startsWith("sa")) {
 - Dahili olarak string'ler kısa olduklarında satır içinde (inline), uzun
   olduklarında heap'te saklanır
 - UTF-8 kodlaması: ASCII olmayan bir karakter 1-4 byte uzunluğunda olabilir.
-  Mevcut yerleşikler (`length()`, `substring()`, `charAt()`, `indexOf()`)
-  **byte** bazında çalışır; bu yüzden ASCII metin için bir indis = bir
-  karakterdir, ancak aksanlı veya Latin olmayan metinlerde tek bir karakter
-  birden fazla byte konumunu kaplayabilir. Kod noktası/grapheme farkında
-  yardımcılar eklenene kadar bunu aklınızda bulundurun
+  Yerleşikler (`length()`, `substring()`, `charAt()`, `indexOf()`) **kod
+  noktası** bazında çalışır, byte bazında değil; bu yüzden `"café".length()`
+  `4`'tür. Byte temsiline ihtiyaç duyduğunuzda `toBuffer()` (veya `utf8`
+  modülünden `encode()`) kullanın.
+- İndeksleme kod noktası bazındadır, grapheme kümesi bazında değil. Taban harf
+  ardından gelen birleşik aksan iki kod noktasıdır; grapheme farkında yardımcılar
+  ayrı ve gelecekteki bir konudur
 
 ## Sonra Ne Var?
 
